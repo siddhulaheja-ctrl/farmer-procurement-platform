@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Slot Management{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Slot management</h2>
+<p class="page-sub">Publish time windows and set how many farmers each window can take.</p>
+
+<form method="get" class="filter-bar">
+  <div class="field">
+    <label for="centre_id">Centre</label>
+    <select id="centre_id" name="centre_id">
+      <option value="">All centres</option>
+      {% for c in centres %}
+        <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="date">Date</label>
+    <input type="date" id="date" name="date" value="{{ sel_date }}">
+  </div>
+  <div class="actions"><button class="btn" type="submit">Show</button></div>
+</form>
+
+<div class="grid side">
+  <div class="card">
+    <div class="card-head"><span>Slots on {{ sel_date|nicedate }}</span></div>
+    {% if slots %}
+    <div class="table-scroll">
+      <table class="data">
+        <thead>
+          <tr><th>Centre</th><th>Time window</th><th class="num">Capacity</th>
+              <th class="num">Booked</th><th class="num">Free</th><th>Utilisation</th></tr>
+        </thead>
+        <tbody>
+          {% for s in slots %}
+          {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 0 %}
+          <tr>
+            <td class="small">{{ s.centre_name }}</td>
+            <td class="nowrap">{{ s.time_window }}</td>
+            <td class="num">{{ s.max_capacity }}</td>
+            <td class="num">{{ s.booked_count }}</td>
+            <td class="num">
+              {% if s.max_capacity - s.booked_count > 0 %}{{ s.max_capacity - s.booked_count }}
+              {% else %}<span class="badge red">Full</span>{% endif %}
+            </td>
+            <td style="min-width:120px">
+              <div class="capbar">
+                <span class="{{ 'hi' if pct >= 90 else ('mid' if pct >= 60 else '') }}"
+                      style="width: {{ pct }}%"></span>
+              </div>
+              <span class="small muted">{{ pct }}%</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">No slots published for that date. Create one using the form alongside.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Add or update a slot</h2>
+    <div class="card-body">
+      <form method="post">
+        <div class="field">
+          <label for="new_centre">Centre <span class="req">*</span></label>
+          <select id="new_centre" name="centre_id" required>
+            {% for c in centres %}
+              <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="new_date">Date <span class="req">*</span></label>
+          <input type="date" id="new_date" name="date" value="{{ sel_date }}" required>
+        </div>
+        <div class="field">
+          <label for="time_window">Time window <span class="req">*</span></label>
+          <select id="time_window" name="time_window" required>
+            {% for w in windows %}<option value="{{ w }}">{{ w }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="max_capacity">Maximum farmers <span class="req">*</span></label>
+          <input type="number" id="max_capacity" name="max_capacity" min="1" max="500" value="8" required>
+          <div class="hint">If the slot already exists, its capacity is updated instead.</div>
+        </div>
+        <button class="btn block" type="submit">Save slot</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Assisted Registration{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Register a farmer</h2>
+<p class="page-sub">
+  Assisted registration for farmers without a smartphone. Details are validated as soon as you
+  save, so any mismatch can be corrected while the farmer is still at the counter.
+</p>
+
+<div class="grid side">
+  <div class="card">
+    <h2>Farmer details</h2>
+    <div class="card-body">
+      <form method="post">
+        {% with f = form, show_phone = true %}
+          {% include "_farmer_fields.html" %}
+        {% endwith %}
+
+        <div class="field">
+          <label for="registered_via">Registration channel</label>
+          <select id="registered_via" name="registered_via">
+            <option value="staff">Procurement centre counter</option>
+            <option value="csc">Common Service Centre operator</option>
+          </select>
+        </div>
+
+        <div class="btn-row mt">
+          <button class="btn" type="submit">Register farmer</button>
+          <a class="btn secondary" href="{{ url_for('admin_farmers') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="notice info">
+    <h3>Check the documents in front of you</h3>
+    <p>Copy the values exactly as printed on:</p>
+    <ul>
+      <li>Aadhaar card &mdash; all 12 digits</li>
+      <li>Bank passbook &mdash; account number, IFSC, <em>and the name as printed</em></li>
+      <li>Khasra / khatauni extract &mdash; land record ID</li>
+    </ul>
+    <p style="margin-bottom:0">
+      The name on the passbook is the field that most often differs. Enter it exactly, even if it
+      does not match the name given verbally &mdash; the system will flag it so it can be fixed
+      properly at the bank.
+    </p>
+  </div>
+</div>
+{% endblock %}

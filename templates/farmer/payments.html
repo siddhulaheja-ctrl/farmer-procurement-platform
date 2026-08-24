@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import payment_badge, grade_badge %}
+{% block title %}My Payments{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Payments</h2>
+<p class="page-sub">Every completed procurement and the current state of its payment.</p>
+
+<div class="card">
+  {% if rows %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Date</th><th>Centre</th><th>Token</th><th>Crop</th><th class="num">Quantity</th>
+            <th>Grade</th><th class="num">Rate</th><th class="num">Amount</th>
+            <th>Status</th><th>Credited</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="nowrap">{{ r.date|nicedate }}</td>
+          <td>{{ r.centre_name }}</td>
+          <td class="mono nowrap">{{ r.token_no }}</td>
+          <td>{{ r.crop_type }}</td>
+          <td class="num nowrap">{{ '%.1f'|format(r.actual_quantity or 0) }} qtl</td>
+          <td>{{ grade_badge(r.quality_grade) }}</td>
+          <td class="num nowrap">{{ r.price_per_unit|rupee }}</td>
+          <td class="num nowrap"><strong>{{ r.total_amount|rupee }}</strong></td>
+          <td>{{ payment_badge(r.payment_status) }}</td>
+          <td class="small muted nowrap">{{ r.payment_date|stamp if r.payment_date else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">No procurement transactions recorded yet.</div>
+  {% endif %}
+</div>
+
+<div class="notice info small">
+  Payments are credited by direct benefit transfer to the bank account registered against your
+  Aadhaar. If a payment shows as <strong>failed</strong>, the cause is almost always a detail
+  mismatch &mdash; check <a href="{{ url_for('farmer_profile') }}">My Details</a>.
+</div>
+{% endblock %}

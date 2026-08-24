@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Farmer Sign In{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div class="card">
+    <h2>Farmer sign in</h2>
+    <div class="card-body">
+      <form method="post">
+        <div class="field">
+          <label for="phone">Registered mobile number <span class="req">*</span></label>
+          <input type="tel" id="phone" name="phone" value="{{ phone }}" maxlength="10"
+                 inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel" required autofocus>
+          <div class="hint">A one-time password will be sent to this number.</div>
+        </div>
+        <button class="btn block" type="submit">Send OTP</button>
+      </form>
+      <hr class="rule">
+      <p class="small muted center" style="margin:0">
+        Not registered yet? <a href="{{ url_for('register') }}">Create an account</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="notice info small">
+    Demo accounts: <strong>9000000001</strong> (Ramesh Kumar) &middot;
+    <strong>9000000002</strong> (Sunita Devi, has data mismatches).
+  </div>
+</div>
+{% endblock %}

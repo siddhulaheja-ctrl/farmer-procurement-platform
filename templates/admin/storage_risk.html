@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import risk_badge %}
+{% block title %}Storage Risk{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Storage risk watchlist</h2>
+<p class="page-sub">
+  Upcoming bookings ranked by spoilage risk. A high-risk farmer is holding harvested produce
+  through a wet spell &mdash; offer them an earlier slot before the grain is downgraded at the gate.
+</p>
+
+<div class="card">
+  <div class="card-head">
+    <span>{{ rows|length }} upcoming booking{{ 's' if rows|length != 1 }}</span>
+    <form method="post" action="{{ url_for('admin_demo') }}">
+      <input type="hidden" name="action" value="rescan_risk">
+      <button class="btn small secondary" type="submit">Re-scan forecasts now</button>
+    </form>
+  </div>
+  {% if rows %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Risk</th><th>Farmer</th><th>District</th><th>Centre</th><th>Slot date</th>
+            <th class="num">Days away</th><th>Crop</th><th class="num">Est. qty</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ risk_badge(r.storage_risk) }}</td>
+          <td>
+            <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
+            <div class="small muted">{{ r.phone_number }}</div>
+          </td>
+          <td class="nowrap">{{ r.farmer_district }}</td>
+          <td class="small">{{ r.centre_name }}</td>
+          <td class="nowrap">{{ r.date|nicedate }}</td>
+          <td class="num">{{ r.date|daysaway }}</td>
+          <td>{{ r.crop_type }}</td>
+          <td class="num nowrap">{{ '%.1f'|format(r.estimated_quantity) }}</td>
+          <td class="nowrap">
+            <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=r.id) }}">Open</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">No upcoming bookings.</div>
+  {% endif %}
+</div>
+
+<div class="notice info small">
+  Risk is assessed from the rainfall and humidity forecast for the farmer's district across the
+  days between today and their slot. Bookings less than five days out are not assessed &mdash;
+  the storage exposure is too short to matter.
+</div>
+{% endblock %}

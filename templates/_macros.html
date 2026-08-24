@@ -1,0 +1,29 @@
+{% macro status_badge(s) -%}
+  {% if s == 'booked' %}<span class="badge blue">Booked</span>
+  {% elif s == 'arrived' %}<span class="badge amber">Arrived</span>
+  {% elif s == 'completed' %}<span class="badge green">Completed</span>
+  {% elif s == 'cancelled' %}<span class="badge grey">Cancelled</span>
+  {% else %}<span class="badge grey">{{ s }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro payment_badge(s) -%}
+  {% if s == 'completed' %}<span class="badge green">Paid</span>
+  {% elif s == 'processing' %}<span class="badge blue">Processing</span>
+  {% elif s == 'pending' %}<span class="badge amber">Pending</span>
+  {% elif s == 'failed' %}<span class="badge red">Failed</span>
+  {% else %}<span class="badge grey">&mdash;</span>{% endif %}
+{%- endmacro %}
+
+{% macro risk_badge(r) -%}
+  {% if r == 'high' %}<span class="badge red">High risk</span>
+  {% elif r == 'low' %}<span class="badge amber">Low risk</span>
+  {% else %}<span class="badge grey">None</span>{% endif %}
+{%- endmacro %}
+
+{% macro grade_badge(g) -%}
+  {% if g == 'A' %}<span class="badge green">Grade A</span>
+  {% elif g == 'FAQ' %}<span class="badge green">FAQ</span>
+  {% elif g == 'B' %}<span class="badge amber">Grade B</span>
+  {% elif g == 'Rejected' %}<span class="badge red">Rejected</span>
+  {% else %}<span class="badge grey">&mdash;</span>{% endif %}
+{%- endmacro %}

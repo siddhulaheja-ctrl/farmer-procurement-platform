@@ -1,0 +1,82 @@
+{# Shared farmer-detail fieldset.
+   Used by self-registration, staff-assisted registration, the farmer's own
+   "My Details" page and the staff record-correction page, so the fields that
+   Feature A validates are identical everywhere they are captured.
+   Expects: f (mapping or sqlite Row), districts, show_phone (bool). #}
+
+<div class="field-row two">
+  <div class="field">
+    <label for="name">Full name (as printed on the bank passbook) <span class="req">*</span></label>
+    <input type="text" id="name" name="name" value="{{ f.name or '' }}" required>
+  </div>
+  <div class="field">
+    <label for="phone_number">Mobile number {% if show_phone %}<span class="req">*</span>{% endif %}</label>
+    {% if show_phone %}
+      <input type="tel" id="phone_number" name="phone_number" value="{{ f.phone_number or '' }}"
+             maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required>
+    {% else %}
+      <input type="tel" value="{{ f.phone_number or '' }}" readonly>
+      <div class="hint">Contact your centre to change your registered number.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="field-row two">
+  <div class="field">
+    <label for="village">Village / town</label>
+    <input type="text" id="village" name="village" value="{{ f.village or '' }}">
+  </div>
+  <div class="field">
+    <label for="district">District <span class="req">*</span></label>
+    <select id="district" name="district" required>
+      <option value="">-- Select district --</option>
+      {% for d in districts %}
+        <option value="{{ d }}" {{ 'selected' if f.district == d }}>{{ d }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<hr class="rule">
+<p class="small muted" style="margin-top:0">
+  The details below are checked immediately against format and match rules. Getting them right
+  now is what prevents your payment from being held up after procurement.
+</p>
+
+<div class="field">
+  <label for="aadhaar_number">Aadhaar number <span class="req">*</span></label>
+  <input type="text" id="aadhaar_number" name="aadhaar_number" class="mono"
+         value="{{ f.aadhaar_number or '' }}" maxlength="12" inputmode="numeric">
+  <div class="hint">12 digits, no spaces. Checked against the standard Aadhaar checksum.</div>
+</div>
+
+<div class="field-row two">
+  <div class="field">
+    <label for="bank_account">Bank account number <span class="req">*</span></label>
+    <input type="text" id="bank_account" name="bank_account" class="mono"
+           value="{{ f.bank_account or '' }}" maxlength="18" inputmode="numeric">
+  </div>
+  <div class="field">
+    <label for="ifsc_code">IFSC code <span class="req">*</span></label>
+    <input type="text" id="ifsc_code" name="ifsc_code" class="mono"
+           value="{{ f.ifsc_code or '' }}" maxlength="11" style="text-transform:uppercase">
+    <div class="hint">For example PUNB0123456.</div>
+  </div>
+</div>
+
+<div class="field">
+  <label for="bank_name_on_account">Name printed on the bank account</label>
+  <input type="text" id="bank_name_on_account" name="bank_name_on_account"
+         value="{{ f.bank_name_on_account or '' }}">
+  <div class="hint">
+    If this differs from the name above, the direct benefit transfer will fail. Leave blank to
+    copy the name above.
+  </div>
+</div>
+
+<div class="field">
+  <label for="land_record_id">Land record ID</label>
+  <input type="text" id="land_record_id" name="land_record_id" class="mono"
+         value="{{ f.land_record_id or '' }}" style="text-transform:uppercase">
+  <div class="hint">Format DDD-NNNNNN-NN, for example KAR-104238-12. Printed on your khasra/khatauni extract.</div>
+</div>

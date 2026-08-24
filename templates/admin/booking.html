@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge %}
+{% block title %}Verify {{ b.token_no }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('admin_dashboard') }}">Bookings</a> &rsaquo; {{ b.token_no }}
+</div>
+
+<h2 class="page-title">{{ b.token_no }} &mdash; {{ b.farmer_name }}</h2>
+<p class="page-sub">
+  {{ b.centre_name }} &middot; {{ b.date|nicedate }}, {{ b.time_window }}
+  &middot; {{ status_badge(b.status) }} {{ risk_badge(b.storage_risk) }}
+</p>
+
+{% if flags %}
+<div class="notice {{ 'error' if flags|selectattr('severity','equalto','blocking')|list else 'warning' }}">
+  <h3>This farmer has {{ flags|length }} unresolved detail issue{{ 's' if flags|length != 1 }}</h3>
+  <ul>
+    {% for fl in flags %}
+      <li>
+        <span class="badge {{ 'red' if fl.severity == 'blocking' else 'amber' }}">{{ fl.severity }}</span>
+        <strong>{{ fl.field_flagged|replace('_',' ')|title }}:</strong> {{ fl.detail }}
+      </li>
+    {% endfor %}
+  </ul>
+  <p style="margin-bottom:0">
+    Fix these now while the farmer is standing in front of you &mdash;
+    <a href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">correct the record</a>.
+    Closing a transaction with a blocking flag open will mark the payment as failed.
+  </p>
+</div>
+{% endif %}
+
+<div class="grid side">
+  <div>
+    <div class="card">
+      <h2>1. Record arriving produce</h2>
+      <div class="card-body">
+        {% if b.status == 'booked' %}
+        <p class="small muted" style="margin-top:0">
+          Declared: {{ b.crop_type }}, {{ '%.1f'|format(b.estimated_quantity) }} quintals.
+          Enter what was actually weighed at the gate.
+        </p>
+        <form method="post" action="{{ url_for('admin_arrive', booking_id=b.id) }}">
+          <div class="field-row two">
+            <div class="field">
+              <label for="actual_quantity">Weighed quantity (quintals) <span class="req">*</span></label>
+              <input type="number" id="actual_quantity" name="actual_quantity" step="0.1" min="0"
+                     value="{{ '%.1f'|format(b.estimated_quantity) }}" required>
+            </div>
+            <div class="field">
+              <label for="quality_grade">Quality grade <span class="req">*</span></label>
+              <select id="quality_grade" name="quality_grade" required>
+                {% for gr in grades %}<option value="{{ gr }}">{{ gr }}</option>{% endfor %}
+              </select>
+              <div class="hint">MSP for {{ b.crop_type }}: {{ msp.get(b.crop_type, 0)|rupee }} per quintal.
+                Grade B is paid at 94%, rejected produce at nil.</div>
+            </div>
+          </div>
+          <button class="btn" type="submit">Mark as arrived and record</button>
+        </form>
+        {% else %}
+          <p class="small muted" style="margin:0">
+            Recorded: {{ '%.1f'|format(txn.actual_quantity or 0) }} quintals,
+            {{ grade_badge(txn.quality_grade) if txn else '—' }}.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Close the transaction</h2>
+      <div class="card-body">
+        {% if txn %}
+          <dl class="kv">
+            <dt>Weighed quantity</dt><dd>{{ '%.1f'|format(txn.actual_quantity or 0) }} quintals</dd>
+            <dt>Quality grade</dt><dd>{{ grade_badge(txn.quality_grade) }}</dd>
+            <dt>Rate applied</dt><dd>{{ txn.price_per_unit|rupee }} per quintal</dd>
+            <dt>Total payable</dt><dd><strong>{{ txn.total_amount|rupee }}</strong></dd>
+            <dt>Payment status</dt><dd>{{ payment_badge(txn.payment_status) }}</dd>
+          </dl>
+          {% if b.status == 'arrived' %}
+          <form method="post" action="{{ url_for('admin_complete', booking_id=b.id) }}" class="mt">
+            <button class="btn go" type="submit">Complete transaction and release payment</button>
+          </form>
+          {% elif b.status == 'completed' %}
+          <form method="post" action="{{ url_for('admin_payment', txn_id=txn.id) }}" class="mt">
+            <div class="field">
+              <label for="payment_status">Update payment status</label>
+              <select id="payment_status" name="payment_status">
+                {% for s in ['pending','processing','completed','failed'] %}
+                  <option value="{{ s }}" {{ 'selected' if txn.payment_status == s }}>{{ s|title }}</option>
+                {% endfor %}
+              </select>
+              <div class="hint">
+                Simulated DBT. In production this status is returned by the payment gateway.
+              </div>
+            </div>
+            <button class="btn secondary" type="submit">Update</button>
+          </form>
+          {% endif %}
+        {% else %}
+          <p class="small muted" style="margin:0">Record the weighed quantity first.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Farmer record</h2>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Name</dt><dd>{{ farmer.name }}</dd>
+          <dt>Mobile</dt><dd>{{ farmer.phone_number }}</dd>
+          <dt>Village</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
+          <dt>Aadhaar</dt><dd class="mono">{{ farmer.aadhaar_number or '—' }}</dd>
+          <dt>Bank account</dt><dd class="mono">{{ farmer.bank_account or '—' }}</dd>
+          <dt>IFSC</dt><dd class="mono">{{ farmer.ifsc_code or '—' }}</dd>
+          <dt>Name on account</dt><dd>{{ farmer.bank_name_on_account or '—' }}</dd>
+          <dt>Land record</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
+          <dt>Registered via</dt><dd>{{ farmer.registered_via|upper }}</dd>
+        </dl>
+        <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">
+          Open full record
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

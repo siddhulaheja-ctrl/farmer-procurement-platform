@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Centre Staff Sign In{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div class="card">
+    <h2>Centre staff sign in</h2>
+    <div class="card-body">
+      <form method="post">
+        <div class="field">
+          <label for="staff_code">Staff code <span class="req">*</span></label>
+          <input type="text" id="staff_code" name="staff_code" value="{{ code }}"
+                 style="text-transform:uppercase" required autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password <span class="req">*</span></label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <button class="btn block" type="submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="notice info small">
+    Demo credentials: <strong>ADMIN</strong> / <strong>demo123</strong> (all centres), or
+    <strong>STAFF01</strong> / <strong>demo123</strong> (single centre).
+  </div>
+</div>
+{% endblock %}

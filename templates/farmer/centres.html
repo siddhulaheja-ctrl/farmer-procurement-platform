@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Procurement Centres{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Procurement centres</h2>
+<p class="page-sub">Centres in your district are listed first. Choose a centre to see its open slots.</p>
+
+<form method="get" class="filter-bar">
+  <div class="field">
+    <label for="district">District</label>
+    <select id="district" name="district">
+      <option value="">All districts</option>
+      {% for d in districts %}
+        <option value="{{ d }}" {{ 'selected' if sel_district == d }}>{{ d }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="crop">Crop</label>
+    <select id="crop" name="crop">
+      <option value="">All crops</option>
+      {% for c in crops %}
+        <option value="{{ c }}" {{ 'selected' if sel_crop == c }}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="actions">
+    <button class="btn" type="submit">Filter</button>
+    <a class="btn secondary" href="{{ url_for('farmer_centres') }}">Reset</a>
+  </div>
+</form>
+
+<div class="card">
+  {% if centres %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Centre</th><th>District</th><th>Crops accepted</th>
+            <th class="num">Daily capacity</th><th class="num">Open slots</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for c in centres %}
+        <tr>
+          <td>
+            <strong>{{ c.name }}</strong>
+            <div class="small muted">{{ c.location }}</div>
+          </td>
+          <td class="nowrap">
+            {{ c.district }}
+            {% if c.district == g.farmer.district %}<span class="badge green">Your district</span>{% endif %}
+          </td>
+          <td>
+            <div class="tag-list">
+              {% for crop in c.crop_types_accepted.split(',') %}
+                <span class="badge grey">{{ crop.strip() }}</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td class="num">{{ c.daily_capacity }}</td>
+          <td class="num">
+            {% if c.open_slots > 0 %}
+              <span class="badge green">{{ c.open_slots }}</span>
+            {% else %}
+              <span class="badge red">Full</span>
+            {% endif %}
+          </td>
+          <td class="nowrap">
+            <a class="btn small" href="{{ url_for('farmer_centre', centre_id=c.id) }}">View slots</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">No centres match that filter.</div>
+  {% endif %}
+</div>
+{% endblock %}

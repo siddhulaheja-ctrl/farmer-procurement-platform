@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Demo Controls{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Demonstration controls</h2>
+<p class="page-sub">
+  Presentation scaffolding, not product functionality. These controls exist so the novelty
+  features can be triggered on stage without waiting for real weather or real payment settlement.
+</p>
+
+<div class="notice warning">
+  This screen would not exist in a deployed system. It is here because a live demo needs every
+  condition to be reproducible on demand.
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>Storage-risk override</h2>
+    <div class="card-body">
+      <p class="small muted" style="margin-top:0">
+        Forces every storage-risk assessment to return HIGH, so the alert can be shown even if the
+        real forecast for the demo district is dry.
+      </p>
+      <p>
+        Current state:
+        {% if forced %}<span class="badge red">Override ON &mdash; all checks return HIGH</span>
+        {% else %}<span class="badge green">Off &mdash; real rules apply</span>{% endif %}
+      </p>
+      <form method="post">
+        <input type="hidden" name="action" value="toggle_risk">
+        <button class="btn {{ 'secondary' if forced else 'danger' }}" type="submit">
+          {{ 'Turn override off' if forced else 'Turn override on' }}
+        </button>
+      </form>
+      <hr class="rule">
+      <form method="post">
+        <input type="hidden" name="action" value="rescan_risk">
+        <button class="btn secondary" type="submit">Re-scan every upcoming booking</button>
+      </form>
+      <div class="hint">Re-evaluates risk and sends alerts to any farmer newly flagged HIGH.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Weather data source</h2>
+    <div class="card-body">
+      <p class="small muted" style="margin-top:0">
+        {% if owm %}
+          <span class="badge green">Live</span>
+          An OpenWeatherMap API key is configured. Forecasts are fetched live, with an automatic
+          fall back to simulated data if the call fails.
+        {% else %}
+          <span class="badge grey">Simulated</span>
+          No <code>OWM_API_KEY</code> environment variable is set, so forecasts are generated
+          deterministically. Set the key and restart to use live data.
+        {% endif %}
+      </p>
+      <form method="post">
+        <input type="hidden" name="action" value="check_weather">
+        <div class="field">
+          <label for="district">Test a district forecast</label>
+          <select id="district" name="district">
+            {% for d in districts %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+          </select>
+        </div>
+        <button class="btn secondary" type="submit">Fetch forecast</button>
+      </form>
+
+      {% if result %}
+      <hr class="rule">
+      <p class="small">
+        <strong>{{ result.district }}</strong>
+        <span class="badge {{ 'blue' if result.source == 'live' else 'grey' }}">{{ result.source }}</span>
+      </p>
+      <div class="forecast">
+        {% for d in result.forecast %}
+        <div class="fc-day {{ 'wet' if d.rain_mm > 0.5 }}">
+          <div class="d">{{ d.date|nicedate }}</div>
+          <div class="r">{{ d.rain_mm }}<span class="small"> mm</span></div>
+          <div class="d">{{ d.humidity }}% hum.</div>
+          <div class="d">{{ d.description }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Re-run data validation</h2>
+    <div class="card-body">
+      <p class="small muted" style="margin-top:0">
+        Runs the Aadhaar checksum, bank format, IFSC format, name-match and land-record checks
+        across every registered farmer and rebuilds the mismatch queue.
+      </p>
+      <form method="post">
+        <input type="hidden" name="action" value="revalidate">
+        <button class="btn secondary" type="submit">Re-validate all farmers</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Settle in-flight payments</h2>
+    <div class="card-body">
+      <p class="small muted" style="margin-top:0">
+        Moves every transaction sitting in <em>processing</em> to <em>completed</em>, as the DBT
+        gateway would after a couple of days. Useful for showing the farmer-side payment view
+        updating during a demo.
+      </p>
+      <form method="post">
+        <input type="hidden" name="action" value="advance_payments">
+        <button class="btn secondary" type="submit">Settle all processing payments</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>IVR module interface</h2>
+  <div class="card-body">
+    <p class="small muted" style="margin-top:0">
+      The telephone channel is built as a separate module. It reads everything it needs from the
+      JSON feed below, so it can be developed and tested without touching this application.
+    </p>
+    <ul class="small">
+      <li><code>GET /ivr/status.json?phone=9000000001</code> &mdash; slots, payments, open flags and
+        queued voice calls for one farmer</li>
+      <li><code>POST /ivr/webhook</code> &mdash; stub for Twilio keypress callbacks; returns TwiML</li>
+    </ul>
+    <a class="btn small secondary" href="{{ url_for('ivr_status', phone='9000000001') }}">Open the feed</a>
+  </div>
+</div>
+{% endblock %}

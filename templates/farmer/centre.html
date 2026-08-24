@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ centre.name }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('farmer_centres') }}">Procurement centres</a> &rsaquo; {{ centre.name }}
+</div>
+
+<h2 class="page-title">{{ centre.name }}</h2>
+<p class="page-sub">
+  {{ centre.location }}, {{ centre.district }} &middot; Daily capacity {{ centre.daily_capacity }} quintals
+  &middot; Accepts {{ centre.crop_types_accepted.replace(',', ', ') }}
+</p>
+
+{% if reschedule_id %}
+<div class="notice warning">
+  <h3>Rescheduling booking #{{ reschedule_id }}</h3>
+  <p style="margin-bottom:0">Pick a new slot below. Your token number will be reissued.</p>
+</div>
+{% endif %}
+
+<form method="post"
+      action="{{ url_for('farmer_reschedule', booking_id=reschedule_id) if reschedule_id else url_for('farmer_book') }}">
+  <input type="hidden" name="back" value="{{ request.full_path }}">
+
+  <div class="card">
+    <h2>1. Choose a slot</h2>
+    <div class="card-body">
+      {% if by_date %}
+        {% for d, slots in by_date.items() %}
+        <div class="slot-day">
+          <h3>{{ d|nicedate }} <span class="dow">&middot; {{ d|dayname }}</span></h3>
+          <div class="slot-list">
+            {% for s in slots %}
+              {% set free = s.max_capacity - s.booked_count %}
+              {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 100 %}
+              <label class="slot {{ 'full' if free <= 0 }}">
+                <div class="tw">{{ s.time_window }}</div>
+                <div class="capbar">
+                  <span class="{{ 'hi' if pct >= 90 else ('mid' if pct >= 60 else '') }}"
+                        style="width: {{ pct }}%"></span>
+                </div>
+                <div class="cap">{{ free }} of {{ s.max_capacity }} places free</div>
+                {% if free > 0 %}
+                  <input type="radio" name="slot_id" value="{{ s.id }}" required>
+                  Select
+                {% else %}
+                  <span class="badge red">Full</span>
+                {% endif %}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">No slots have been published for this centre yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if not reschedule_id %}
+  <div class="card">
+    <h2>2. What are you bringing?</h2>
+    <div class="card-body">
+      <div class="field-row two">
+        <div class="field">
+          <label for="crop_type">Crop <span class="req">*</span></label>
+          <select id="crop_type" name="crop_type" required>
+            {% for c in accepted %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="estimated_quantity">Estimated quantity (quintals) <span class="req">*</span></label>
+          <input type="number" id="estimated_quantity" name="estimated_quantity"
+                 min="0.1" max="500" step="0.1" value="20" required>
+          <div class="hint">An estimate is fine. The centre will weigh the actual quantity on arrival.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="btn-row">
+    <button class="btn go" type="submit">
+      {{ 'Move to this slot' if reschedule_id else 'Confirm booking' }}
+    </button>
+    <a class="btn secondary" href="{{ url_for('farmer_centres') }}">Back to centres</a>
+  </div>
+</form>
+
+<div class="notice info mt small">
+  One slot per farmer per day, and at most three active bookings at a time, so that every farmer
+  in the district gets a turn.
+</div>
+{% endblock %}
