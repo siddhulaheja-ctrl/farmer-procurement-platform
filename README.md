@@ -132,6 +132,23 @@ scaffolding.
 
 ---
 
+## Sharing it
+
+**With teammates, right now** — double-click `share_demo.bat`. It starts the
+server and opens a free Cloudflare quick tunnel, printing an
+`https://….trycloudflare.com` link that works from anywhere. The link is live
+only while that window is open, and you get a different one each run.
+
+**On the same wifi** — run `start_demo.bat` and give people
+`http://<your-ip>:5000` (find it with `ipconfig`). Windows Firewall will ask to
+allow Python on private networks the first time.
+
+Both routes expose the app with no real authentication: anyone with the link can
+sign in as any farmer (OTP `123456`) or as `ADMIN`/`demo123`, and can change
+bookings and payment statuses. The data is entirely fake, so nothing is at risk
+— but run `reset_demo.bat` before presenting, in case someone has been clicking
+around.
+
 ## Deploy
 
 `render.yaml`, `Procfile` and `runtime.txt` are ready. On Render, point at the
