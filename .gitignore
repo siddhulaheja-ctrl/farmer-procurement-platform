@@ -22,3 +22,6 @@ Thumbs.db
 
 # ...but the example file is meant to be committed
 !.env.example
+
+# Generated at share time, not worth committing
+LAST_SHARE_LINK.txt
