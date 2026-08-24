@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Verify OTP{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div class="card">
+    <h2>Verify one-time password</h2>
+    <div class="card-body">
+      <p class="small muted">
+        An OTP has been sent to <strong>+91 {{ phone }}</strong>
+        {% if farmer %}({{ farmer.name }}){% endif %}.
+      </p>
+      <form method="post">
+        <div class="field">
+          <label for="otp">Enter 6-digit OTP <span class="req">*</span></label>
+          <input type="text" id="otp" name="otp" maxlength="6" inputmode="numeric"
+                 pattern="[0-9]{6}" required autofocus autocomplete="one-time-code">
+        </div>
+        <button class="btn block" type="submit">Verify and sign in</button>
+      </form>
+      <hr class="rule">
+      <p class="small muted center" style="margin:0">
+        <a href="{{ url_for('login') }}">Use a different number</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="notice warning small">
+    <strong>Simulated OTP.</strong> No SMS is actually sent in this prototype &mdash;
+    use <strong>{{ demo_otp }}</strong>.
+  </div>
+</div>
+{% endblock %}

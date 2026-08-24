@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge %}
+{% block title %}Bookings Dashboard{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Bookings</h2>
+<p class="page-sub">
+  Signed in as {{ g.staff.name }} ({{ g.staff.staff_code }})
+  &middot; {{ g.staff.centre_name or 'District-wide access' }}
+</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ summary.get('booked', 0) }}</div><div class="l">Booked</div></div>
+  <div class="stat warn"><div class="n">{{ summary.get('arrived', 0) }}</div><div class="l">Arrived, not closed</div></div>
+  <div class="stat good"><div class="n">{{ summary.get('completed', 0) }}</div><div class="l">Completed</div></div>
+  <div class="stat bad"><div class="n">{{ summary.flags }}</div><div class="l">Unresolved data flags</div></div>
+</div>
+
+{% if summary.risk %}
+<div class="notice warning">
+  <strong>{{ summary.risk }}</strong> upcoming booking{{ 's' if summary.risk != 1 }} carry a HIGH
+  storage-risk flag. <a href="{{ url_for('admin_storage_risk') }}">Review and offer earlier slots</a>.
+</div>
+{% endif %}
+
+<form method="get" class="filter-bar">
+  <div class="field">
+    <label for="centre_id">Centre</label>
+    <select id="centre_id" name="centre_id">
+      <option value="">All centres</option>
+      {% for c in centres %}
+        <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="date">Date</label>
+    <input type="date" id="date" name="date" value="{{ sel_date }}">
+  </div>
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">All</option>
+      {% for s in ['booked','arrived','completed','cancelled'] %}
+        <option value="{{ s }}" {{ 'selected' if sel_status == s }}>{{ s|title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="actions">
+    <button class="btn" type="submit">Apply</button>
+    <a class="btn secondary" href="{{ url_for('admin_dashboard') }}">Reset</a>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-head">
+    <span>{{ bookings|length }} booking{{ 's' if bookings|length != 1 }}</span>
+    <a class="btn small secondary" href="{{ url_for('admin_dashboard', date=g.today.isoformat(), centre_id=sel_centre) }}">Today only</a>
+  </div>
+  {% if bookings %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Token</th><th>Farmer</th><th>Centre</th><th>Date</th><th>Time</th><th>Crop</th>
+            <th class="num">Est. qty</th><th>Status</th><th>Payment</th><th>Risk</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td class="mono nowrap">{{ b.token_no }}</td>
+          <td>
+            <a href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">{{ b.farmer_name }}</a>
+            <div class="small muted">{{ b.phone_number }} &middot; {{ b.village }}</div>
+          </td>
+          <td class="small">{{ b.centre_name }}</td>
+          <td class="nowrap">{{ b.date|nicedate }}</td>
+          <td class="nowrap small">{{ b.time_window }}</td>
+          <td>{{ b.crop_type }}</td>
+          <td class="num nowrap">{{ '%.1f'|format(b.estimated_quantity) }}</td>
+          <td>{{ status_badge(b.status) }}</td>
+          <td>{{ payment_badge(b.payment_status) }}</td>
+          <td>{{ risk_badge(b.storage_risk) }}</td>
+          <td class="nowrap">
+            <a class="btn small {{ '' if b.status == 'booked' else 'secondary' }}"
+               href="{{ url_for('admin_booking', booking_id=b.id) }}">
+              {{ 'Verify' if b.status == 'booked' else 'Open' }}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">No bookings match these filters.</div>
+  {% endif %}
+</div>
+{% endblock %}

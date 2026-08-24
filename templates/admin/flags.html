@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Data Validation Flags{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Data mismatch queue</h2>
+<p class="page-sub">
+  Farmers whose Aadhaar, bank or land-record details failed validation. Clearing these before the
+  slot date is what stops the payment failing after procurement.
+</p>
+
+<form method="get" class="filter-bar">
+  <div class="field">
+    <label for="status">Show</label>
+    <select id="status" name="status">
+      <option value="unresolved" {{ 'selected' if sel_status == 'unresolved' }}>Unresolved</option>
+      <option value="resolved" {{ 'selected' if sel_status == 'resolved' }}>Resolved</option>
+      <option value="all" {{ 'selected' if sel_status == 'all' }}>All</option>
+    </select>
+  </div>
+  <div class="actions"><button class="btn" type="submit">Apply</button></div>
+</form>
+
+<div class="card">
+  <div class="card-head"><span>{{ flags|length }} flag{{ 's' if flags|length != 1 }}</span></div>
+  {% if flags %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Severity</th><th>Farmer</th><th>District</th><th>Field</th><th>Detail</th>
+            <th>Flagged</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for f in flags %}
+        <tr>
+          <td><span class="badge {{ 'red' if f.severity == 'blocking' else 'amber' }}">{{ f.severity }}</span></td>
+          <td>
+            <a href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ f.farmer_name }}</a>
+            <div class="small muted">{{ f.phone_number }}</div>
+          </td>
+          <td class="nowrap">{{ f.district }}</td>
+          <td class="nowrap">{{ f.field_flagged|replace('_',' ')|title }}</td>
+          <td class="small">{{ f.detail }}</td>
+          <td class="small muted nowrap">{{ f.flagged_at|nicedate }}</td>
+          <td class="nowrap">
+            {% if f.status == 'unresolved' %}
+              <div class="btn-row">
+                <a class="btn small" href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">Correct</a>
+                <form method="post" action="{{ url_for('admin_resolve_flag', flag_id=f.id) }}">
+                  <button class="btn small secondary" type="submit"
+                          title="Mark as verified against physical documents">Verified</button>
+                </form>
+              </div>
+            {% else %}
+              <span class="badge green">Resolved</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">Nothing in the queue.</div>
+  {% endif %}
+</div>
+
+<div class="notice info small">
+  <strong>Verified</strong> marks a flag cleared after checking the farmer's physical documents,
+  without changing the stored value. <strong>Correct</strong> opens the record so the wrong value
+  can be fixed &mdash; which re-runs every check for that farmer.
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Gate Pass {{ b.token_no }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb no-print">
+  <a href="{{ url_for('farmer_booking', booking_id=b.id) }}">Booking {{ b.token_no }}</a> &rsaquo; Gate pass
+</div>
+
+<div class="gatepass">
+  <div class="gp-head">
+    <div class="s">GOVERNMENT PROCUREMENT CENTRE</div>
+    <h2>Electronic Gate Pass</h2>
+    <div class="s">{{ b.centre_name }}</div>
+  </div>
+
+  <div class="token">
+    <div class="c">Token number</div>
+    <div class="t">{{ b.token_no }}</div>
+    <div class="c">{{ b.date|nicedate }} &middot; {{ b.time_window }}</div>
+  </div>
+
+  <div class="gp-body">
+    <dl class="kv">
+      <dt>Farmer</dt><dd>{{ farmer.name }}</dd>
+      <dt>Mobile</dt><dd>{{ farmer.phone_number }}</dd>
+      <dt>Village / district</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
+      <dt>Land record ID</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
+      <dt>Crop declared</dt><dd>{{ b.crop_type }}</dd>
+      <dt>Estimated quantity</dt><dd>{{ '%.1f'|format(b.estimated_quantity) }} quintals</dd>
+      <dt>Centre address</dt><dd>{{ b.location }}, {{ b.centre_district }}</dd>
+    </dl>
+  </div>
+
+  <div class="gp-foot">
+    Issued {{ issued.strftime('%d %b %Y, %H:%M') }}. Present this pass with your Aadhaar card and
+    bank passbook at the centre gate. Valid only for the date and time window shown above.
+    <br><br>
+    <em>Demonstration document &mdash; not a government-issued instrument.</em>
+  </div>
+</div>
+
+<div class="btn-row no-print mt" style="justify-content:center">
+  <button class="btn" type="button" onclick="window.print()">Print gate pass</button>
+  <a class="btn secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">Back to booking</a>
+</div>
+{% endblock %}

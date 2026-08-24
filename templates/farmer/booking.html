@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge %}
+{% block title %}Booking {{ b.token_no }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="{{ url_for('farmer_dashboard') }}">Dashboard</a> &rsaquo; Booking {{ b.token_no }}
+</div>
+
+<h2 class="page-title">Booking {{ b.token_no }}</h2>
+<p class="page-sub">{{ status_badge(b.status) }} &middot; created {{ b.created_at|stamp }}</p>
+
+{% if risk and risk.level == 'high' %}
+<div class="notice error">
+  <h3>Storage risk warning</h3>
+  <p>{{ risk.reason }}</p>
+  <p style="margin-bottom:0">
+    Move to an earlier slot if one is free, or store the produce on a raised platform under
+    a waterproof cover until your slot date.
+  </p>
+</div>
+{% elif risk and risk.level == 'low' %}
+<div class="notice warning">
+  <h3>Keep your produce covered</h3>
+  <p style="margin-bottom:0">{{ risk.reason }}</p>
+</div>
+{% endif %}
+
+<div class="grid side">
+  <div>
+    <div class="card">
+      <h2>Slot details</h2>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Token number</dt><dd class="mono"><strong>{{ b.token_no }}</strong></dd>
+          <dt>Procurement centre</dt><dd>{{ b.centre_name }}<div class="small muted">{{ b.location }}, {{ b.centre_district }}</div></dd>
+          <dt>Date</dt><dd>{{ b.date|nicedate }} <span class="muted small">({{ b.date|dayname }})</span></dd>
+          <dt>Reporting time</dt><dd>{{ b.time_window }}</dd>
+          <dt>Crop</dt><dd>{{ b.crop_type }}</dd>
+          <dt>Estimated quantity</dt><dd>{{ '%.1f'|format(b.estimated_quantity) }} quintals</dd>
+          {% if b.actual_quantity %}
+            <dt>Weighed quantity</dt><dd>{{ '%.1f'|format(b.actual_quantity) }} quintals</dd>
+            <dt>Quality grade</dt><dd>{{ grade_badge(b.quality_grade) }}</dd>
+          {% endif %}
+          <dt>Storage risk</dt><dd>{{ risk_badge(b.storage_risk) }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    {% if txn %}
+    <div class="card">
+      <h2>Transaction</h2>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Weighed quantity</dt><dd>{{ '%.1f'|format(txn.actual_quantity or 0) }} quintals</dd>
+          <dt>Quality grade</dt><dd>{{ grade_badge(txn.quality_grade) }}</dd>
+          <dt>Rate applied</dt><dd>{{ txn.price_per_unit|rupee }} per quintal</dd>
+          <dt>Total value</dt><dd><strong>{{ txn.total_amount|rupee }}</strong></dd>
+          <dt>Payment status</dt><dd>{{ payment_badge(txn.payment_status) }}</dd>
+          {% if txn.payment_date %}<dt>Credited on</dt><dd>{{ txn.payment_date|stamp }}</dd>{% endif %}
+        </dl>
+        {% if txn.payment_status == 'failed' %}
+        <div class="notice error mt" style="margin-bottom:0">
+          <p style="margin:0">
+            This payment could not be credited. Check
+            <a href="{{ url_for('farmer_profile') }}">My Details</a> for unresolved issues, or
+            visit your procurement centre.
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if risk and risk.forecast %}
+    <div class="card">
+      <div class="card-head">
+        <span>Weather in {{ g.farmer.district }} before your slot</span>
+        <span class="badge {{ 'blue' if risk.source == 'live' else 'grey' }}">
+          {{ 'Live forecast' if risk.source == 'live' else 'Simulated forecast' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="forecast">
+          {% for d in risk.forecast %}
+          <div class="fc-day {{ 'wet' if d.rain_mm > 0.5 }}">
+            <div class="d">{{ d.date|nicedate }}</div>
+            <div class="r">{{ d.rain_mm }}<span class="small"> mm</span></div>
+            <div class="d">{{ d.humidity }}% humidity</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Actions</h2>
+      <div class="card-body">
+        {% if b.status == 'booked' %}
+          <a class="btn block" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">View / print gate pass</a>
+          <a class="btn secondary block mt"
+             href="{{ url_for('farmer_centre', centre_id=b.centre_id, reschedule=b.id) }}">Reschedule this slot</a>
+          <form method="post" action="{{ url_for('farmer_cancel', booking_id=b.id) }}" class="mt"
+                onsubmit="return confirm('Cancel this booking? The slot will be released to other farmers.')">
+            <button class="btn danger block" type="submit">Cancel booking</button>
+          </form>
+        {% elif b.status == 'arrived' %}
+          <p class="small muted" style="margin-top:0">
+            Your produce has been weighed at the centre. The transaction will be closed shortly.
+          </p>
+          <a class="btn secondary block" href="{{ url_for('farmer_payments') }}">Track payment</a>
+        {% else %}
+          <p class="small muted" style="margin:0">
+            This booking is {{ b.status }}. No further action is possible.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Bring with you</h2>
+      <div class="card-body small muted">
+        <ul style="margin:0;padding-left:18px">
+          <li>This token number: <strong class="mono">{{ b.token_no }}</strong></li>
+          <li>Aadhaar card</li>
+          <li>Bank passbook</li>
+          <li>Land record extract</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

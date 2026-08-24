@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Procurement Slot Booking Portal{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gov.css') }}">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<div class="utility-strip">
+  <div class="wrap">
+    <span>Government of India &middot; Department of Food &amp; Public Distribution</span>
+    <span>
+      {% if g.farmer %}
+        {{ g.farmer.name }} &middot; <a href="{{ url_for('logout') }}">Sign out</a>
+      {% elif g.staff %}
+        {{ g.staff.name }} &middot; <a href="{{ url_for('admin_logout') }}">Sign out</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Farmer sign in</a> &middot;
+        <a href="{{ url_for('admin_login') }}">Centre staff</a>
+      {% endif %}
+    </span>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="emblem">PS</div>
+    <div>
+      <h1>Smart Farmer Procurement Portal</h1>
+      <div class="sub">Slot Booking &amp; Procurement Management System</div>
+    </div>
+  </div>
+</header>
+
+<nav class="navbar">
+  <div class="wrap">
+    {% if g.staff %}
+      <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">Bookings</a>
+      <a href="{{ url_for('admin_slots') }}" class="{{ 'active' if request.endpoint == 'admin_slots' }}">Slots</a>
+      <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if request.endpoint == 'admin_transactions' }}">Transactions</a>
+      <a href="{{ url_for('admin_flags') }}" class="{{ 'active' if request.endpoint == 'admin_flags' }}">Data Flags</a>
+      <a href="{{ url_for('admin_storage_risk') }}" class="{{ 'active' if request.endpoint == 'admin_storage_risk' }}">Storage Risk</a>
+      <a href="{{ url_for('admin_farmers') }}" class="{{ 'active' if request.endpoint in ('admin_farmers','admin_farmer') }}">Farmers</a>
+      <a href="{{ url_for('admin_register_farmer') }}" class="{{ 'active' if request.endpoint == 'admin_register_farmer' }}">Register Farmer</a>
+      <span class="spacer"></span>
+      <a href="{{ url_for('admin_demo') }}" class="{{ 'active' if request.endpoint == 'admin_demo' }}">Demo Controls</a>
+    {% elif g.farmer %}
+      <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint == 'farmer_dashboard' }}">Dashboard</a>
+      <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if request.endpoint in ('farmer_centres','farmer_centre') }}">Book a Slot</a>
+      <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if request.endpoint == 'farmer_payments' }}">Payments</a>
+      <a href="{{ url_for('farmer_alerts_page') }}" class="{{ 'active' if request.endpoint == 'farmer_alerts_page' }}">Alerts{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
+      <a href="{{ url_for('farmer_profile') }}" class="{{ 'active' if request.endpoint == 'farmer_profile' }}">My Details</a>
+    {% else %}
+      <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">Home</a>
+      <a href="{{ url_for('register') }}" class="{{ 'active' if request.endpoint == 'register' }}">Register</a>
+      <a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint in ('login','verify_otp') }}">Farmer Sign In</a>
+      <a href="{{ url_for('admin_login') }}" class="{{ 'active' if request.endpoint == 'admin_login' }}">Centre Staff</a>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="wrap" id="main">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="notice {{ category if category in ['success','warning','error','info'] else 'info' }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Smart Farmer Procurement Platform &middot; Smart India Hackathon 2026 &middot; PS 26032</span>
+    <span><a href="{{ url_for('ivr_status', phone='9000000001') }}">IVR data feed</a></span>
+    <div class="demo-note">
+      Prototype for demonstration only. Aadhaar, bank and land-record details are mock data and
+      are not verified against any live government database. Payment status is simulated.
+    </div>
+  </div>
+</footer>
+</body>
+</html>

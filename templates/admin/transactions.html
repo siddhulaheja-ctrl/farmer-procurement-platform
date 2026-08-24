@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_macros.html" import payment_badge, grade_badge %}
+{% block title %}Transactions{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Transactions and payments</h2>
+<p class="page-sub">Payment status is simulated for this prototype. In production it is returned by the DBT gateway.</p>
+
+<form method="get" class="filter-bar">
+  <div class="field">
+    <label for="payment_status">Payment status</label>
+    <select id="payment_status" name="payment_status">
+      <option value="">All</option>
+      {% for s in ['pending','processing','completed','failed'] %}
+        <option value="{{ s }}" {{ 'selected' if sel_status == s }}>{{ s|title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="actions">
+    <button class="btn" type="submit">Apply</button>
+    <a class="btn secondary" href="{{ url_for('admin_transactions') }}">Reset</a>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-head"><span>{{ rows|length }} transaction{{ 's' if rows|length != 1 }}</span></div>
+  {% if rows %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Date</th><th>Token</th><th>Farmer</th><th>Centre</th><th>Crop</th>
+            <th class="num">Qty</th><th>Grade</th><th class="num">Amount</th>
+            <th>Status</th><th>Change to</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="nowrap">{{ r.date|nicedate }}</td>
+          <td class="mono nowrap">{{ r.token_no }}</td>
+          <td>
+            <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
+            <div class="small muted">{{ r.phone_number }}</div>
+          </td>
+          <td class="small">{{ r.centre_name }}</td>
+          <td>{{ r.crop_type }}</td>
+          <td class="num nowrap">{{ '%.1f'|format(r.actual_quantity or 0) }}</td>
+          <td>{{ grade_badge(r.quality_grade) }}</td>
+          <td class="num nowrap"><strong>{{ r.total_amount|rupee }}</strong></td>
+          <td>{{ payment_badge(r.payment_status) }}
+            {% if r.payment_date %}<div class="small muted">{{ r.payment_date|nicedate }}</div>{% endif %}
+          </td>
+          <td class="nowrap">
+            <form method="post" action="{{ url_for('admin_payment', txn_id=r.id) }}"
+                  style="display:flex;gap:4px">
+              <select name="payment_status" style="width:auto;font-size:12px;padding:2px 4px">
+                {% for s in ['pending','processing','completed','failed'] %}
+                  <option value="{{ s }}" {{ 'selected' if r.payment_status == s }}>{{ s|title }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn small secondary" type="submit">Set</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">No transactions match that filter.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge %}
+{% block title %}My Dashboard{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Namaste, {{ g.farmer.name }}</h2>
+<p class="page-sub">{{ g.farmer.village }}, {{ g.farmer.district }} &middot; Registered mobile {{ g.farmer.phone_number }}</p>
+
+{% if flags %}
+<div class="notice error">
+  <h3>Action needed: {{ flags|length }} problem{{ 's' if flags|length != 1 }} with your registered details</h3>
+  <p>
+    Your produce can still be procured, but your payment will be held until these are corrected.
+  </p>
+  <ul>
+    {% for fl in flags %}
+      <li><strong>{{ fl.field_flagged|replace('_',' ')|title }}:</strong> {{ fl.detail }}</li>
+    {% endfor %}
+  </ul>
+  <p style="margin-bottom:0"><a class="btn small mt" href="{{ url_for('farmer_profile') }}">Correct my details</a></p>
+</div>
+{% endif %}
+
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ upcoming|length }}</div><div class="l">Upcoming slots</div></div>
+  <div class="stat good"><div class="n">{{ paid_amount|rupee }}</div><div class="l">Received</div></div>
+  <div class="stat warn"><div class="n">{{ pending_amount|rupee }}</div><div class="l">Awaiting payment</div></div>
+  <div class="stat {{ 'bad' if flags else 'good' }}"><div class="n">{{ flags|length }}</div><div class="l">Open detail issues</div></div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <span>Upcoming bookings</span>
+    <a class="btn small" href="{{ url_for('farmer_centres') }}">Book a new slot</a>
+  </div>
+  {% if upcoming %}
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th>Token</th><th>Centre</th><th>Date</th><th>Time</th><th>Crop</th>
+            <th class="num">Est. qty</th><th>Status</th><th>Storage</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for b in upcoming %}
+        <tr>
+          <td class="mono nowrap">{{ b.token_no }}</td>
+          <td>{{ b.centre_name }}<div class="small muted">{{ b.centre_district }}</div></td>
+          <td class="nowrap">{{ b.date|nicedate }}<div class="small muted">{{ b.date|dayname }}</div></td>
+          <td class="nowrap">{{ b.time_window }}</td>
+          <td>{{ b.crop_type }}</td>
+          <td class="num nowrap">{{ '%.1f'|format(b.estimated_quantity) }} qtl</td>
+          <td>{{ status_badge(b.status) }}</td>
+          <td>{{ risk_badge(b.storage_risk) }}</td>
+          <td class="nowrap"><a class="btn small secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">Open</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">
+      You have no upcoming slots.
+      <div class="mt"><a class="btn" href="{{ url_for('farmer_centres') }}">Find a procurement centre</a></div>
+    </div>
+  {% endif %}
+</div>
+
+<div class="grid side">
+  <div class="card">
+    <div class="card-head"><span>Recent history</span>
+      <a class="small" href="{{ url_for('farmer_payments') }}">All payments</a></div>
+    {% if history %}
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Date</th><th>Centre</th><th>Crop</th><th class="num">Qty</th>
+                   <th class="num">Amount</th><th>Status</th><th>Payment</th></tr></thead>
+        <tbody>
+          {% for b in history %}
+          <tr>
+            <td class="nowrap">{{ b.date|nicedate }}</td>
+            <td>{{ b.centre_name }}</td>
+            <td>{{ b.crop_type }}</td>
+            <td class="num nowrap">{{ '%.1f'|format(b.actual_quantity or b.estimated_quantity) }} qtl</td>
+            <td class="num nowrap">{{ b.total_amount|rupee if b.total_amount else '&mdash;'|safe }}</td>
+            <td>{{ status_badge(b.status) }}</td>
+            <td>{{ payment_badge(b.payment_status) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">No completed procurement yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span>Latest alerts</span>
+      <a class="small" href="{{ url_for('farmer_alerts_page') }}">View all</a></div>
+    <div class="card-body">
+      {% for a in alerts %}
+        <div style="padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--border-soft)">
+          <div class="small muted">{{ a.sent_at|stamp }} &middot; {{ a.alert_type|replace('_',' ') }}</div>
+          <div class="small">{{ a.message }}</div>
+        </div>
+      {% else %}
+        <p class="muted small" style="margin:0">No alerts yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

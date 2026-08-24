@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Farmer Registration{% endblock %}
+
+{% block content %}
+<h2 class="page-title">Farmer registration</h2>
+<p class="page-sub">One-time registration. You will need your Aadhaar, bank passbook and land record.</p>
+
+<div class="grid side">
+  <div class="card">
+    <h2>Your details</h2>
+    <div class="card-body">
+      <form method="post">
+        {% with f = form, show_phone = true %}
+          {% include "_farmer_fields.html" %}
+        {% endwith %}
+        <div class="btn-row mt">
+          <button class="btn" type="submit">Register</button>
+          <a class="btn secondary" href="{{ url_for('home') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="notice info">
+      <h3>Why we check your details now</h3>
+      <p>
+        Most delayed procurement payments are not caused by the procurement itself. They are
+        caused by an Aadhaar digit typed wrong, an IFSC that does not exist, or a bank account
+        in a relative's name.
+      </p>
+      <p>
+        Those mismatches are normally discovered weeks after the produce is sold. This portal
+        checks them the moment you register, so there is time to fix them before your slot.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>No internet at home?</h2>
+      <div class="card-body small muted">
+        <p style="margin-top:0">
+          Any Common Service Centre operator or procurement centre clerk can complete this
+          registration on your behalf. Take your Aadhaar card, bank passbook and land record
+          with you.
+        </p>
+        <p style="margin-bottom:0">
+          Once registered, you can check your slot and payment status by calling the helpline
+          from any phone.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

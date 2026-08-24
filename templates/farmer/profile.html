@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}My Details{% endblock %}
+
+{% block content %}
+<h2 class="page-title">My details</h2>
+<p class="page-sub">
+  These are the details used to verify your identity and credit your payment. Correcting a
+  flagged field here re-runs the verification checks immediately.
+</p>
+
+{% if flags %}
+<div class="notice error">
+  <h3>{{ flags|length }} issue{{ 's' if flags|length != 1 }} found</h3>
+  <ul>
+    {% for fl in flags %}
+      <li>
+        <span class="badge {{ 'red' if fl.severity == 'blocking' else 'amber' }}">{{ fl.severity }}</span>
+        <strong>{{ fl.field_flagged|replace('_',' ')|title }}:</strong> {{ fl.detail }}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% else %}
+<div class="notice success">
+  <h3>All checks passed</h3>
+  <p style="margin-bottom:0">
+    Your Aadhaar, bank and land-record details are correctly formatted and consistent. Nothing
+    should hold up your payment.
+  </p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Edit details</h2>
+  <div class="card-body">
+    <form method="post">
+      {% with f = farmer, show_phone = false %}
+        {% include "_farmer_fields.html" %}
+      {% endwith %}
+      <div class="btn-row mt">
+        <button class="btn" type="submit">Save and re-check</button>
+        <a class="btn secondary" href="{{ url_for('farmer_dashboard') }}">Back to dashboard</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

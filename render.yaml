@@ -1,0 +1,18 @@
+# One-click deploy config for Render's free tier.
+# The build step seeds a fresh SQLite database, so the deployed demo comes up
+# already populated. Note that free-tier disks are ephemeral: the data resets
+# whenever the instance restarts, which for a hackathon demo is fine.
+services:
+  - type: web
+    name: farmer-procurement-portal
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python seed.py"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      # Set OWM_API_KEY in the Render dashboard to switch the storage-risk
+      # feature from mock forecasts to live OpenWeatherMap data.
