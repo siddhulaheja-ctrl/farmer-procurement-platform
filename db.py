@@ -1,6 +1,4 @@
-"""SQLite access helpers. Thin wrapper over sqlite3 - no ORM, so the
-schema in schema.sql stays the single source of truth and the DB file
-can be opened in any sqlite viewer during the demo."""
+"""Small sqlite helpers. Not using an ORM, plain SQL is easier to read."""
 
 import os
 import sqlite3

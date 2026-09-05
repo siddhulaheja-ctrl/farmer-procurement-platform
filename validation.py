@@ -1,13 +1,10 @@
-"""Novelty Feature A - Data Mismatch Pre-Validation.
+"""Checks the farmer's aadhaar / bank / land details when they register.
 
-Existing state systems (e-Kharid, e-Uparjan, P-PAS) reject payments *after*
-procurement because the farmer's Aadhaar / bank / land-record details don't
-match. The farmer finds out weeks later. This module runs those checks at
-REGISTRATION time and raises flags that staff can resolve before the slot date.
+Existing systems only catch these mistakes at payment time, weeks later.
+We check at registration so there is time to fix it.
 
-All checks run against mock data held in our own `farmers` table.
-TODO: in production, replace check_aadhaar() with a real UIDAI demographic-auth
-call and check_bank() with an NPCI penny-drop verification.
+Everything here runs on our own mock data, not any real govt API.
+TODO: use the real UIDAI + penny drop APIs
 """
 
 import re
@@ -16,8 +13,8 @@ from difflib import SequenceMatcher
 
 from db import execute, query
 
-# Verhoeff algorithm tables - this is the real checksum scheme Aadhaar uses,
-# so a randomly typed 12-digit number will almost always fail it.
+# Verhoeff checksum tables (copied from the wikipedia page on the algorithm).
+# Aadhaar uses this so a mistyped number fails the check.
 _D = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
@@ -76,7 +73,7 @@ def run_checks(farmer: dict) -> list:
     """Return a list of {field, detail, severity} problems. Empty list = clean."""
     problems = []
 
-    # --- Aadhaar -----------------------------------------------------------
+    # Aadhaar
     aadhaar = (farmer.get("aadhaar_number") or "").replace(" ", "")
     if not aadhaar:
         problems.append({"field": "aadhaar", "severity": "blocking",
@@ -91,7 +88,7 @@ def run_checks(farmer: dict) -> list:
         problems.append({"field": "aadhaar", "severity": "blocking",
                          "detail": "Aadhaar failed the Verhoeff checksum - likely a typing error."})
 
-    # --- Bank account ------------------------------------------------------
+    # Bank account
     acct = (farmer.get("bank_account") or "").strip()
     if not acct:
         problems.append({"field": "bank", "severity": "blocking",
@@ -108,7 +105,7 @@ def run_checks(farmer: dict) -> list:
         problems.append({"field": "bank", "severity": "blocking",
                          "detail": "IFSC '%s' is malformed. Expected 4 letters, then 0, then 6 characters." % ifsc})
 
-    # --- Name on bank account vs registered name ---------------------------
+    # Name on bank account vs registered name
     on_acct = farmer.get("bank_name_on_account")
     if on_acct:
         score = name_similarity(farmer.get("name"), on_acct)
@@ -120,7 +117,7 @@ def run_checks(farmer: dict) -> list:
                           % (farmer.get("name"), on_acct, round(score * 100)),
             })
 
-    # --- Land record -------------------------------------------------------
+    # Land record
     land = (farmer.get("land_record_id") or "").strip().upper()
     if not land:
         problems.append({"field": "land", "severity": "warning",

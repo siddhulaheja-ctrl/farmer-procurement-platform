@@ -1,9 +1,8 @@
-"""Alert dispatch. Every outbound message is written to alerts_log.
+"""Writes alerts into alerts_log.
 
-For the demo, channel 'app' is really delivered (farmer sees it in their
-notifications panel). 'sms' and 'ivr' are logged only - the row is what the
-IVR module will later read to place the actual call.
-TODO: wire channel='sms' to Fast2SMS / Twilio SMS in production.
+'app' ones actually show up for the farmer. 'sms' and 'ivr' are only saved
+in the table for now - the IVR part will read them later.
+TODO: hook up Fast2SMS
 """
 
 from datetime import datetime

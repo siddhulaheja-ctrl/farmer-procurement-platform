@@ -1,14 +1,12 @@
-"""Smart Farmer Procurement Platform - Flask application.
+"""Main flask app - all the routes live here.
 
-SIH 2026, Problem Statement 26032.
+SIH 2026, PS 26032.
 
-Two channels are described in the spec: this web app, and an IVR system.
-The IVR module is deliberately decoupled (spec guideline #3) - only a stub
-webhook and a status JSON feed live here, under /ivr.
+The IVR part is not built yet, there is just a stub under /ivr that the
+other team member can build on top of.
 
-Auth is intentionally lightweight (spec guideline #7): farmers log in with a
-phone number and a simulated OTP; staff use a shared demo password.
-TODO: replace with a real OTP gateway and hashed staff credentials.
+Login is kept simple for now, OTP is hardcoded and staff share one password.
+TODO: real OTP + hash the staff passwords
 """
 
 import os
@@ -27,13 +25,11 @@ from core import BookingError
 from db import execute, query
 from validation import unresolved_flags, validate_and_flag
 
-# The OTP every simulated login accepts. Displayed on screen during the demo.
+# hardcoded otp, shown on the login page
 DEMO_OTP = "123456"
 
 
-# ---------------------------------------------------------------------------
 # App factory
-# ---------------------------------------------------------------------------
 
 def create_app():
     app = Flask(__name__)
@@ -103,9 +99,7 @@ def register_filters(app):
             return value
 
 
-# ---------------------------------------------------------------------------
 # Auth decorators
-# ---------------------------------------------------------------------------
 
 def farmer_required(fn):
     @wraps(fn)
@@ -142,9 +136,7 @@ def current_staff():
         (sid,), one=True)
 
 
-# ---------------------------------------------------------------------------
 # Routes
-# ---------------------------------------------------------------------------
 
 def register_routes(app):
 
@@ -155,7 +147,7 @@ def register_routes(app):
         g.unread = alerts_mod.unread_count(g.farmer["id"]) if g.farmer else 0
         g.today = date.today()
 
-    # -- public ------------------------------------------------------------
+    # public
 
     @app.route("/")
     def home():
@@ -178,7 +170,7 @@ def register_routes(app):
                 flash("No farmer is registered with %s. Please register first." % phone, "error")
                 return render_template("login.html", phone=phone)
             session["pending_phone"] = phone
-            # TODO: send a real OTP via SMS gateway. Simulated for the demo.
+            # TODO: actually send the otp
             return redirect(url_for("verify_otp"))
         return render_template("login.html", phone="")
 
@@ -224,14 +216,24 @@ def register_routes(app):
         flash("Signed out.", "success")
         return redirect(url_for("home"))
 
-    # -- farmer ------------------------------------------------------------
+    # farmer
 
     @app.route("/farmer/dashboard")
     @farmer_required
     def farmer_dashboard():
         fid = g.farmer["id"]
-        upcoming = query(_BOOKING_SELECT + " WHERE b.farmer_id = ? AND b.status IN ('booked','arrived')"
-                         " ORDER BY s.date, s.time_window", (fid,))
+        upcoming = query(
+            "SELECT b.*, s.date, s.time_window, s.centre_id, s.max_capacity, s.booked_count,"
+            " c.name AS centre_name, c.location, c.district AS centre_district,"
+            " f.name AS farmer_name, f.phone_number, f.village, f.district AS farmer_district,"
+            " t.payment_status, t.total_amount, t.actual_quantity, t.quality_grade"
+            " FROM bookings b"
+            " JOIN slots s ON s.id = b.slot_id"
+            " JOIN procurement_centres c ON c.id = s.centre_id"
+            " JOIN farmers f ON f.id = b.farmer_id"
+            " LEFT JOIN transactions t ON t.booking_id = b.id"
+            " WHERE b.farmer_id = ? AND b.status IN ('booked','arrived')"
+            " ORDER BY s.date, s.time_window", (fid,))
         history = query(_BOOKING_SELECT + " WHERE b.farmer_id = ? AND b.status IN ('completed','cancelled')"
                         " ORDER BY s.date DESC LIMIT 10", (fid,))
         pending_amount = query(
@@ -307,12 +309,12 @@ def register_routes(app):
             "registration ID to the centre." % (b["centre_name"], b["date"], b["time_window"],
                                                 b["token_no"]),
             booking_id=booking_id)
-        # Queued for the IVR module - it will place the confirmation call.
+        # for the ivr module to pick up later
         alerts_mod.raise_alert(g.farmer["id"], "booking_confirmed", "ivr",
                                "Voice call queued: booking confirmation for token %s."
                                % b["token_no"], booking_id=booking_id)
 
-        # Novelty B runs at booking time.
+        # check storage risk now that we know the slot date
         risk = weather.evaluate_booking(booking_id)
         if risk and risk["level"] == "high":
             flash("Booking confirmed - but a storage risk was detected. See the warning on "
@@ -410,7 +412,7 @@ def register_routes(app):
         return render_template("farmer/profile.html", farmer=g.farmer,
                                flags=unresolved_flags(fid), districts=_districts())
 
-    # -- admin -------------------------------------------------------------
+    # admin
 
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
@@ -431,7 +433,7 @@ def register_routes(app):
     @staff_required
     def admin_dashboard():
         centre_id = request.args.get("centre_id") or (g.staff["centre_id"] or "")
-        on_date = request.args.get("date", "")
+        dt = request.args.get("date", "")
         status = request.args.get("status", "")
 
         sql = _BOOKING_SELECT + " WHERE 1=1"
@@ -439,9 +441,9 @@ def register_routes(app):
         if centre_id:
             sql += " AND c.id = ?"
             args.append(centre_id)
-        if on_date:
+        if dt:
             sql += " AND s.date = ?"
-            args.append(on_date)
+            args.append(dt)
         if status:
             sql += " AND b.status = ?"
             args.append(status)
@@ -464,7 +466,7 @@ def register_routes(app):
 
         return render_template("admin/dashboard.html", bookings=bookings,
                                centres=query("SELECT * FROM procurement_centres ORDER BY name"),
-                               sel_centre=str(centre_id), sel_date=on_date, sel_status=status,
+                               sel_centre=str(centre_id), sel_date=dt, sel_status=status,
                                summary=summary)
 
     @app.route("/admin/booking/<int:booking_id>")
@@ -526,8 +528,7 @@ def register_routes(app):
             flash("Record the weighed quantity before completing the transaction.", "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
 
-        # A farmer with unresolved blocking flags cannot be paid - this is the
-        # failure mode Novelty Feature A exists to catch early.
+        # don't let the payment go through if their details are still wrong
         blocking = [f for f in unresolved_flags(b["farmer_id"]) if f["severity"] == "blocking"]
         if blocking:
             execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
@@ -670,7 +671,7 @@ def register_routes(app):
         if q:
             sql += " AND (f.name LIKE ? OR f.phone_number LIKE ? OR f.village LIKE ?)"
             args += ["%" + q + "%"] * 3
-        sql += " ORDER BY flag_count DESC, f.name LIMIT 200"
+        sql += " ORDER BY flag_count DESC, f.name LIMIT 200"     # add paging later
         return render_template("admin/farmers.html", farmers=query(sql, tuple(args)), q=q)
 
     @app.route("/admin/register-farmer", methods=["GET", "POST"])
@@ -734,7 +735,16 @@ def register_routes(app):
     @staff_required
     def admin_storage_risk():
         rows = query(
-            _BOOKING_SELECT + " WHERE b.status = 'booked' AND s.date >= ?"
+            "SELECT b.*, s.date, s.time_window, s.centre_id, s.max_capacity, s.booked_count,"
+            " c.name AS centre_name, c.location, c.district AS centre_district,"
+            " f.name AS farmer_name, f.phone_number, f.village, f.district AS farmer_district,"
+            " t.payment_status, t.total_amount, t.actual_quantity, t.quality_grade"
+            " FROM bookings b"
+            " JOIN slots s ON s.id = b.slot_id"
+            " JOIN procurement_centres c ON c.id = s.centre_id"
+            " JOIN farmers f ON f.id = b.farmer_id"
+            " LEFT JOIN transactions t ON t.booking_id = b.id"
+            " WHERE b.status = 'booked' AND s.date >= ?"
             " ORDER BY CASE b.storage_risk WHEN 'high' THEN 0 WHEN 'low' THEN 1 ELSE 2 END,"
             " s.date", (date.today().isoformat(),))
         return render_template("admin/storage_risk.html", rows=rows)
@@ -742,8 +752,7 @@ def register_routes(app):
     @app.route("/admin/demo", methods=["GET", "POST"])
     @staff_required
     def admin_demo():
-        """Demo control panel (spec 4.2.B asks for a manual override).
-        Everything here is presentation scaffolding, not product functionality."""
+        """Buttons for the demo so we can trigger things on stage."""
         result = None
         if request.method == "POST":
             action = request.form.get("action")
@@ -785,9 +794,7 @@ def register_routes(app):
         flash("Staff signed out.", "success")
         return redirect(url_for("admin_login"))
 
-    # -- IVR stub ----------------------------------------------------------
-    # The full IVR module is out of scope for this build. These endpoints exist
-    # so the Twilio integration can be dropped in without touching the core app.
+    # IVR stub - not built yet, these are just so the twilio part can plug in
 
     @app.route("/ivr/status.json")
     def ivr_status():
@@ -843,7 +850,7 @@ def register_routes(app):
                  '<Gather numDigits="1" action="/ivr/webhook"/></Response>' % say)
         return app.response_class(twiml, mimetype="text/xml")
 
-    # -- errors ------------------------------------------------------------
+    # errors
 
     @app.errorhandler(404)
     def not_found(e):
@@ -856,9 +863,7 @@ def register_routes(app):
                                message="Something went wrong at our end."), 500
 
 
-# ---------------------------------------------------------------------------
 # Shared helpers
-# ---------------------------------------------------------------------------
 
 _BOOKING_SELECT = (
     "SELECT b.*, s.date, s.time_window, s.centre_id, s.max_capacity, s.booked_count,"

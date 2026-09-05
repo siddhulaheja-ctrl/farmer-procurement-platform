@@ -1,8 +1,4 @@
-"""Booking / slot business rules.
-
-Kept separate from the routes so the two rules judges will ask about -
-capacity enforcement and fair access - are in one readable place.
-"""
+"""Slot booking rules - capacity limits and the per-farmer caps."""
 
 from datetime import date, datetime
 
@@ -19,7 +15,7 @@ GRADES = ["A", "FAQ", "B", "Rejected"]
 # Price adjustment applied to MSP by quality grade.
 GRADE_FACTOR = {"A": 1.00, "FAQ": 1.00, "B": 0.94, "Rejected": 0.0}
 
-# Fair-access caps (P-PAS style) - stop one farmer from blocking a whole centre.
+# so one farmer can't book up the whole centre
 MAX_ACTIVE_BOOKINGS = 3
 ACTIVE_STATUSES = ("booked", "arrived")
 
@@ -37,8 +33,7 @@ def slot_availability(slot_row):
 
 
 def book_slot(farmer_id, slot_id, crop_type, estimated_quantity):
-    """Create a booking after enforcing capacity and fair-access rules.
-    Raises BookingError with a farmer-readable message on any violation."""
+    """Makes a booking. Raises BookingError if any rule fails."""
     slot = query("SELECT * FROM slots WHERE id = ?", (slot_id,), one=True)
     if slot is None:
         raise BookingError("That slot no longer exists.")
@@ -59,11 +54,11 @@ def book_slot(farmer_id, slot_id, crop_type, estimated_quantity):
     if qty <= 0 or qty > 500:
         raise BookingError("Quantity must be between 0.1 and 500 quintals.")
 
-    # --- Rule 1: capacity enforcement -------------------------------------
+    # Rule 1: capacity enforcement
     if slot_availability(slot) <= 0:
         raise BookingError("This slot is fully booked. Please choose another time window.")
 
-    # --- Rule 2: fair access ----------------------------------------------
+    # Rule 2: fair access
     ph = ",".join("?" * len(ACTIVE_STATUSES))
     same_day = query(
         "SELECT b.id FROM bookings b JOIN slots s ON s.id = b.slot_id"
