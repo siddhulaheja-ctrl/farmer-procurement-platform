@@ -1,13 +1,14 @@
-/* Smart Farmer Procurement Platform - stylesheet
+/* Krishi Sutra - stylesheet
    Deliberately plain, formal and light-mode only, in the visual register of an
    Indian government service portal. Mobile-first (spec guideline #4): the base
    rules target a phone, the media queries widen it for the admin desktop.
    No CSS framework and no CDN, so the demo works with the venue wifi down. */
 
 :root {
-    --navy:        #14395e;
-    --navy-dark:   #0d2740;
-    --navy-light:  #1e4d7b;
+    /* switched the blues to green, looks more like an agriculture dept site */
+    --navy:        #1c5334;
+    --navy-dark:   #123522;
+    --navy-light:  #2a7049;
     --saffron:     #b45309;
     --green:       #15803d;
     --green-soft:  #eaf5ee;
@@ -15,12 +16,12 @@
     --red-soft:    #fbeaea;
     --amber:       #92650a;
     --amber-soft:  #fdf4e0;
-    --blue-soft:   #eaf0f7;
+    --blue-soft:   #e9f2ec;
 
-    --bg:          #eef1f5;
+    --bg:          #eef3ec;
     --card:        #ffffff;
-    --border:      #c8d1dc;
-    --border-soft: #e0e6ed;
+    --border:      #c6d3c8;
+    --border-soft: #e0e8e1;
     --text:        #1c2733;
     --muted:       #5a6a7a;
 
@@ -123,7 +124,7 @@ main.wrap { padding: 16px; }
     border-radius: 3px; margin-bottom: 16px;
 }
 .card > h2, .card > .card-head {
-    margin: 0; padding: 10px 14px; background: #f7f9fb;
+    margin: 0; padding: 10px 14px; background: #f5f9f5;
     border-bottom: 1px solid var(--border-soft);
     font-family: var(--serif); font-size: 15px; color: var(--navy);
     display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -163,14 +164,14 @@ table.data {
     width: 100%; border-collapse: collapse; font-size: 13.5px; background: #fff;
 }
 table.data th {
-    background: #eaeff5; color: var(--navy); text-align: left; font-weight: 600;
+    background: #e4ede6; color: var(--navy); text-align: left; font-weight: 600;
     padding: 8px 10px; border-bottom: 2px solid var(--border);
     white-space: nowrap; font-size: 12.5px; text-transform: uppercase;
     letter-spacing: .03em;
 }
 table.data td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
 table.data tr:last-child td { border-bottom: none; }
-table.data tbody tr:hover { background: #f6f9fc; }
+table.data tbody tr:hover { background: #f4f9f5; }
 table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .mono { font-family: var(--mono); font-size: 12.5px; }
 
@@ -197,7 +198,7 @@ dl.kv dt:first-child, dl.kv dt:first-child + dd { border-top: none; }
     border-radius: 2px; border: 1px solid; white-space: nowrap;
     text-transform: uppercase; letter-spacing: .03em;
 }
-.badge.grey  { background: #eef1f5; border-color: var(--border); color: #46566a; }
+.badge.grey  { background: #eef1ee; border-color: var(--border); color: #46566a; }
 .badge.blue  { background: var(--blue-soft); border-color: #b4c8de; color: var(--navy); }
 .badge.green { background: var(--green-soft); border-color: #b6ddc4; color: var(--green); }
 .badge.amber { background: var(--amber-soft); border-color: #e6cf96; color: var(--amber); }
@@ -248,7 +249,7 @@ input[readonly] { background: #f2f4f7; color: var(--muted); }
 
 .filter-bar {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end;
-    background: #f7f9fb; border: 1px solid var(--border-soft); border-radius: 3px;
+    background: #f5f9f5; border: 1px solid var(--border-soft); border-radius: 3px;
     padding: 10px 12px; margin-bottom: 14px;
 }
 .filter-bar .field { margin-bottom: 0; min-width: 130px; flex: 1 1 130px; }
@@ -264,7 +265,7 @@ input[readonly] { background: #f2f4f7; color: var(--muted); }
 }
 .btn:hover { background: var(--navy-light); color: #fff; }
 .btn.secondary { background: #fff; color: var(--navy); }
-.btn.secondary:hover { background: #eaeff5; }
+.btn.secondary:hover { background: #e6efe8; }
 .btn.danger { background: var(--red); border-color: var(--red); }
 .btn.danger:hover { background: #8d1818; }
 .btn.go { background: var(--green); border-color: var(--green); }
@@ -384,3 +385,41 @@ hr.rule { border: none; border-top: 1px solid var(--border-soft); margin: 14px 0
     border-color: var(--green); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green);
 }
 .slot.full { cursor: not-allowed; }
+
+
+/* language switch in the top strip */
+.langswitch a {
+    padding: 0 5px; text-decoration: none; opacity: .65;
+}
+.langswitch a.on { opacity: 1; font-weight: 700; text-decoration: underline; }
+
+/* hero picture on the home page */
+.hero {
+    position: relative; border: 1px solid var(--border); border-radius: 3px;
+    overflow: hidden; margin-bottom: 16px; background: var(--navy);
+}
+.hero img {
+    width: 100%; height: 230px; object-fit: cover; display: block; opacity: .55;
+}
+.hero .hero-text {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    justify-content: center; padding: 18px 22px; color: #fff;
+    background: linear-gradient(90deg, rgba(18,53,34,.85) 0%, rgba(18,53,34,.35) 100%);
+}
+.hero h2 {
+    font-family: var(--serif); font-size: 23px; margin: 0 0 6px; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+.hero p { margin: 0; font-size: 13.5px; max-width: 46em; color: #eaf3ec; }
+@media (min-width: 760px) { .hero img { height: 280px; } }
+
+/* small photos on the home page cards */
+.card-photo {
+    width: 100%; height: 130px; object-fit: cover; display: block;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.photo-credit {
+    font-size: 10.5px; color: var(--muted); margin-top: 4px;
+}
+footer.site .photo-credit { color: #8fa89a; }
