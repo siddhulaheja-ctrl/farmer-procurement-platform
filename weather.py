@@ -1,16 +1,11 @@
-"""Novelty Feature B - Storage-Risk Alerts.
+"""Storage risk alerts.
 
-Problem: a farmer who books a slot 8 days out has to store harvested grain at
-home in the meantime. If it rains, the grain gets wet, moisture content rises,
-and the centre downgrades or rejects it at the gate. Nobody warns them.
+If a farmer's slot is a week away they have to keep the grain at home till
+then. If it rains it gets damp and the centre downgrades it at the gate.
+So we check the forecast for their district and warn them.
 
-This module looks at the forecast for the farmer's district over the waiting
-window and raises a spoilage-risk alert with a suggestion to move earlier.
-
-Data source: OpenWeatherMap 5-day forecast (free tier). If OWM_API_KEY is not
-set, or the API call fails, we fall back to a deterministic mock forecast so
-the demo never depends on the venue wifi. See DEMO_FORCE_RISK below for the
-manual override the spec asks for.
+Uses OpenWeatherMap if OWM_API_KEY is set, otherwise a fake forecast so the
+demo still works without internet.
 """
 
 import os
@@ -18,6 +13,7 @@ from datetime import date, datetime, timedelta
 
 from db import execute, query
 
+# TODO: handle the case where the api key is missing
 OWM_API_KEY = os.environ.get("OWM_API_KEY", "").strip()
 OWM_URL = "https://api.openweathermap.org/data/2.5/forecast"
 
@@ -43,11 +39,8 @@ def _mock_forecast(district: str, days: int):
     """Deterministic pseudo-forecast so the same district always behaves the
     same way in a demo. Districts whose name hashes 'wet' get rain."""
     seed = sum(ord(c) for c in (district or "X"))
-    # Only some districts sit in a wet spell at any one time, which is what keeps
-    # the risk watchlist meaningful rather than flagging every booking. Karnal is
-    # in the list on purpose: the walkthrough farmer is registered there, so the
-    # storage-risk alert can be demonstrated without the manual override.
-    # Districts outside the list fall back to a hash so new ones still vary.
+    # only some districts are wet, otherwise everything gets flagged and the
+    # watchlist is useless. karnal is in the list because our demo farmer is there.
     wet_district = (district in MOCK_WET_DISTRICTS) if district in MOCK_KNOWN_DISTRICTS \
         else (seed % 3 == 0)
     out = []

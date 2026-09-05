@@ -65,13 +65,13 @@ def main():
     cur = conn.cursor()
     now = datetime.now().isoformat(timespec="seconds")
 
-    # --- centres ----------------------------------------------------------
+    # centres
     for c in CENTRES:
         cur.execute("INSERT INTO procurement_centres (name, location, district, daily_capacity,"
                     " crop_types_accepted) VALUES (?,?,?,?,?)", c)
     centre_ids = [r["id"] for r in cur.execute("SELECT id FROM procurement_centres").fetchall()]
 
-    # --- staff ------------------------------------------------------------
+    # staff
     for i, cid in enumerate(centre_ids, start=1):
         cur.execute("INSERT INTO staff (name, staff_code, password, centre_id) VALUES (?,?,?,?)",
                     (fake.name(), "STAFF%02d" % i, "demo123", cid))
@@ -79,7 +79,7 @@ def main():
     cur.execute("INSERT INTO staff (name, staff_code, password, centre_id) VALUES (?,?,?,NULL)",
                 ("R. Sharma (District Supervisor)", "ADMIN", "demo123"))
 
-    # --- slots: 3 days back, 14 days forward ------------------------------
+    # slots: 3 days back, 14 days forward
     today = date.today()
     for cid in centre_ids:
         cap = cur.execute("SELECT daily_capacity FROM procurement_centres WHERE id=?",
@@ -94,7 +94,7 @@ def main():
                             " booked_count) VALUES (?,?,?,?,0)",
                             (cid, day.isoformat(), tw, per_slot))
 
-    # --- farmers ----------------------------------------------------------
+    # farmers
     farmer_ids = []
     used_phones = set()
     for i in range(48):
@@ -157,7 +157,7 @@ def main():
 
     conn.commit()
 
-    # --- bookings ---------------------------------------------------------
+    # bookings
     slots = cur.execute("SELECT * FROM slots ORDER BY date, id").fetchall()
     past = [s for s in slots if s["date"] < today.isoformat()]
     future = [s for s in slots if s["date"] >= today.isoformat()]
@@ -219,7 +219,7 @@ def main():
     conn.commit()
     conn.close()
 
-    # --- validation + storage-risk pass -----------------------------------
+    # validation + storage-risk pass
     # Run inside the real Flask app context so the same code paths used at
     # registration time are exercised here.
     from app import create_app
