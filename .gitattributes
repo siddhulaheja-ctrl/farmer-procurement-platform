@@ -1,0 +1,5 @@
+# Keep line endings correct per platform, so a clone works on macOS, Linux and
+# Windows alike. Shell scripts break outright if they arrive with CRLF.
+*.sh   text eol=lf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
