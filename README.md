@@ -1,6 +1,7 @@
-# Smart Farmer Procurement Platform
+# Krishi Sutra
 
 Slot booking system for government crop procurement centres.
+Farmer pages work in Hindi and English.
 SIH 2026, problem statement 26032.
 
 ## Setup
@@ -73,6 +74,7 @@ anyone. Data is all fake so it doesn't matter, just re-run the seed after.
 | db.py | sqlite helpers |
 | schema.sql | tables |
 | seed.py | fake data |
+| i18n.py | hindi strings for the farmer pages |
 
 The IVR part is not built. There is `/ivr/status.json` and `/ivr/webhook` as
 a starting point, and the alerts that should become phone calls are already
@@ -80,3 +82,6 @@ saved in `alerts_log` with channel `ivr`.
 
 Aadhaar, bank and land details are all fake, nothing talks to a real
 government API. Payment status is just a field we update.
+
+Photos on the home page are from Wikimedia Commons and are CC BY-SA, credits
+are in the footer and in static/img/credits.json.
