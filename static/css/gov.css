@@ -24,8 +24,14 @@
     --text:        #1c2733;
     --muted:       #5a6a7a;
 
+    /* Cross-platform stacks: Segoe UI on Windows, San Francisco on macOS/iOS
+       (via -apple-system), Roboto on Android/ChromeOS, Arial everywhere else.
+       Georgia ships on Windows and macOS both, so the serif needs no variant. */
     --serif: Georgia, "Times New Roman", Times, serif;
-    --sans: "Segoe UI", Roboto, Arial, Helvetica, sans-serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, Helvetica, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+            "Courier New", monospace;
 }
 
 * { box-sizing: border-box; }
@@ -166,7 +172,7 @@ table.data td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft); 
 table.data tr:last-child td { border-bottom: none; }
 table.data tbody tr:hover { background: #f6f9fc; }
 table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.mono { font-family: "Consolas", "Courier New", monospace; font-size: 12.5px; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
 
 /* Definition list used on detail pages */
 dl.kv { margin: 0; display: grid; grid-template-columns: 1fr; gap: 0; }

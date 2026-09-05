@@ -11,22 +11,43 @@ only its data feed and a webhook stub (see [Not built](#not-built)).
 
 ## Run it
 
-```bash
-pip install -r requirements.txt
-```
+Runs on Windows, macOS and Linux. Python 3.9+ is the only prerequisite.
+
+**Windows** — double-click `start_demo.bat`.
+
+**macOS / Linux**:
 
 ```bash
-python seed.py
+./start_demo.sh
 ```
 
+Either script installs dependencies if they are missing, seeds the database on
+first run, starts the server and opens a browser.
+
+To do it by hand on any platform:
+
 ```bash
-python app.py
+pip install -r requirements.txt && python seed.py && python app.py
 ```
 
 Then open <http://localhost:5000>.
 
 `seed.py` drops and rebuilds `procurement.db` with ~50 farmers, 8 centres, 480
-slots and 82 bookings. Run it again any time to reset the demo to a clean state.
+slots and 82 bookings. Run it again any time to reset the demo to a clean state
+(`reset_demo.bat` / `./reset_demo.sh`).
+
+### macOS note: port 5000
+
+macOS Monterey and later run **AirPlay Receiver** on port 5000, which is also
+Flask's default. `start_demo.sh` detects this and moves to port 5001 by itself,
+telling you it has done so. If you start the app by hand and see
+`Address already in use`, either set the port:
+
+```bash
+PORT=5001 python app.py
+```
+
+or turn off System Settings → General → AirDrop & Handoff → AirPlay Receiver.
 
 ### Demo logins
 
@@ -134,14 +155,19 @@ scaffolding.
 
 ## Sharing it
 
-**With teammates, right now** — double-click `share_demo.bat`. It starts the
-server and opens a free Cloudflare quick tunnel, printing an
-`https://….trycloudflare.com` link that works from anywhere. The link is live
+**With teammates, right now** — `share_demo.bat` on Windows, `./share_demo.sh`
+on macOS/Linux. It starts the server and opens a free Cloudflare quick tunnel,
+printing an `https://….trycloudflare.com` link that works from anywhere, copying
+it to your clipboard and saving it to `LAST_SHARE_LINK.txt`. The link is live
 only while that window is open, and you get a different one each run.
 
-**On the same wifi** — run `start_demo.bat` and give people
-`http://<your-ip>:5000` (find it with `ipconfig`). Windows Firewall will ask to
-allow Python on private networks the first time.
+Needs cloudflared: `winget install Cloudflare.cloudflared` on Windows,
+`brew install cloudflared` on macOS.
+
+**On the same wifi** — start the app and give people `http://<your-ip>:5000`
+(`ipconfig` on Windows, `ipconfig getifaddr en0` on macOS). Windows Firewall
+asks to allow Python on private networks the first time; macOS asks whether to
+allow incoming connections.
 
 Both routes expose the app with no real authentication: anyone with the link can
 sign in as any farmer (OTP `123456`) or as `ADMIN`/`demo123`, and can change
@@ -173,6 +199,7 @@ a demo; move to PostgreSQL for anything real.
 | [`schema.sql`](schema.sql) | All 7 tables from spec §3, plus `staff` |
 | [`seed.py`](seed.py) | Faker-generated demo data |
 | `templates/`, `static/css/gov.css` | Mobile-first farmer pages, desktop admin dashboard |
+| `start_demo.*`, `share_demo.*`, `reset_demo.*` | Launchers — `.bat`/`.ps1` for Windows, `.sh` for macOS/Linux |
 
 Auth is deliberately thin (spec guideline #7): phone + simulated OTP for
 farmers, a shared demo password for staff. Everywhere something is mocked, the
