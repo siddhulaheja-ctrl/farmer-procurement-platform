@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}My Details{% endblock %}
+{% block title %}{{ t("My details") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">My details</h2>
+<h2 class="page-title">{{ t("My details") }}</h2>
 <p class="page-sub">
   These are the details used to verify your identity and credit your payment. Correcting a
   flagged field here re-runs the verification checks immediately.
@@ -22,24 +22,23 @@
 </div>
 {% else %}
 <div class="notice success">
-  <h3>All checks passed</h3>
+  <h3>{{ t("All checks passed") }}</h3>
   <p style="margin-bottom:0">
-    Your Aadhaar, bank and land-record details are correctly formatted and consistent. Nothing
-    should hold up your payment.
+    {{ t("Your Aadhaar, bank and land-record details are correctly formatted and consistent. Nothing should hold up your payment.") }}
   </p>
 </div>
 {% endif %}
 
 <div class="card">
-  <h2>Edit details</h2>
+  <h2>{{ t("Edit details") }}</h2>
   <div class="card-body">
     <form method="post">
       {% with f = farmer, show_phone = false %}
         {% include "_farmer_fields.html" %}
       {% endwith %}
       <div class="btn-row mt">
-        <button class="btn" type="submit">Save and re-check</button>
-        <a class="btn secondary" href="{{ url_for('farmer_dashboard') }}">Back to dashboard</a>
+        <button class="btn" type="submit">{{ t("Save and re-check") }}</button>
+        <a class="btn secondary" href="{{ url_for('farmer_dashboard') }}">{{ t("Back to dashboard") }}</a>
       </div>
     </form>
   </div>

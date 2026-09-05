@@ -1,50 +1,55 @@
 {% extends "base.html" %}
-{% block title %}Home &middot; Procurement Slot Booking Portal{% endblock %}
+{% block title %}{{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Book your procurement slot before you harvest</h2>
-<p class="page-sub">
-  Reserve a weighing slot at your nearest government procurement centre, verify your payment
-  details in advance, and track your payment &mdash; without standing in a queue at the mandi gate.
-</p>
+<div class="hero">
+  <img src="{{ url_for('static', filename='img/hero-field.jpg') }}"
+       alt="Farmer preparing a field for a wheat crop in Punjab">
+  <div class="hero-text">
+    <h2>{{ t("Book your procurement slot before you harvest") }}</h2>
+    <p>{{ t("Reserve a weighing slot at your nearest government procurement centre, verify your payment details in advance, and track your payment — without standing in a queue at the mandi gate.") }}</p>
+  </div>
+</div>
 
 <div class="stat-row">
-  <div class="stat"><div class="n">{{ stats.centres }}</div><div class="l">Procurement centres</div></div>
-  <div class="stat"><div class="n">{{ stats.farmers }}</div><div class="l">Registered farmers</div></div>
-  <div class="stat"><div class="n">{{ stats.bookings }}</div><div class="l">Slots booked</div></div>
-  <div class="stat good"><div class="n">{{ stats.slots_open }}</div><div class="l">Slots still open</div></div>
+  <div class="stat"><div class="n">{{ stats.centres }}</div><div class="l">{{ t("Procurement centre") }}s") }}</div></div>
+  <div class="stat"><div class="n">{{ stats.farmers }}</div><div class="l">{{ t("Registered farmers") }}</div></div>
+  <div class="stat"><div class="n">{{ stats.bookings }}</div><div class="l">{{ t("Slots booked") }}</div></div>
+  <div class="stat good"><div class="n">{{ stats.slots_open }}</div><div class="l">{{ t("Slots still open") }}</div></div>
 </div>
 
 <div class="login-split">
   <div class="card">
-    <h2>For farmers</h2>
+    <img class="card-photo" src="{{ url_for('static', filename='img/harvest.jpg') }}"
+         alt="Farmer harvesting rice by hand in Raichur, Karnataka">
+    <h2>{{ t("For farmers") }}</h2>
     <div class="card-body">
       <p class="small muted">
-        Register once with your mobile number. You can then book, reschedule or cancel a slot,
-        and check your payment status at any time.
-      </p>
+  {{ t("Register once with your mobile number. You can then book, reschedule or cancel a slot, and check your payment status at any time.") }}
+</p>
       <div class="btn-row">
-        <a class="btn" href="{{ url_for('register') }}">Register</a>
-        <a class="btn secondary" href="{{ url_for('login') }}">Sign in</a>
+        <a class="btn" href="{{ url_for('register') }}">{{ t("Register") }}</a>
+        <a class="btn secondary" href="{{ url_for('login') }}">{{ t("Sign in") }}</a>
       </div>
       <hr class="rule">
-      <p class="small muted" style="margin-bottom:6px"><strong>No smartphone?</strong></p>
+      <p class="small muted" style="margin-bottom:6px"><strong>{{ t("No smartphone?") }}</strong></p>
       <p class="small muted">
-        Call the procurement helpline from any phone to hear your slot and payment status, or ask
-        the operator at your nearest Common Service Centre to register you.
-      </p>
+  {{ t("Call the procurement helpline from any phone to hear your slot and payment status, or ask the operator at your nearest Common Service Centre to register you.") }}
+</p>
     </div>
   </div>
 
   <div class="card">
-    <h2>For centre staff</h2>
+    <img class="card-photo" src="{{ url_for('static', filename='img/planting.jpg') }}"
+         alt="Women planting paddy seedlings in Assam">
+    <h2>{{ t("For centre staff") }}</h2>
     <div class="card-body">
       <p class="small muted">
         Manage slot capacity, verify arriving produce, record quantity and quality grade, close
         transactions, and clear flagged farmer records before they hold up a payment.
       </p>
       <div class="btn-row">
-        <a class="btn" href="{{ url_for('admin_login') }}">Staff sign in</a>
+        <a class="btn" href="{{ url_for('admin_login') }}">{{ t("Staff sign in") }}</a>
       </div>
     </div>
   </div>
@@ -63,7 +68,7 @@
         </p>
       </div>
       <div>
-        <h3 style="font-size:14px;color:var(--navy);margin:0 0 4px">Storage risk is flagged before the grain spoils</h3>
+        <h3 style="font-size:14px;color:var(--navy);margin:0 0 4px">{{ t("Storage risk") }} is flagged before the grain spoils</h3>
         <p class="small muted" style="margin-top:0">
           If a slot is more than five days away and rain or high humidity is forecast for the
           farmer's district, the portal warns them and offers an earlier slot &mdash; instead of

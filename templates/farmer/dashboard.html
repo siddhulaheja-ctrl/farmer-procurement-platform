@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import status_badge, payment_badge, risk_badge %}
-{% block title %}My Dashboard{% endblock %}
+{% block title %}{{ t("Dashboard") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <h2 class="page-title">Namaste, {{ g.farmer.name }}</h2>
@@ -22,23 +22,23 @@
 {% endif %}
 
 <div class="stat-row">
-  <div class="stat"><div class="n">{{ upcoming|length }}</div><div class="l">Upcoming slots</div></div>
-  <div class="stat good"><div class="n">{{ paid_amount|rupee }}</div><div class="l">Received</div></div>
-  <div class="stat warn"><div class="n">{{ pending_amount|rupee }}</div><div class="l">Awaiting payment</div></div>
-  <div class="stat {{ 'bad' if flags else 'good' }}"><div class="n">{{ flags|length }}</div><div class="l">Open detail issues</div></div>
+  <div class="stat"><div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
+  <div class="stat good"><div class="n">{{ paid_amount|rupee }}</div><div class="l">{{ t("Received") }}</div></div>
+  <div class="stat warn"><div class="n">{{ pending_amount|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
+  <div class="stat {{ 'bad' if flags else 'good' }}"><div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>
 </div>
 
 <div class="card">
   <div class="card-head">
-    <span>Upcoming bookings</span>
-    <a class="btn small" href="{{ url_for('farmer_centres') }}">Book a new slot</a>
+    <span>{{ t("Upcoming bookings") }}</span>
+    <a class="btn small" href="{{ url_for('farmer_centres') }}">{{ t("Book a new slot") }}</a>
   </div>
   {% if upcoming %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Token</th><th>Centre</th><th>Date</th><th>Time</th><th>Crop</th>
-            <th class="num">Est. qty</th><th>Status</th><th>Storage</th><th></th></tr>
+        <tr><th>{{ t("Token") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Date") }}</th><th>{{ t("Time") }}</th><th>{{ t("Crop") }}</th>
+            <th class="num">{{ t("Est. qty") }}</th><th>{{ t("Status") }}</th><th>{{ t("Storage") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for b in upcoming %}
@@ -51,7 +51,7 @@
           <td class="num nowrap">{{ '%.1f'|format(b.estimated_quantity) }} qtl</td>
           <td>{{ status_badge(b.status) }}</td>
           <td>{{ risk_badge(b.storage_risk) }}</td>
-          <td class="nowrap"><a class="btn small secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">Open</a></td>
+          <td class="nowrap"><a class="btn small secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ t("Open") }}</a></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -60,20 +60,20 @@
   {% else %}
     <div class="empty">
       You have no upcoming slots.
-      <div class="mt"><a class="btn" href="{{ url_for('farmer_centres') }}">Find a procurement centre</a></div>
+      <div class="mt"><a class="btn" href="{{ url_for('farmer_centres') }}">{{ t("Find a procurement centre") }}</a></div>
     </div>
   {% endif %}
 </div>
 
 <div class="grid side">
   <div class="card">
-    <div class="card-head"><span>Recent history</span>
-      <a class="small" href="{{ url_for('farmer_payments') }}">All payments</a></div>
+    <div class="card-head"><span>{{ t("Recent history") }}</span>
+      <a class="small" href="{{ url_for('farmer_payments') }}">{{ t("All payments") }}</a></div>
     {% if history %}
     <div class="table-scroll">
       <table class="data">
-        <thead><tr><th>Date</th><th>Centre</th><th>Crop</th><th class="num">Qty</th>
-                   <th class="num">Amount</th><th>Status</th><th>Payment</th></tr></thead>
+        <thead><tr><th>{{ t("Date") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Crop") }}</th><th class="num">Qty</th>
+                   <th class="num">{{ t("Amount") }}</th><th>{{ t("Status") }}</th><th>{{ t("Payment") }}</th></tr></thead>
         <tbody>
           {% for b in history %}
           <tr>
@@ -90,13 +90,13 @@
       </table>
     </div>
     {% else %}
-      <div class="empty">No completed procurement yet.</div>
+      <div class="empty">{{ t("No completed procurement yet.") }}</div>
     {% endif %}
   </div>
 
   <div class="card">
-    <div class="card-head"><span>Latest alerts</span>
-      <a class="small" href="{{ url_for('farmer_alerts_page') }}">View all</a></div>
+    <div class="card-head"><span>{{ t("Latest alerts") }}</span>
+      <a class="small" href="{{ url_for('farmer_alerts_page') }}">{{ t("View all") }}</a></div>
     <div class="card-body">
       {% for a in alerts %}
         <div style="padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--border-soft)">
@@ -104,7 +104,7 @@
           <div class="small">{{ a.message }}</div>
         </div>
       {% else %}
-        <p class="muted small" style="margin:0">No alerts yet.</p>
+        <p class="muted small" style="margin:0">{{ t("No alerts yet.") }}</p>
       {% endfor %}
     </div>
   </div>

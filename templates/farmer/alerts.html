@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}My Alerts{% endblock %}
+{% block title %}{{ t("Alerts and notifications") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Alerts and notifications</h2>
+<h2 class="page-title">{{ t("Alerts and notifications") }}</h2>
 <p class="page-sub">
   Everything the portal has sent you. Entries marked <em>voice call</em> are the messages the
   telephone helpline reads out to farmers without a smartphone.
@@ -12,20 +12,20 @@
   {% if alerts %}
   <div class="table-scroll">
     <table class="data">
-      <thead><tr><th>When</th><th>Type</th><th>Channel</th><th>Message</th></tr></thead>
+      <thead><tr><th>{{ t("When") }}</th><th>{{ t("Type") }}</th><th>{{ t("Channel") }}</th><th>{{ t("Message") }}</th></tr></thead>
       <tbody>
         {% for a in alerts %}
         <tr>
           <td class="nowrap small">{{ a.sent_at|stamp }}</td>
           <td class="nowrap">
-            {% if a.alert_type == 'storage_risk' %}<span class="badge red">Storage risk</span>
+            {% if a.alert_type == 'storage_risk' %}<span class="badge red">{{ t("Storage risk") }}</span>
             {% elif a.alert_type == 'data_mismatch' %}<span class="badge amber">Data mismatch</span>
-            {% elif a.alert_type == 'payment_update' %}<span class="badge green">Payment</span>
+            {% elif a.alert_type == 'payment_update' %}<span class="badge green">{{ t("Payment") }}</span>
             {% elif a.alert_type == 'booking_confirmed' %}<span class="badge blue">Booking</span>
             {% else %}<span class="badge grey">{{ a.alert_type|replace('_',' ') }}</span>{% endif %}
           </td>
           <td class="nowrap small muted">
-            {% if a.channel == 'ivr' %}Voice call{% elif a.channel == 'sms' %}SMS{% else %}In app{% endif %}
+            {% if a.channel == 'ivr' %}{{ t("Voice call") }}{% elif a.channel == 'sms' %}{{ t("SMS") }}{% else %}{{ t("In app") }}{% endif %}
           </td>
           <td>{{ a.message }}</td>
         </tr>
@@ -34,7 +34,7 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">No alerts yet.</div>
+    <div class="empty">{{ t("No alerts yet.") }}</div>
   {% endif %}
 </div>
 {% endblock %}

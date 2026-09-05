@@ -3,23 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Procurement Slot Booking Portal{% endblock %}</title>
+<title>{% block title %}{{ t("Krishi Sutra") }}{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gov.css') }}">
 </head>
 <body>
-<a class="skip-link" href="#main">Skip to main content</a>
+<a class="skip-link" href="#main">{{ t("Skip to main content") }}</a>
 
 <div class="utility-strip">
   <div class="wrap">
-    <span>Government of India &middot; Department of Food &amp; Public Distribution</span>
+    <span>{{ t("Government of India") }} &middot; {{ t("Department of Food & Public Distribution") }}</span>
     <span>
+      <span class="langswitch">
+        <a href="{{ url_for('set_lang', code='en') }}" class="{{ 'on' if lang() == 'en' }}">English</a>
+        <a href="{{ url_for('set_lang', code='hi') }}" class="{{ 'on' if lang() == 'hi' }}">हिन्दी</a>
+      </span>
+      &middot;
       {% if g.farmer %}
-        {{ g.farmer.name }} &middot; <a href="{{ url_for('logout') }}">Sign out</a>
+        {{ g.farmer.name }} &middot; <a href="{{ url_for('logout') }}">{{ t("Sign out") }}</a>
       {% elif g.staff %}
-        {{ g.staff.name }} &middot; <a href="{{ url_for('admin_logout') }}">Sign out</a>
+        {{ g.staff.name }} &middot; <a href="{{ url_for('admin_logout') }}">{{ t("Sign out") }}</a>
       {% else %}
-        <a href="{{ url_for('login') }}">Farmer sign in</a> &middot;
-        <a href="{{ url_for('admin_login') }}">Centre staff</a>
+        <a href="{{ url_for('login') }}">{{ t("Farmer sign in") }}</a> &middot;
+        <a href="{{ url_for('admin_login') }}">{{ t("Centre staff") }}</a>
       {% endif %}
     </span>
   </div>
@@ -27,10 +32,10 @@
 
 <header class="masthead">
   <div class="wrap">
-    <div class="emblem">PS</div>
+    <div class="emblem">कृ</div>
     <div>
-      <h1>Smart Farmer Procurement Portal</h1>
-      <div class="sub">Slot Booking &amp; Procurement Management System</div>
+      <h1>{{ t("Krishi Sutra") }}</h1>
+      <div class="sub">{{ t("Slot Booking & Procurement Management System") }}</div>
     </div>
   </div>
 </header>
@@ -48,16 +53,16 @@
       <span class="spacer"></span>
       <a href="{{ url_for('admin_demo') }}" class="{{ 'active' if request.endpoint == 'admin_demo' }}">Demo Controls</a>
     {% elif g.farmer %}
-      <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint == 'farmer_dashboard' }}">Dashboard</a>
-      <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if request.endpoint in ('farmer_centres','farmer_centre') }}">Book a Slot</a>
-      <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if request.endpoint == 'farmer_payments' }}">Payments</a>
-      <a href="{{ url_for('farmer_alerts_page') }}" class="{{ 'active' if request.endpoint == 'farmer_alerts_page' }}">Alerts{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
-      <a href="{{ url_for('farmer_profile') }}" class="{{ 'active' if request.endpoint == 'farmer_profile' }}">My Details</a>
+      <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint == 'farmer_dashboard' }}">{{ t("Dashboard") }}</a>
+      <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if request.endpoint in ('farmer_centres','farmer_centre') }}">{{ t("Book a Slot") }}</a>
+      <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if request.endpoint == 'farmer_payments' }}">{{ t("Payments") }}</a>
+      <a href="{{ url_for('farmer_alerts_page') }}" class="{{ 'active' if request.endpoint == 'farmer_alerts_page' }}">{{ t("Alerts") }}{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
+      <a href="{{ url_for('farmer_profile') }}" class="{{ 'active' if request.endpoint == 'farmer_profile' }}">{{ t("My Details") }}</a>
     {% else %}
-      <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">Home</a>
-      <a href="{{ url_for('register') }}" class="{{ 'active' if request.endpoint == 'register' }}">Register</a>
-      <a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint in ('login','verify_otp') }}">Farmer Sign In</a>
-      <a href="{{ url_for('admin_login') }}" class="{{ 'active' if request.endpoint == 'admin_login' }}">Centre Staff</a>
+      <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">{{ t("Home") }}</a>
+      <a href="{{ url_for('register') }}" class="{{ 'active' if request.endpoint == 'register' }}">{{ t("Register") }}</a>
+      <a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint in ('login','verify_otp') }}">{{ t("Farmer Sign In") }}</a>
+      <a href="{{ url_for('admin_login') }}" class="{{ 'active' if request.endpoint == 'admin_login' }}">{{ t("Centre Staff") }}</a>
     {% endif %}
   </div>
 </nav>
@@ -76,6 +81,12 @@
   <div class="wrap">
     <span>Smart Farmer Procurement Platform &middot; Smart India Hackathon 2026 &middot; PS 26032</span>
     <span><a href="{{ url_for('ivr_status', phone='9000000001') }}">IVR data feed</a></span>
+    <div class="photo-credit">
+      Photographs from Wikimedia Commons &mdash; CIAT (CC BY-SA 2.0);
+      Nanditha Gogate, WELL Labs (CC BY-SA 4.0);
+      &#2439;&#2486;&#2494;&#2472; &#2460;&#2509;&#2479;&#2507;&#2468;&#2495; &#2476;&#2480;&#2494; (CC BY-SA 4.0).
+      Full details in static/img/credits.json.
+    </div>
     <div class="demo-note">
       Prototype for demonstration only. Aadhaar, bank and land-record details are mock data and
       are not verified against any live government database. Payment status is simulated.

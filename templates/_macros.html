@@ -1,29 +1,29 @@
 {% macro status_badge(s) -%}
-  {% if s == 'booked' %}<span class="badge blue">Booked</span>
-  {% elif s == 'arrived' %}<span class="badge amber">Arrived</span>
-  {% elif s == 'completed' %}<span class="badge green">Completed</span>
-  {% elif s == 'cancelled' %}<span class="badge grey">Cancelled</span>
+  {% if s == 'booked' %}<span class="badge blue">{{ t("Booked") }}</span>
+  {% elif s == 'arrived' %}<span class="badge amber">{{ t("Arrived") }}</span>
+  {% elif s == 'completed' %}<span class="badge green">{{ t("Completed") }}</span>
+  {% elif s == 'cancelled' %}<span class="badge grey">{{ t("Cancelled") }}</span>
   {% else %}<span class="badge grey">{{ s }}</span>{% endif %}
 {%- endmacro %}
 
 {% macro payment_badge(s) -%}
-  {% if s == 'completed' %}<span class="badge green">Paid</span>
-  {% elif s == 'processing' %}<span class="badge blue">Processing</span>
-  {% elif s == 'pending' %}<span class="badge amber">Pending</span>
-  {% elif s == 'failed' %}<span class="badge red">Failed</span>
+  {% if s == 'completed' %}<span class="badge green">{{ t("Paid") }}</span>
+  {% elif s == 'processing' %}<span class="badge blue">{{ t("Processing") }}</span>
+  {% elif s == 'pending' %}<span class="badge amber">{{ t("Pending") }}</span>
+  {% elif s == 'failed' %}<span class="badge red">{{ t("Failed") }}</span>
   {% else %}<span class="badge grey">&mdash;</span>{% endif %}
 {%- endmacro %}
 
 {% macro risk_badge(r) -%}
-  {% if r == 'high' %}<span class="badge red">High risk</span>
-  {% elif r == 'low' %}<span class="badge amber">Low risk</span>
-  {% else %}<span class="badge grey">None</span>{% endif %}
+  {% if r == 'high' %}<span class="badge red">{{ t("High risk") }}</span>
+  {% elif r == 'low' %}<span class="badge amber">{{ t("Low risk") }}</span>
+  {% else %}<span class="badge grey">{{ t("None") }}</span>{% endif %}
 {%- endmacro %}
 
 {% macro grade_badge(g) -%}
-  {% if g == 'A' %}<span class="badge green">Grade A</span>
-  {% elif g == 'FAQ' %}<span class="badge green">FAQ</span>
-  {% elif g == 'B' %}<span class="badge amber">Grade B</span>
-  {% elif g == 'Rejected' %}<span class="badge red">Rejected</span>
+  {% if g == 'A' %}<span class="badge green">{{ t("Grade A") }}</span>
+  {% elif g == 'FAQ' %}<span class="badge green">{{ t("FAQ") }}</span>
+  {% elif g == 'B' %}<span class="badge amber">{{ t("Grade B") }}</span>
+  {% elif g == 'Rejected' %}<span class="badge red">{{ t("Rejected") }}</span>
   {% else %}<span class="badge grey">&mdash;</span>{% endif %}
 {%- endmacro %}

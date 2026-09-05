@@ -1,32 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Procurement Centres{% endblock %}
+{% block title %}{{ t("Procurement centres") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Procurement centres</h2>
-<p class="page-sub">Centres in your district are listed first. Choose a centre to see its open slots.</p>
+<h2 class="page-title">{{ t("Procurement centres") }}</h2>
+<p class="page-sub">{{ t("Centres in your district are listed first. Choose a centre to see its open slots.") }}</p>
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="district">District</label>
+    <label for="district">{{ t("District") }}</label>
     <select id="district" name="district">
-      <option value="">All districts</option>
+      <option value="">{{ t("All districts") }}</option>
       {% for d in districts %}
         <option value="{{ d }}" {{ 'selected' if sel_district == d }}>{{ d }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="field">
-    <label for="crop">Crop</label>
+    <label for="crop">{{ t("Crop") }}</label>
     <select id="crop" name="crop">
-      <option value="">All crops</option>
+      <option value="">{{ t("All crops") }}</option>
       {% for c in crops %}
         <option value="{{ c }}" {{ 'selected' if sel_crop == c }}>{{ c }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="actions">
-    <button class="btn" type="submit">Filter</button>
-    <a class="btn secondary" href="{{ url_for('farmer_centres') }}">Reset</a>
+    <button class="btn" type="submit">{{ t("Filter") }}</button>
+    <a class="btn secondary" href="{{ url_for('farmer_centres') }}">{{ t("Reset") }}</a>
   </div>
 </form>
 
@@ -35,8 +35,8 @@
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Centre</th><th>District</th><th>Crops accepted</th>
-            <th class="num">Daily capacity</th><th class="num">Open slots</th><th></th></tr>
+        <tr><th>{{ t("Centre") }}</th><th>{{ t("District") }}</th><th>{{ t("Crops accepted") }}</th>
+            <th class="num">{{ t("Daily capacity") }}</th><th class="num">{{ t("Open slots") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for c in centres %}
@@ -47,7 +47,7 @@
           </td>
           <td class="nowrap">
             {{ c.district }}
-            {% if c.district == g.farmer.district %}<span class="badge green">Your district</span>{% endif %}
+            {% if c.district == g.farmer.district %}<span class="badge green">{{ t("Your district") }}</span>{% endif %}
           </td>
           <td>
             <div class="tag-list">
@@ -61,11 +61,11 @@
             {% if c.open_slots > 0 %}
               <span class="badge green">{{ c.open_slots }}</span>
             {% else %}
-              <span class="badge red">Full</span>
+              <span class="badge red">{{ t("Full") }}</span>
             {% endif %}
           </td>
           <td class="nowrap">
-            <a class="btn small" href="{{ url_for('farmer_centre', centre_id=c.id) }}">View slots</a>
+            <a class="btn small" href="{{ url_for('farmer_centre', centre_id=c.id) }}">{{ t("View slots") }}</a>
           </td>
         </tr>
         {% endfor %}

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Verify OTP{% endblock %}
+{% block title %}{{ t("Verify one-time password") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="auth-card">
   <div class="card">
-    <h2>Verify one-time password</h2>
+    <h2>{{ t("Verify one-time password") }}</h2>
     <div class="card-body">
       <p class="small muted">
         An OTP has been sent to <strong>+91 {{ phone }}</strong>
@@ -12,15 +12,15 @@
       </p>
       <form method="post">
         <div class="field">
-          <label for="otp">Enter 6-digit OTP <span class="req">*</span></label>
+          <label for="otp">{{ t("Enter 6-digit OTP") }} <span class="req">*</span></label>
           <input type="text" id="otp" name="otp" maxlength="6" inputmode="numeric"
                  pattern="[0-9]{6}" required autofocus autocomplete="one-time-code">
         </div>
-        <button class="btn block" type="submit">Verify and sign in</button>
+        <button class="btn block" type="submit">{{ t("Verify and sign in") }}</button>
       </form>
       <hr class="rule">
       <p class="small muted center" style="margin:0">
-        <a href="{{ url_for('login') }}">Use a different number</a>
+        <a href="{{ url_for('login') }}">{{ t("Use a different number") }}</a>
       </p>
     </div>
   </div>
