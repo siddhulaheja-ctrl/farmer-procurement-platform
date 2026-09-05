@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="breadcrumb">
-  <a href="{{ url_for('farmer_centres') }}">Procurement centres</a> &rsaquo; {{ centre.name }}
+  <a href="{{ url_for('farmer_centres') }}">{{ t("Procurement centres") }}</a> &rsaquo; {{ centre.name }}
 </div>
 
 <h2 class="page-title">{{ centre.name }}</h2>
@@ -24,7 +24,7 @@
   <input type="hidden" name="back" value="{{ request.full_path }}">
 
   <div class="card">
-    <h2>1. Choose a slot</h2>
+    <h2>{{ t("1. Choose a slot") }}</h2>
     <div class="card-body">
       {% if by_date %}
         {% for d, slots in by_date.items() %}
@@ -40,12 +40,12 @@
                   <span class="{{ 'hi' if pct >= 90 else ('mid' if pct >= 60 else '') }}"
                         style="width: {{ pct }}%"></span>
                 </div>
-                <div class="cap">{{ free }} of {{ s.max_capacity }} places free</div>
+                <div class="cap">{{ free }} / {{ s.max_capacity }} {{ t("places free") }}</div>
                 {% if free > 0 %}
                   <input type="radio" name="slot_id" value="{{ s.id }}" required>
-                  Select
+                  {{ t("Select") }}
                 {% else %}
-                  <span class="badge red">Full</span>
+                  <span class="badge red">{{ t("Full") }}</span>
                 {% endif %}
               </label>
             {% endfor %}
@@ -60,20 +60,20 @@
 
   {% if not reschedule_id %}
   <div class="card">
-    <h2>2. What are you bringing?</h2>
+    <h2>{{ t("2. What are you bringing?") }}</h2>
     <div class="card-body">
       <div class="field-row two">
         <div class="field">
-          <label for="crop_type">Crop <span class="req">*</span></label>
+          <label for="crop_type">{{ t("Crop") }} <span class="req">*</span></label>
           <select id="crop_type" name="crop_type" required>
             {% for c in accepted %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
           </select>
         </div>
         <div class="field">
-          <label for="estimated_quantity">Estimated quantity (quintals) <span class="req">*</span></label>
+          <label for="estimated_quantity">{{ t("Estimated quantity (quintals)") }} <span class="req">*</span></label>
           <input type="number" id="estimated_quantity" name="estimated_quantity"
                  min="0.1" max="500" step="0.1" value="20" required>
-          <div class="hint">An estimate is fine. The centre will weigh the actual quantity on arrival.</div>
+          <div class="hint">{{ t("An estimate is fine. The centre will weigh the actual quantity on arrival.") }}</div>
         </div>
       </div>
     </div>
@@ -82,14 +82,13 @@
 
   <div class="btn-row">
     <button class="btn go" type="submit">
-      {{ 'Move to this slot' if reschedule_id else 'Confirm booking' }}
+      {{ t("Move to this slot") if reschedule_id else t("Confirm booking") }}
     </button>
-    <a class="btn secondary" href="{{ url_for('farmer_centres') }}">Back to centres</a>
+    <a class="btn secondary" href="{{ url_for('farmer_centres') }}">{{ t("Back to centres") }}</a>
   </div>
 </form>
 
 <div class="notice info mt small">
-  One slot per farmer per day, and at most three active bookings at a time, so that every farmer
-  in the district gets a turn.
+  {{ t("One slot per farmer per day, and at most three active bookings at a time, so that every farmer in the district gets a turn.") }}
 </div>
 {% endblock %}

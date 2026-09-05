@@ -23,6 +23,7 @@ import db
 import weather
 from core import BookingError
 from db import execute, query
+from i18n import t, get_lang
 from validation import unresolved_flags, validate_and_flag
 
 # hardcoded otp, shown on the login page
@@ -35,6 +36,8 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = os.environ.get("SECRET_KEY", "sih-2026-ps26032-demo-key")
     app.teardown_appcontext(db.close_db)
+    app.jinja_env.globals["t"] = t
+    app.jinja_env.globals["lang"] = get_lang
     register_routes(app)
     register_filters(app)
     return app
@@ -57,10 +60,10 @@ def register_filters(app):
             return ""
         delta = (d - date.today()).days
         if delta == 0:
-            return "Today"
+            return t("Today")
         if delta == 1:
-            return "Tomorrow"
-        return d.strftime("%A")
+            return t("Tomorrow")
+        return t(d.strftime("%A"))
 
     @app.template_filter("daysaway")
     def daysaway(value):
@@ -105,7 +108,7 @@ def farmer_required(fn):
     @wraps(fn)
     def wrapper(*a, **kw):
         if not session.get("farmer_id"):
-            flash("Please sign in to continue.", "warning")
+            flash(t("Please sign in to continue."), "warning")
             return redirect(url_for("login", next=request.path))
         return fn(*a, **kw)
     return wrapper
@@ -205,15 +208,21 @@ def register_routes(app):
                 flash("Registered, but we found %d issue(s) in your details. "
                       "See the notice on your dashboard." % len(problems), "warning")
             else:
-                flash("Registration complete. Your details passed all verification checks.",
+                flash(t("Registration complete. Your details passed all verification checks."),
                       "success")
             return redirect(url_for("farmer_dashboard"))
         return render_template("register.html", form={}, districts=_districts(), crops=core.CROPS)
 
+    @app.route("/lang/<code>")
+    def set_lang(code):
+        if code in ("en", "hi"):
+            session["lang"] = code
+        return redirect(request.referrer or url_for("home"))
+
     @app.route("/logout")
     def logout():
         session.clear()
-        flash("Signed out.", "success")
+        flash(t("Signed out."), "success")
         return redirect(url_for("home"))
 
     # farmer
@@ -317,8 +326,8 @@ def register_routes(app):
         # check storage risk now that we know the slot date
         risk = weather.evaluate_booking(booking_id)
         if risk and risk["level"] == "high":
-            flash("Booking confirmed - but a storage risk was detected. See the warning on "
-                  "your booking.", "warning")
+            flash(t("Booking confirmed - but a storage risk was detected. See the warning on "
+                  "your booking."), "warning")
         else:
             flash("Booking confirmed. Your token is %s." % b["token_no"], "success")
         return redirect(url_for("farmer_booking", booking_id=booking_id))
@@ -338,7 +347,7 @@ def register_routes(app):
     def farmer_cancel(booking_id):
         try:
             core.cancel_booking(booking_id, g.farmer["id"])
-            flash("Booking cancelled. The slot has been released for other farmers.", "success")
+            flash(t("Booking cancelled. The slot has been released for other farmers."), "success")
         except BookingError as e:
             flash(str(e), "error")
         return redirect(url_for("farmer_dashboard"))
@@ -406,7 +415,7 @@ def register_routes(app):
             if problems:
                 flash("Saved. %d issue(s) still need attention." % len(problems), "warning")
             else:
-                flash("Saved. All verification checks passed - your payment will not be held up.",
+                flash(t("Saved. All verification checks passed - your payment will not be held up."),
                       "success")
             return redirect(url_for("farmer_profile"))
         return render_template("farmer/profile.html", farmer=g.farmer,

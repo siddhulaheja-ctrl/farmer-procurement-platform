@@ -1,23 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Farmer Sign In{% endblock %}
+{% block title %}{{ t("Farmer sign in") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="auth-card">
   <div class="card">
-    <h2>Farmer sign in</h2>
+    <h2>{{ t("Farmer sign in") }}</h2>
     <div class="card-body">
       <form method="post">
         <div class="field">
-          <label for="phone">Registered mobile number <span class="req">*</span></label>
+          <label for="phone">{{ t("Registered mobile number") }} <span class="req">*</span></label>
           <input type="tel" id="phone" name="phone" value="{{ phone }}" maxlength="10"
                  inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel" required autofocus>
-          <div class="hint">A one-time password will be sent to this number.</div>
+          <div class="hint">{{ t("A one-time password will be sent to this number.") }}</div>
         </div>
-        <button class="btn block" type="submit">Send OTP</button>
+        <button class="btn block" type="submit">{{ t("Send OTP") }}</button>
       </form>
       <hr class="rule">
       <p class="small muted center" style="margin:0">
-        Not registered yet? <a href="{{ url_for('register') }}">Create an account</a>
+        Not registered yet? <a href="{{ url_for('register') }}">{{ t("Create an account") }}</a>
       </p>
     </div>
   </div>

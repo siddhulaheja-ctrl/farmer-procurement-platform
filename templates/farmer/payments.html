@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% from "_macros.html" import payment_badge, grade_badge %}
-{% block title %}My Payments{% endblock %}
+{% block title %}{{ t("Payments") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Payments</h2>
-<p class="page-sub">Every completed procurement and the current state of its payment.</p>
+<h2 class="page-title">{{ t("Payments") }}</h2>
+<p class="page-sub">{{ t("Every completed procurement and the current state of its payment.") }}</p>
 
 <div class="card">
   {% if rows %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Date</th><th>Centre</th><th>Token</th><th>Crop</th><th class="num">Quantity</th>
-            <th>Grade</th><th class="num">Rate</th><th class="num">Amount</th>
-            <th>Status</th><th>Credited</th></tr>
+        <tr><th>{{ t("Date") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Token") }}</th><th>{{ t("Crop") }}</th><th class="num">{{ t("Quantity") }}</th>
+            <th>{{ t("Grade") }}</th><th class="num">{{ t("Rate") }}</th><th class="num">{{ t("Amount") }}</th>
+            <th>{{ t("Status") }}</th><th>{{ t("Credited") }}</th></tr>
       </thead>
       <tbody>
         {% for r in rows %}
@@ -34,13 +34,13 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">No procurement transactions recorded yet.</div>
+    <div class="empty">{{ t("No procurement transactions recorded yet.") }}</div>
   {% endif %}
 </div>
 
 <div class="notice info small">
   Payments are credited by direct benefit transfer to the bank account registered against your
   Aadhaar. If a payment shows as <strong>failed</strong>, the cause is almost always a detail
-  mismatch &mdash; check <a href="{{ url_for('farmer_profile') }}">My Details</a>.
+  mismatch &mdash; check <a href="{{ url_for('farmer_profile') }}">{{ t("My Details") }}</a>.
 </div>
 {% endblock %}

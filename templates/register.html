@@ -1,21 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Farmer Registration{% endblock %}
+{% block title %}{{ t("Farmer registration") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Farmer registration</h2>
-<p class="page-sub">One-time registration. You will need your Aadhaar, bank passbook and land record.</p>
+<h2 class="page-title">{{ t("Farmer registration") }}</h2>
+<p class="page-sub">{{ t("One-time registration. You will need your Aadhaar, bank passbook and land record.") }}</p>
 
 <div class="grid side">
   <div class="card">
-    <h2>Your details</h2>
+    <h2>{{ t("Your details") }}</h2>
     <div class="card-body">
       <form method="post">
         {% with f = form, show_phone = true %}
           {% include "_farmer_fields.html" %}
         {% endwith %}
         <div class="btn-row mt">
-          <button class="btn" type="submit">Register</button>
-          <a class="btn secondary" href="{{ url_for('home') }}">Cancel</a>
+          <button class="btn" type="submit">{{ t("Register") }}</button>
+          <a class="btn secondary" href="{{ url_for('home') }}">{{ t("Cancel") }}</a>
         </div>
       </form>
     </div>
@@ -23,7 +23,7 @@
 
   <div>
     <div class="notice info">
-      <h3>Why we check your details now</h3>
+      <h3>{{ t("Why we check your details now") }}</h3>
       <p>
         Most delayed procurement payments are not caused by the procurement itself. They are
         caused by an Aadhaar digit typed wrong, an IFSC that does not exist, or a bank account
@@ -36,11 +36,11 @@
     </div>
 
     <div class="card">
-      <h2>No internet at home?</h2>
+      <h2>{{ t("No internet at home?") }}</h2>
       <div class="card-body small muted">
         <p style="margin-top:0">
           Any Common Service Centre operator or procurement centre clerk can complete this
-          registration on your behalf. Take your Aadhaar card, bank passbook and land record
+          registration on your behalf. Take your {{ t("Aadhaar card") }}, bank passbook and land record
           with you.
         </p>
         <p style="margin-bottom:0">
