@@ -17,7 +17,10 @@ Env vars, all optional:
     VOICE_LEAD_IN       seconds of silence first, default 2
     VOICE_RATE          speech rate, default slow
     VOICE_TOKEN_RATE    rate for the token, default x-slow
-    VOICE_PREMIUM=1     better voice, costs more
+    VOICE_PREMIUM=1     neural voice, sounds far less robotic, costs more
+    VOICE_STYLE         which hindi voice. 0,1,3,4,5,6 exist, premium works on
+                        all but 0. Run "python voice.py --voices <number>" to
+                        hear them all on one call and pick.
     VONAGE_NUMBER       caller id, otherwise vonage picks a random US one
     VONAGE_APPLICATION_ID / VONAGE_PRIVATE_KEY / VONAGE_PRIVATE_KEY_PATH
 """
@@ -59,6 +62,19 @@ LEAD_IN = os.environ.get("VOICE_LEAD_IN", "2")
 RATE = os.environ.get("VOICE_RATE", "slow")
 TOKEN_RATE = os.environ.get("VOICE_TOKEN_RATE", "x-slow")
 PREMIUM = os.environ.get("VOICE_PREMIUM", "").strip() in ("1", "true", "yes")
+
+
+def _style():
+    try:
+        return int(os.environ.get("VOICE_STYLE", "").strip())
+    except ValueError:
+        return None            # let vonage pick its default
+
+
+STYLE = _style()
+
+# the hindi voices vonage has. 0 is standard only, the rest also do premium
+HI_STYLES = [0, 1, 3, 4, 5, 6]
 
 
 MONTHS_HI = ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई",
@@ -189,9 +205,40 @@ def place_call(phone, message, lang="hi", token=None):
             from_=Phone(number=FROM_NUMBER),
             ncco=[Talk(text=to_ssml(message, token),
                        language=VOICE.get(lang, "hi-IN"),
-                       level=LEVEL, premium=PREMIUM or None)],
+                       level=LEVEL, style=STYLE, premium=PREMIUM or None)],
         ))
         return True, "Calling +%s now. %s" % (number, response)
+    except Exception as e:
+        return False, "Vonage refused the call: %s" % e
+
+
+def sample_voices(phone, premium=True):
+    """One call that reads the same line in every hindi voice, announcing each
+    style number, so we can pick one instead of guessing. Cheaper and less
+    annoying than dialling once per style."""
+    number = to_e164(phone)
+    if not number:
+        return False, "No phone number given."
+    line = ("आपका खरीद स्लॉट पंद्रह सितंबर को बुक है। आपका टोकन नंबर "
+            "<prosody rate=\"x-slow\">P C 0 1</prosody> है।")
+
+    try:
+        from vonage import Auth, Vonage
+        from vonage_voice import CreateCallRequest, Phone, Talk, ToPhone
+
+        actions = []
+        for st in HI_STYLES:
+            usable = premium and st != 0          # style 0 has no premium voice
+            actions.append(Talk(text="<speak>Style %d</speak>" % st,
+                                language="en-IN", level=LEVEL))
+            actions.append(Talk(text="<speak>%s</speak>" % line, language="hi-IN",
+                                level=LEVEL, style=st, premium=usable or None))
+        client = Vonage(Auth(application_id=APP_ID, private_key=_private_key()))
+        client.voice.create_call(CreateCallRequest(
+            to=[ToPhone(number=number)], from_=Phone(number=FROM_NUMBER), ncco=actions))
+        return True, ("Calling +%s with %d voices (%s). Note which style you like, then "
+                      "put VOICE_STYLE in .env."
+                      % (number, len(HI_STYLES), "premium" if premium else "standard"))
     except Exception as e:
         return False, "Vonage refused the call: %s" % e
 
@@ -206,6 +253,14 @@ def log_call(farmer_id, message, ok, detail, booking_id=None):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--voices":
+        if len(sys.argv) < 3:
+            print("usage: python voice.py --voices <number> [standard]")
+            sys.exit(1)
+        ok, detail = sample_voices(sys.argv[2], premium=(len(sys.argv) < 4))
+        print(("OK: " if ok else "FAILED: ") + detail)
+        sys.exit(0 if ok else 1)
+
     if len(sys.argv) < 2:
         print(__doc__)
         print("current config:", status())

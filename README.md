@@ -117,10 +117,25 @@ from SSML we build in `to_ssml()`.
 | `VOICE_LEAD_IN` | 2 | Seconds of silence before speaking, so the farmer can get the phone to their ear |
 | `VOICE_RATE` | slow | Overall speech rate |
 | `VOICE_TOKEN_RATE` | x-slow | Rate for the token number, which people write down |
-| `VOICE_PREMIUM` | off | Vonage's neural voice. Sounds much better, costs more per call |
+| `VOICE_PREMIUM` | off | Vonage's neural voice. Much less robotic, costs more per call |
+| `VOICE_STYLE` | unset | Which Hindi voice. 0, 1, 3, 4, 5, 6 exist; premium works on all but 0 |
 
 The token is spelled out digit by digit with a pause between the groups, and
 the slot reminder reads it twice.
+
+To pick a voice, ring yourself once and listen to all of them:
+
+```bash
+python voice.py --voices 9876543210
+```
+
+That reads the same line in every Hindi voice, announcing each style number
+first. Put the one you like in `.env` as `VOICE_STYLE`, with `VOICE_PREMIUM=1`.
+
+Real IVRs like the gas booking line mostly play **recorded human audio** for
+the fixed sentences and only use text to speech for the changing numbers.
+Vonage can do that too with the `stream` NCCO action pointing at an mp3, which
+is the route if premium still is not good enough.
 
 Farmers ringing *us* is parked until we have a number to publish. The half
 built menu is in `farmer-ivr/`.
