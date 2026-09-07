@@ -78,6 +78,56 @@ anyone. Data is all fake so it doesn't matter, just re-run the seed after.
 
 ## Phone calls
 
+We ring the farmer. There is a **Call farmer** button on each booking in the
+staff screens, and a **Call** button on the high risk rows of the Storage Risk
+page. What gets said depends on the booking - a storage risk warning, a held
+payment, or a plain slot reminder.
+
+While we are testing, every call from those buttons goes to `9876543210`, not
+to the farmer's own number. Change it with `VOICE_DEMO_NUMBER`.
+
+Testing straight from the command line, dials whatever you type:
+
+```bash
+python voice.py 9876543210 "Namaste, test call" hi
+```
+
+`voice.py` sends the whole spoken message inline with the Vonage request, so
+there is no webhook and no second server. The private key is read from
+`farmer-ivr/private.key` and is never committed. `VONAGE_NUMBER` is optional -
+without it Vonage picks its own caller id, which is why test calls arrive from
+a US number.
+
+Set `VOICE_DRY_RUN=1` to print what would be said instead of dialling.
+
+Farmers ringing *us* is parked until we have a number to publish. The half
+built menu is in `farmer-ivr/`.
+
+## Demo data
+
+Every seeded farmer has a number in the `90000001xx` block. They are fake on
+purpose - Faker generates numbers that look real and could belong to an actual
+person, which is a bad idea in something that can place calls.
+
+`STORAGE_RISK_FORCE=1` makes every booking come back as high storage risk, for
+when the forecast is dry and we still need to show the alert.
+
+## Files
+
+| file | what it does |
+|---|---|
+| app.py | routes |
+| core.py | booking rules, capacity and the per farmer limits |
+| validation.py | aadhaar / bank / land checks |
+| weather.py | storage risk from the weather forecast |
+| alerts.py | writes to alerts_log |
+| db.py | sqlite helpers |
+| schema.sql | tables |
+| seed.py | fake data |
+| i18n.py | hindi strings for the farmer pages |
+
+## Phone calls
+
 We ring the farmer. Storage risk warnings, booking confirmations and payment
 updates are queued in `alerts_log` with channel `ivr`, and show up on the demo
 page with a "Call now" button.

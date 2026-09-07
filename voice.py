@@ -7,15 +7,14 @@ The nice thing about outbound is that we send the whole message in the api
 request as an inline NCCO, so vonage never calls us back. No webhook, no public
 url, no server on render. Everything runs on localhost.
 
-IMPORTANT: the seeded farmers have Faker generated phone numbers that look like
-real indian mobiles, because that is what Faker does. So the Call now buttons
-in the web ui only really dial numbers listed in VOICE_ALLOWLIST - otherwise
-one stray click during a demo cold calls a stranger. Running this file from the
-command line ignores the allowlist, because you typed the number yourself.
+Every call from the staff screens goes to DEMO_NUMBER, not to the farmer's own
+number. The seeded farmers are fake, so there is nobody real to ring, and it
+means a stray click can never dial a stranger. Running this file from the
+command line dials whatever number you type.
 
 Config, all optional:
-    VOICE_ALLOWLIST          comma separated numbers allowed to be really rung.
-                             Empty (the default) means nothing is really rung.
+    VOICE_DEMO_NUMBER        where the staff Call buttons ring. Defaults to the
+                             team phone we test with.
     VONAGE_APPLICATION_ID    from the vonage dashboard
     VONAGE_NUMBER            caller id. If unset vonage picks one of its own,
                              which is why test calls show up as a US number.
@@ -40,10 +39,25 @@ APP_ID = os.environ.get("VONAGE_APPLICATION_ID",
                         "fb926ccb-0da7-4d10-814f-9a3ae05428e3").strip()
 # vonage wants the field populated even when it substitutes its own caller id
 FROM_NUMBER = os.environ.get("VONAGE_NUMBER", "").strip() or "12345678901"
+# Calls from the staff screens always land here while we are testing.
+DEMO_NUMBER = os.environ.get("VOICE_DEMO_NUMBER", "9876543210").strip()
 KEY_PATH = os.environ.get("VONAGE_PRIVATE_KEY_PATH",
                           os.path.join(HERE, "farmer-ivr", "private.key"))
 
 VOICE = {"en": "en-IN", "hi": "hi-IN"}
+
+
+MONTHS_HI = ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई",
+             "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"]
+
+
+def spoken_date(iso):
+    """2026-09-14 -> '14 सितंबर'. Reading the raw date out loud sounds awful."""
+    try:
+        _y, m, d = str(iso)[:10].split("-")
+        return "%d %s" % (int(d), MONTHS_HI[int(m) - 1])
+    except Exception:
+        return str(iso)
 
 
 def to_e164(phone):
@@ -51,11 +65,6 @@ def to_e164(phone):
     if len(digits) == 10:
         digits = "91" + digits
     return digits
-
-
-def _allowlist():
-    raw = os.environ.get("VOICE_ALLOWLIST", "")
-    return {to_e164(n) for n in raw.replace(";", ",").split(",") if n.strip()}
 
 
 def _private_key():
@@ -75,20 +84,15 @@ def status():
         missing.append("VONAGE_APPLICATION_ID")
     if not _private_key():
         missing.append("a private key")
-    allow = _allowlist()
     forced = os.environ.get("VOICE_DRY_RUN", "").strip() in ("1", "true", "yes")
     return {"credentials_ok": not missing, "missing": missing,
-            "allowlist": sorted(allow), "forced_dry_run": forced,
-            "dry_run": forced or bool(missing) or not allow,
+            "demo_number": DEMO_NUMBER, "forced_dry_run": forced,
+            "dry_run": forced or bool(missing),
             "from_number": FROM_NUMBER, "key_path": KEY_PATH}
 
 
-def place_call(phone, message, lang="hi", explicit=False):
-    """Ring the farmer and read out `message`.
-
-    explicit=True means a human typed this number on the command line, so we
-    skip the allowlist. The allowlist is there to stop a stray click in the web
-    ui dialling one of the seeded strangers, not to get in the way of testing.
+def place_call(phone, message, lang="hi"):
+    """Ring `phone` and read out `message`.
 
     Returns (ok, detail). Never raises - a failed call belongs on the screen,
     not as a 500 in the middle of a demo.
@@ -102,8 +106,6 @@ def place_call(phone, message, lang="hi", explicit=False):
         reason = "VOICE_DRY_RUN is set"
     elif st["missing"]:
         reason = "missing " + ", ".join(st["missing"])
-    elif not explicit and number not in st["allowlist"]:
-        reason = ("+%s is not in VOICE_ALLOWLIST" % number)
     else:
         reason = None
 
@@ -145,6 +147,5 @@ if __name__ == "__main__":
     ok, detail = place_call(sys.argv[1],
                             sys.argv[2] if len(sys.argv) > 2 else
                             "Namaste. This is a test call from Krishi Sutra.",
-                            sys.argv[3] if len(sys.argv) > 3 else "en",
-                            explicit=True)
+                            sys.argv[3] if len(sys.argv) > 3 else "en")
     print(("OK: " if ok else "FAILED: ") + detail)

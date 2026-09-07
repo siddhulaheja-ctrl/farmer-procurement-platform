@@ -51,7 +51,6 @@
       <a href="{{ url_for('admin_farmers') }}" class="{{ 'active' if request.endpoint in ('admin_farmers','admin_farmer') }}">Farmers</a>
       <a href="{{ url_for('admin_register_farmer') }}" class="{{ 'active' if request.endpoint == 'admin_register_farmer' }}">Register Farmer</a>
       <span class="spacer"></span>
-      <a href="{{ url_for('admin_demo') }}" class="{{ 'active' if request.endpoint == 'admin_demo' }}">Demo Controls</a>
     {% elif g.farmer %}
       <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint == 'farmer_dashboard' }}">{{ t("Dashboard") }}</a>
       <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if request.endpoint in ('farmer_centres','farmer_centre') }}">{{ t("Book a Slot") }}</a>

@@ -24,9 +24,9 @@ LEAD_DAYS_THRESHOLD = int(os.environ.get("STORAGE_RISK_LEAD_DAYS", "5"))
 RAIN_MM_HIGH = 5.0        # total forecast rain (mm) over the window
 HUMIDITY_HIGH = 80        # average relative humidity %
 
-# Demo control panel toggle - when True every risk check returns HIGH.
-# Flipped from /admin/demo so a live demo can force the alert on stage.
-DEMO_FORCE_RISK = {"on": False}
+# Forces every risk check to return HIGH, for when the real forecast is dry and
+# we still need to show the alert. Set STORAGE_RISK_FORCE=1 before starting.
+DEMO_FORCE_RISK = {"on": os.environ.get("STORAGE_RISK_FORCE", "").strip() in ("1", "true", "yes")}
 
 # Districts the mock forecast treats as being in a wet spell, and the full set
 # of districts the mock knows about. Only used when no live API key is set.

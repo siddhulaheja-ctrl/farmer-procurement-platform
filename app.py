@@ -153,6 +153,10 @@ def register_routes(app):
         g.unread = alerts_mod.unread_count(g.farmer["id"]) if g.farmer else 0
         g.today = date.today()
 
+    @app.context_processor
+    def _call_target():
+        return {"call_to": voice.DEMO_NUMBER}
+
     # public
 
     @app.route("/")
@@ -535,6 +539,36 @@ def register_routes(app):
         flash("Recorded: %.1f quintals, grade %s." % (actual, grade), "success")
         return redirect(url_for("admin_booking", booking_id=booking_id))
 
+    @app.route("/admin/booking/<int:booking_id>/call", methods=["POST"])
+    @staff_required
+    def admin_call(booking_id):
+        """Ring the farmer about this booking. While we are testing every call
+        goes to voice.DEMO_NUMBER, not to the farmer's own number."""
+        b = query(_BOOKING_SELECT + " WHERE b.id = ?", (booking_id,), one=True)
+        if b is None:
+            abort(404)
+
+        if b["storage_risk"] == "high":
+            message = ("नमस्ते %s जी। कृषि सूत्र से सूचना। %s पर आपका स्लॉट %s को है और "
+                       "आपके क्षेत्र में बारिश का अनुमान है। अपनी उपज को ढककर ऊंची जगह रखें, "
+                       "या अपने केंद्र से पहले का स्लॉट मांगें। धन्यवाद।"
+                       % (b["farmer_name"], b["centre_name"], voice.spoken_date(b["date"])))
+        elif b["payment_status"] == "failed":
+            message = ("नमस्ते %s जी। आपका भुगतान रुका हुआ है क्योंकि आपके दस्तावेज़ों में "
+                       "गड़बड़ी है। कृपया अपने खरीद केंद्र पर आधार कार्ड और बैंक पासबुक "
+                       "लेकर आएं। धन्यवाद।" % b["farmer_name"])
+        else:
+            message = ("नमस्ते %s जी। आपका खरीद स्लॉट %s को %s बजे, %s पर बुक है। "
+                       "आपका टोकन नंबर %s है। धन्यवाद।"
+                       % (b["farmer_name"], voice.spoken_date(b["date"]), b["time_window"],
+                          b["centre_name"],
+                          ", ".join(" ".join(p) for p in str(b["token_no"]).split("-"))))
+
+        ok, detail = voice.place_call(voice.DEMO_NUMBER, message, "hi")
+        voice.log_call(b["farmer_id"], message, ok, detail, booking_id=booking_id)
+        flash(detail, "success" if ok else "error")
+        return redirect(request.referrer or url_for("admin_booking", booking_id=booking_id))
+
     @app.route("/admin/booking/<int:booking_id>/complete", methods=["POST"])
     @staff_required
     def admin_complete(booking_id):
@@ -767,78 +801,6 @@ def register_routes(app):
             " s.date", (date.today().isoformat(),))
         return render_template("admin/storage_risk.html", rows=rows)
 
-    @app.route("/admin/demo", methods=["GET", "POST"])
-    @staff_required
-    def admin_demo():
-        """Buttons for the demo so we can trigger things on stage."""
-        result = None
-        if request.method == "POST":
-            action = request.form.get("action")
-            if action == "toggle_risk":
-                weather.DEMO_FORCE_RISK["on"] = not weather.DEMO_FORCE_RISK["on"]
-                flash("Storage-risk override is now %s."
-                      % ("ON - every check returns HIGH" if weather.DEMO_FORCE_RISK["on"]
-                         else "OFF - real rules apply"), "success")
-            elif action == "rescan_risk":
-                res = weather.rescan_all_upcoming()
-                high = sum(1 for r in res if r and r["level"] == "high")
-                flash("Re-scanned %d upcoming bookings. %d flagged HIGH risk."
-                      % (len(res), high), "success")
-            elif action == "revalidate":
-                ids = [r["id"] for r in query("SELECT id FROM farmers")]
-                flagged = sum(1 for i in ids if validate_and_flag(i))
-                flash("Re-validated %d farmers. %d have open issues." % (len(ids), flagged),
-                      "success")
-            elif action == "advance_payments":
-                rows = query("SELECT id FROM transactions WHERE payment_status = 'processing'")
-                for r in rows:
-                    execute("UPDATE transactions SET payment_status='completed', payment_date=?"
-                            " WHERE id=?", (datetime.now().isoformat(timespec="seconds"), r["id"]))
-                flash("Settled %d in-flight payments." % len(rows), "success")
-            elif action == "set_test_number":
-                num = "".join(c for c in (request.form.get("test_number") or "") if c.isdigit())
-                if num:
-                    session["voice_test_number"] = num
-                    flash("Demo calls will now go to %s instead of the farmer's real number."
-                          % num, "success")
-                else:
-                    session.pop("voice_test_number", None)
-                    flash("Cleared. Demo calls will use each farmer's own number again.",
-                          "success")
-            elif action == "place_call":
-                alert = query(
-                    "SELECT a.*, f.name, f.phone_number FROM alerts_log a"
-                    " JOIN farmers f ON f.id = a.farmer_id WHERE a.id = ?",
-                    (request.form.get("alert_id"),), one=True)
-                if alert is None:
-                    flash("That queued call no longer exists.", "error")
-                else:
-                    # If a test number is set we ring that instead, and treat it as
-                    # deliberate so the allowlist doesn't block it.
-                    test_to = session.get("voice_test_number")
-                    to = test_to or alert["phone_number"]
-                    ok, detail = voice.place_call(to, alert["message"], "hi",
-                                                  explicit=bool(test_to))
-                    if test_to:
-                        detail = "(redirected to %s) %s" % (test_to, detail)
-                    voice.log_call(alert["farmer_id"], alert["message"], ok, detail,
-                                   booking_id=alert["booking_id"])
-                    flash("%s - %s" % (alert["name"], detail), "success" if ok else "error")
-            elif action == "check_weather":
-                district = request.form.get("district") or "Karnal"
-                fc, source = weather.get_forecast(district, 5)
-                result = {"district": district, "forecast": fc, "source": source}
-            return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
-                                   districts=_districts(), result=result,
-                                   owm=bool(weather.OWM_API_KEY),
-                                   queued_calls=_queued_calls(), voice=voice.status(),
-                                   test_number=session.get("voice_test_number"))
-        return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
-                               districts=_districts(), result=None,
-                               owm=bool(weather.OWM_API_KEY),
-                               queued_calls=_queued_calls(), voice=voice.status(),
-                               test_number=session.get("voice_test_number"))
-
     @app.route("/admin/logout")
     def admin_logout():
         session.pop("staff_id", None)
@@ -899,15 +861,6 @@ _BOOKING_SELECT = (
     " JOIN procurement_centres c ON c.id = s.centre_id"
     " JOIN farmers f ON f.id = b.farmer_id"
     " LEFT JOIN transactions t ON t.booking_id = b.id")
-
-
-def _queued_calls(limit=8):
-    """Alerts that were queued for the phone channel but not dialled yet."""
-    return query(
-        "SELECT a.*, f.name, f.phone_number FROM alerts_log a"
-        " JOIN farmers f ON f.id = a.farmer_id"
-        " WHERE a.channel = 'ivr' AND a.alert_type != 'voice_call'"
-        " ORDER BY a.id DESC LIMIT ?", (limit,))
 
 
 def _districts():
