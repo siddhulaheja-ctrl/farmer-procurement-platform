@@ -85,19 +85,21 @@ page with a "Call now" button.
 `voice.py` sends the whole spoken message inline with the Vonage request, so
 there is no webhook and no second server. Everything runs on localhost.
 
-Real calls only go to numbers in `VOICE_ALLOWLIST`. Everything else is a dry
-run that prints what it would have said. The seeded farmers have randomly
-generated numbers that could belong to real people, so this stops a stray click
-cold calling a stranger.
-
-```bash
-set VOICE_ALLOWLIST=919876543210 && python app.py
-```
-
-Quick test without the browser:
+Quick test, dials straight away:
 
 ```bash
 python voice.py 9876543210 "Namaste, test call" hi
+```
+
+The **Call now** buttons in the admin demo page are stricter - they only really
+dial numbers listed in `VOICE_ALLOWLIST`, everything else prints what it would
+have said. The seeded farmers have randomly generated numbers that could belong
+to real people, so this stops a stray click cold calling a stranger.
+
+To arm those buttons, in PowerShell:
+
+```bash
+$env:VOICE_ALLOWLIST="919876543210"; python app.py
 ```
 
 The private key is read from `farmer-ivr/private.key` and is never committed.
