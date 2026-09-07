@@ -125,18 +125,22 @@
     </p>
     {% if voice.dry_run %}
     <div class="notice warning" style="margin-bottom:12px">
-      <strong>Dry run.</strong>
+      <strong>Dry run &mdash; nothing will actually ring.</strong>
       {% if voice.forced_dry_run %}
-        VOICE_DRY_RUN is set, so calls are logged instead of dialled.
+        VOICE_DRY_RUN is set.
+      {% elif voice.missing %}
+        Missing {{ voice.missing|join(', ') }}.
       {% else %}
-        Not configured yet &mdash; missing {{ voice.missing|join(', ') }}. Pressing
-        <em>Call now</em> will show you exactly what would have been said, without
-        spending Vonage credit.
+        VOICE_ALLOWLIST is empty. Most of the seeded farmers have randomly generated
+        numbers that may belong to real people, so nothing is dialled unless you list
+        the numbers you want to reach.
       {% endif %}
+      Pressing <em>Call now</em> shows exactly what would have been said.
     </div>
     {% else %}
     <div class="notice success" style="margin-bottom:12px">
-      <strong>Live.</strong> Calls will really be placed, from {{ voice.from_number }}.
+      <strong>Live.</strong> Real calls to {{ voice.allowlist|join(', ') }} only &mdash;
+      everyone else stays a dry run. Caller id {{ voice.from_number }}.
     </div>
     {% endif %}
     {% if queued_calls %}
