@@ -76,9 +76,19 @@ anyone. Data is all fake so it doesn't matter, just re-run the seed after.
 | seed.py | fake data |
 | i18n.py | hindi strings for the farmer pages |
 
-The IVR part is not built. There is `/ivr/status.json` and `/ivr/webhook` as
-a starting point, and the alerts that should become phone calls are already
-saved in `alerts_log` with channel `ivr`.
+## Phone channel
+
+`farmer-ivr/` is the IVR, a separate service on Render using Vonage. Farmers
+without a smartphone ring the number and hear their real slot and payment
+status in Hindi or English.
+
+It has no database of its own, it reads from this portal's
+`/ivr/status.json`. Outbound calls go the other way: alerts saved in
+`alerts_log` with channel `ivr` show up on the demo page with a "Call now"
+button, which posts to the IVR service. The Vonage keys live only on that
+service, never here.
+
+See `farmer-ivr/README.md`.
 
 Aadhaar, bank and land details are all fake, nothing talks to a real
 government API. Payment status is just a field we update.
