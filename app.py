@@ -795,6 +795,16 @@ def register_routes(app):
                     execute("UPDATE transactions SET payment_status='completed', payment_date=?"
                             " WHERE id=?", (datetime.now().isoformat(timespec="seconds"), r["id"]))
                 flash("Settled %d in-flight payments." % len(rows), "success")
+            elif action == "set_test_number":
+                num = "".join(c for c in (request.form.get("test_number") or "") if c.isdigit())
+                if num:
+                    session["voice_test_number"] = num
+                    flash("Demo calls will now go to %s instead of the farmer's real number."
+                          % num, "success")
+                else:
+                    session.pop("voice_test_number", None)
+                    flash("Cleared. Demo calls will use each farmer's own number again.",
+                          "success")
             elif action == "place_call":
                 alert = query(
                     "SELECT a.*, f.name, f.phone_number FROM alerts_log a"
@@ -803,7 +813,14 @@ def register_routes(app):
                 if alert is None:
                     flash("That queued call no longer exists.", "error")
                 else:
-                    ok, detail = voice.place_call(alert["phone_number"], alert["message"], "hi")
+                    # If a test number is set we ring that instead, and treat it as
+                    # deliberate so the allowlist doesn't block it.
+                    test_to = session.get("voice_test_number")
+                    to = test_to or alert["phone_number"]
+                    ok, detail = voice.place_call(to, alert["message"], "hi",
+                                                  explicit=bool(test_to))
+                    if test_to:
+                        detail = "(redirected to %s) %s" % (test_to, detail)
                     voice.log_call(alert["farmer_id"], alert["message"], ok, detail,
                                    booking_id=alert["booking_id"])
                     flash("%s - %s" % (alert["name"], detail), "success" if ok else "error")
@@ -814,11 +831,13 @@ def register_routes(app):
             return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
                                    districts=_districts(), result=result,
                                    owm=bool(weather.OWM_API_KEY),
-                                   queued_calls=_queued_calls(), voice=voice.status())
+                                   queued_calls=_queued_calls(), voice=voice.status(),
+                                   test_number=session.get("voice_test_number"))
         return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
                                districts=_districts(), result=None,
                                owm=bool(weather.OWM_API_KEY),
-                               queued_calls=_queued_calls(), voice=voice.status())
+                               queued_calls=_queued_calls(), voice=voice.status(),
+                               test_number=session.get("voice_test_number"))
 
     @app.route("/admin/logout")
     def admin_logout():

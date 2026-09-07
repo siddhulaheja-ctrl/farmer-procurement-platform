@@ -123,7 +123,29 @@
       Every alert the portal raises for the phone channel is queued here. Calls go straight from
       this machine to Vonage, so there is no second server to start and nothing to keep awake.
     </p>
-    {% if voice.dry_run %}
+    <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;
+                               background:#f5f9f5;border:1px solid var(--border-soft);
+                               border-radius:3px;padding:10px 12px;margin-bottom:12px">
+      <input type="hidden" name="action" value="set_test_number">
+      <div class="field" style="margin:0;flex:1 1 200px">
+        <label for="test_number">Send every demo call to this number instead</label>
+        <input type="tel" id="test_number" name="test_number" value="{{ test_number or '' }}"
+               placeholder="9876543210">
+        <div class="hint">
+          Use your own phone. The farmer's real message still gets read out, it just
+          rings you. Leave blank and press Save to switch it off.
+        </div>
+      </div>
+      <button class="btn" type="submit">Save</button>
+    </form>
+
+    {% if test_number %}
+    <div class="notice success" style="margin-bottom:12px">
+      <strong>Calls are redirected to {{ test_number }}.</strong>
+      Press <em>Call now</em> on any row below and your phone will ring with that
+      farmer's message.
+    </div>
+    {% elif voice.dry_run %}
     <div class="notice warning" style="margin-bottom:12px">
       <strong>Dry run &mdash; nothing will actually ring.</strong>
       {% if voice.forced_dry_run %}
