@@ -35,8 +35,11 @@ DEMO_FORCE_RISK = {"on": os.environ.get("STORAGE_RISK_FORCE", "").strip() in ("1
 # Districts the mock forecast treats as being in a wet spell, and the full set
 # of districts the mock knows about. Only used when no live API key is set.
 MOCK_KNOWN_DISTRICTS = {"Karnal", "Kurukshetra", "Sirsa", "Ludhiana", "Patiala",
-                        "Sangrur", "Hoshangabad", "Vidisha"}
-MOCK_WET_DISTRICTS = {"Karnal", "Sangrur", "Hoshangabad"}
+                        "Sangrur", "Hoshangabad", "Vidisha",
+                        "Udham Singh Nagar", "Haridwar"}
+# udham singh nagar is in here so chandra's booking trips the warning and we
+# have something to demo the storage risk call with
+MOCK_WET_DISTRICTS = {"Karnal", "Sangrur", "Hoshangabad", "Udham Singh Nagar"}
 
 
 def _mock_forecast(district: str, days: int):

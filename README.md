@@ -134,14 +134,21 @@ powershell, cmd and bash.
 ```
 OWM_API_KEY=your_openweathermap_key
 VOICE_DEMO_NUMBER=9876543210
+DEMO_FARMER_PHONE_1=  team phone, seeded as Chandra Bhushan Kumar
+DEMO_FARMER_PHONE_2=  team phone, seeded as Ravi Kumar
 ```
+
+The team phone numbers are real people's, so they stay out of git. Without them
+the seeder uses placeholders and those calls go to `VOICE_DEMO_NUMBER` instead.
+Whichever numbers you use have to be verified in the Vonage dashboard first,
+trial accounts refuse anything else.
 
 Anything already set in the real environment still wins, so you can override
 one value for a single run.
 
 ## Demo data
 
-Every seeded farmer has a number in the `90000001xx` block. They are fake on
+Most seeded farmers have a number in the `90000001xx` block. They are fake on
 purpose - Faker generates numbers that look real and could belong to an actual
 person, which is a bad idea in something that can place calls.
 

@@ -4,6 +4,7 @@ Run:  python seed.py
 This DROPS and recreates every table.
 """
 
+import os
 import random
 import sqlite3
 from datetime import date, datetime, timedelta
@@ -11,7 +12,10 @@ from datetime import date, datetime, timedelta
 from faker import Faker
 
 import db
+import env
 from validation import verhoeff_checksum_digit
+
+env.load()
 
 fake = Faker("en_IN")
 Faker.seed(26032)
@@ -21,6 +25,7 @@ DISTRICTS = [
     ("Karnal", "Haryana"), ("Kurukshetra", "Haryana"), ("Sirsa", "Haryana"),
     ("Ludhiana", "Punjab"), ("Patiala", "Punjab"), ("Sangrur", "Punjab"),
     ("Hoshangabad", "Madhya Pradesh"), ("Vidisha", "Madhya Pradesh"),
+    ("Udham Singh Nagar", "Uttarakhand"), ("Haridwar", "Uttarakhand"),
 ]
 
 CENTRES = [
@@ -32,6 +37,9 @@ CENTRES = [
     ("Rajpura Kharid Kendra", "Rajpura, Patiala", "Patiala", 150, "Wheat,Gram"),
     ("Sangrur District Centre", "Civil Lines, Sangrur", "Sangrur", 170, "Paddy,Wheat"),
     ("Itarsi Upaj Mandi Centre", "Itarsi, Hoshangabad", "Hoshangabad", 190, "Wheat,Gram,Maize"),
+    ("Rudrapur Mandi Samiti", "Rudrapur, Udham Singh Nagar", "Udham Singh Nagar", 220,
+     "Paddy,Wheat,Maize"),
+    ("Haridwar Kharid Kendra", "Jwalapur, Haridwar", "Haridwar", 140, "Wheat,Paddy"),
 ]
 
 TIME_WINDOWS = ["08:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00"]
@@ -40,6 +48,16 @@ TIME_WINDOWS = ["08:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:0
 # dashboard has content to show on demo day.
 BROKEN_KINDS = ["aadhaar_typo", "aadhaar_short", "ifsc_bad",
                 "name_mismatch", "land_missing", "acct_short"]
+
+# Real team numbers for testing calls. These are actual people's phones so they
+# live in .env, not in here - the repo is public. Without .env you get harmless
+# placeholders and the calls just go to the demo phone.
+TEAM_FARMERS = [
+    ("Chandra Bhushan Kumar", os.environ.get("DEMO_FARMER_PHONE_1", "9000000011"),
+     "Kichha", "Udham Singh Nagar"),
+    ("Ravi Kumar", os.environ.get("DEMO_FARMER_PHONE_2", "9000000012"),
+     "Jwalapur", "Haridwar"),
+]
 
 
 def valid_aadhaar():
@@ -152,6 +170,19 @@ def main():
          "Sunita D. Yadav", "", "Rampura", "Sirsa", now))
     farmer_ids.append(cur.lastrowid)
 
+    # the two team members whose phones are verified with vonage, so the Call
+    # button on their bookings actually rings them
+    team_ids = []
+    for name, phone, village, district in TEAM_FARMERS:
+        cur.execute(
+            "INSERT INTO farmers (name, phone_number, aadhaar_number, bank_account, ifsc_code,"
+            " bank_name_on_account, land_record_id, village, district, registered_via, created_at)"
+            " VALUES (?,?,?,?,?,?,?,?,?,'self',?)",
+            (name, phone, valid_aadhaar(), str(random.randint(10 ** 12, 10 ** 13)),
+             valid_ifsc(), name, valid_land(district), village, district, now))
+        team_ids.append(cur.lastrowid)
+        farmer_ids.append(cur.lastrowid)
+
     conn.commit()
 
     # bookings
@@ -213,6 +244,29 @@ def main():
         make_booking(demo_farmer, far[0], "booked")
         upcoming += 1
 
+    # One booking each for the team farmers so there is something to ring about.
+    # Chandra gets a far off slot in a wet district, which trips the storage
+    # risk warning. Ravi gets a completed sale whose payment failed.
+    us_nagar = cur.execute("SELECT id FROM procurement_centres WHERE district='Udham Singh Nagar'",
+                           ).fetchone()["id"]
+    haridwar = cur.execute("SELECT id FROM procurement_centres WHERE district='Haridwar'",
+                           ).fetchone()["id"]
+    if len(team_ids) == 2:
+        far_us = [s for s in future
+                  if s["centre_id"] == us_nagar and s["date"] >= (today + timedelta(days=8)).isoformat()]
+        if far_us:
+            make_booking(team_ids[0], far_us[0], "booked")
+            upcoming += 1
+
+        past_hw = [s for s in past if s["centre_id"] == haridwar]
+        if past_hw:
+            bid, crop, qty = make_booking(team_ids[1], past_hw[0], "completed")
+            rate, total = compute_amount(crop, qty, "FAQ")
+            cur.execute("INSERT INTO transactions (booking_id, actual_quantity, quality_grade,"
+                        " price_per_unit, total_amount, payment_status, payment_date)"
+                        " VALUES (?,?,?,?,?,'failed',NULL)", (bid, qty, "FAQ", rate, total))
+            completed += 1
+
     conn.commit()
     conn.close()
 
@@ -235,6 +289,8 @@ def main():
     print("  bookings     : %d completed + %d upcoming" % (completed, upcoming))
     print("  storage risk : %d upcoming bookings flagged HIGH" % high)
     print("")
+    for name, phone, _v, _d in TEAM_FARMERS:
+        print("  Team farmer  : %-12s (%s)" % (phone, name))
     print("  Farmer login : 9000000001  (Ramesh Kumar - clean record)")
     print("  Farmer login : 9000000002  (Sunita Devi  - multiple data mismatches)")
     print("  OTP          : 123456")
