@@ -98,7 +98,25 @@ there is no webhook and no second server. The private key is read from
 without it Vonage picks its own caller id, which is why test calls arrive from
 a US number.
 
-Set `VOICE_DRY_RUN=1` to print what would be said instead of dialling.
+Set `VOICE_DRY_RUN=1` to print what would be said instead of dialling. Do that
+before testing anything that isn't the call itself, or you will ring the phone
+by accident.
+
+### Voice tuning
+
+Vonage's talk action has a volume setting but no speed one, so the pacing comes
+from SSML we build in `to_ssml()`.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `VOICE_LEVEL` | 1 | Volume, -1 to 1. 1 is the loudest Vonage allows |
+| `VOICE_LEAD_IN` | 2 | Seconds of silence before speaking, so the farmer can get the phone to their ear |
+| `VOICE_RATE` | slow | Overall speech rate |
+| `VOICE_TOKEN_RATE` | x-slow | Rate for the token number, which people write down |
+| `VOICE_PREMIUM` | off | Vonage's neural voice. Sounds much better, costs more per call |
+
+The token is spelled out digit by digit with a pause between the groups, and
+the slot reminder reads it twice.
 
 Farmers ringing *us* is parked until we have a number to publish. The half
 built menu is in `farmer-ivr/`.

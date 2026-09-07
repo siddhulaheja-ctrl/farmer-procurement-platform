@@ -21,6 +21,15 @@ Config, all optional:
     VONAGE_PRIVATE_KEY       the key itself (for hosting), or
     VONAGE_PRIVATE_KEY_PATH  path to private.key (defaults to farmer-ivr/)
     VOICE_DRY_RUN=1          never dial, whatever else is set
+    VOICE_LEVEL              volume, -1 to 1. Default 1, the loudest vonage
+                             allows, because the default was too quiet.
+    VOICE_LEAD_IN            seconds of silence before speaking, so the farmer
+                             has time to get the phone to their ear. Default 2.
+    VOICE_RATE               overall speech rate. Default slow.
+    VOICE_TOKEN_RATE         rate for the token number, which people write
+                             down. Default x-slow.
+    VOICE_PREMIUM=1          use vonage's premium (neural) voice. Sounds much
+                             better, costs more per call.
 
 Quick test from the command line - a number typed here is dialled straight
 away, the allowlist only guards the buttons in the web ui:
@@ -46,6 +55,14 @@ KEY_PATH = os.environ.get("VONAGE_PRIVATE_KEY_PATH",
 
 VOICE = {"en": "en-IN", "hi": "hi-IN"}
 
+# Vonage's talk action has a volume knob but no speed one, so the pacing has to
+# come from SSML in the text itself.
+LEVEL = float(os.environ.get("VOICE_LEVEL", "1"))
+LEAD_IN = os.environ.get("VOICE_LEAD_IN", "2")
+RATE = os.environ.get("VOICE_RATE", "slow")
+TOKEN_RATE = os.environ.get("VOICE_TOKEN_RATE", "x-slow")
+PREMIUM = os.environ.get("VOICE_PREMIUM", "").strip() in ("1", "true", "yes")
+
 
 MONTHS_HI = ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई",
              "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"]
@@ -58,6 +75,43 @@ def spoken_date(iso):
         return "%d %s" % (int(d), MONTHS_HI[int(m) - 1])
     except Exception:
         return str(iso)
+
+
+def spell_token(token):
+    """PC01-S017-001 -> the digits spaced out, read extra slowly, with a pause
+    between the groups. People write this number down off the call."""
+    groups = [" ".join(part) for part in str(token or "").split("-")]
+    spaced = ' <break time="400ms"/> '.join(groups)
+    return '<prosody rate="%s">%s</prosody>' % (TOKEN_RATE, spaced)
+
+
+def _escape(text):
+    return (str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def to_ssml(message, token=None):
+    """Wrap the message for the text to speech engine.
+
+    Escapes the text first and only then puts our own tags in, so a farmer
+    called "A & B" can't break the markup. {{token}} in the message is where
+    the slowed down token number goes.
+    """
+    body = _escape(message)
+    if token:
+        body = body.replace("{{token}}", spell_token(token))
+    else:
+        body = body.replace("{{token}}", "")
+    return ('<speak><break time="%ss"/><prosody rate="%s">%s</prosody></speak>'
+            % (LEAD_IN, RATE, body))
+
+
+def plain(message, token=None):
+    """The same message without markup, for logging and the screen."""
+    text = str(message)
+    if token:
+        text = text.replace("{{token}}", ", ".join(" ".join(p)
+                                                   for p in str(token).split("-")))
+    return text.replace("{{token}}", "")
 
 
 def to_e164(phone):
@@ -91,8 +145,11 @@ def status():
             "from_number": FROM_NUMBER, "key_path": KEY_PATH}
 
 
-def place_call(phone, message, lang="hi"):
+def place_call(phone, message, lang="hi", token=None):
     """Ring `phone` and read out `message`.
+
+    Put {{token}} in the message where the token number should go and pass it
+    as `token`, so it gets read slowly enough to write down.
 
     Returns (ok, detail). Never raises - a failed call belongs on the screen,
     not as a 500 in the middle of a demo.
@@ -109,10 +166,11 @@ def place_call(phone, message, lang="hi"):
     else:
         reason = None
 
+    spoken = plain(message, token)
     if reason:
         print("[voice] DRY RUN (%s) -> +%s / %s\n         %s"
-              % (reason, number, VOICE.get(lang, "hi-IN"), message))
-        return True, "Dry run (%s). Would have said: %s" % (reason, message)
+              % (reason, number, VOICE.get(lang, "hi-IN"), spoken))
+        return True, "Dry run (%s). Would have said: %s" % (reason, spoken)
 
     try:
         from vonage import Auth, Vonage
@@ -122,7 +180,9 @@ def place_call(phone, message, lang="hi"):
         response = client.voice.create_call(CreateCallRequest(
             to=[ToPhone(number=number)],
             from_=Phone(number=FROM_NUMBER),
-            ncco=[Talk(text=message, language=VOICE.get(lang, "hi-IN"))],
+            ncco=[Talk(text=to_ssml(message, token),
+                       language=VOICE.get(lang, "hi-IN"),
+                       level=LEVEL, premium=PREMIUM or None)],
         ))
         return True, "Calling +%s now. %s" % (number, response)
     except Exception as e:
