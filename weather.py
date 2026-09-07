@@ -24,8 +24,8 @@ LEAD_DAYS_THRESHOLD = int(os.environ.get("STORAGE_RISK_LEAD_DAYS", "5"))
 RAIN_MM_HIGH = 5.0        # total forecast rain (mm) over the window
 HUMIDITY_HIGH = 80        # average relative humidity %
 
-# Forces every risk check to return HIGH, for when the real forecast is dry and
-# we still need to show the alert. Set STORAGE_RISK_FORCE=1 before starting.
+# makes every check come back HIGH, for when the forecast is dry and we still
+# need to show the alert. STORAGE_RISK_FORCE=1
 DEMO_FORCE_RISK = {"on": os.environ.get("STORAGE_RISK_FORCE", "").strip() in ("1", "true", "yes")}
 
 # Districts the mock forecast treats as being in a wet spell, and the full set

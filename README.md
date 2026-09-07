@@ -159,22 +159,6 @@ Quick test, dials straight away:
 python voice.py 9876543210 "Namaste, test call" hi
 ```
 
-The **Call now** buttons in the admin demo page are stricter - they only really
-dial numbers listed in `VOICE_ALLOWLIST`, everything else prints what it would
-have said. The seeded farmers have randomly generated numbers that could belong
-to real people, so this stops a stray click cold calling a stranger.
-
-Easier for a demo: start the portal normally, sign in as staff, open **Demo
-Controls**, and in the "Queued voice calls" card put your own number in
-*Send every demo call to this number instead*. Then Call now rings your phone
-with that farmer's real message. No environment variables needed.
-
-`VOICE_ALLOWLIST` is the other way to arm the buttons, if you want them to ring
-the farmers' own numbers:
-
-```bash
-$env:VOICE_ALLOWLIST="919876543210"; python app.py
-```
 
 The private key is read from `farmer-ivr/private.key` and is never committed.
 `VONAGE_NUMBER` is optional - without it Vonage picks its own caller id, which
