@@ -120,10 +120,25 @@
   <h2>Queued voice calls</h2>
   <div class="card-body">
     <p class="small muted" style="margin-top:0">
-      Every alert the portal raises for the phone channel is queued here. The IVR service at
-      <code>{{ ivr_url }}</code> holds the Vonage credentials and does the actual dialling, so
-      no telephony keys live in this application.
+      Every alert the portal raises for the phone channel is queued here. Calls go straight from
+      this machine to Vonage, so there is no second server to start and nothing to keep awake.
     </p>
+    {% if voice.dry_run %}
+    <div class="notice warning" style="margin-bottom:12px">
+      <strong>Dry run.</strong>
+      {% if voice.forced_dry_run %}
+        VOICE_DRY_RUN is set, so calls are logged instead of dialled.
+      {% else %}
+        Not configured yet &mdash; missing {{ voice.missing|join(', ') }}. Pressing
+        <em>Call now</em> will show you exactly what would have been said, without
+        spending Vonage credit.
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="notice success" style="margin-bottom:12px">
+      <strong>Live.</strong> Calls will really be placed, from {{ voice.from_number }}.
+    </div>
+    {% endif %}
     {% if queued_calls %}
     <div class="table-scroll">
       <table class="data">
@@ -154,16 +169,19 @@
 </div>
 
 <div class="card">
-  <h2>IVR module interface</h2>
+  <h2>Phone channel</h2>
   <div class="card-body">
     <p class="small muted" style="margin-top:0">
-      The telephone channel runs as its own service. It keeps no database of its own and reads
-      everything from the feed below, which is why it can be deployed and restarted separately.
+      Outbound calls (we ring the farmer) are handled here in the portal, and need no public
+      URL because the spoken message is sent inline with the request.
+    </p>
+    <p class="small muted">
+      Inbound (the farmer rings us) is parked until we have a number to publish. The half-built
+      menu lives in <code>farmer-ivr/</code>, and this feed is what it reads:
     </p>
     <ul class="small">
       <li><code>GET /ivr/status.json?phone=9000000001</code> &mdash; slots, payments, open flags and
         queued voice calls for one farmer</li>
-      <li><code>POST {{ ivr_url }}/place-call</code> &mdash; asks the IVR service to ring a farmer</li>
     </ul>
     <a class="btn small secondary" href="{{ url_for('ivr_status', phone='9000000001') }}">Open the feed</a>
   </div>

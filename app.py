@@ -20,6 +20,7 @@ from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
 import alerts as alerts_mod
 import core
 import db
+import voice
 import weather
 from core import BookingError
 from db import execute, query
@@ -29,8 +30,7 @@ from validation import unresolved_flags, validate_and_flag
 # hardcoded otp, shown on the login page
 DEMO_OTP = "123456"
 
-# The IVR service. It holds the vonage credentials, we just ask it to dial.
-IVR_URL = os.environ.get("IVR_URL", "https://farmer-ivr-jky0.onrender.com").rstrip("/")
+# Outbound calls go straight from here to vonage, no second server involved.
 
 
 # App factory
@@ -803,22 +803,10 @@ def register_routes(app):
                 if alert is None:
                     flash("That queued call no longer exists.", "error")
                 else:
-                    try:
-                        import requests
-                        r = requests.post(IVR_URL + "/place-call", timeout=25, json={
-                            "phone": alert["phone_number"],
-                            "message": alert["message"],
-                            "lang": "hi",
-                        })
-                        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-                        if r.status_code == 200 and body.get("ok"):
-                            flash("Calling %s on %s now." % (alert["name"], alert["phone_number"]),
-                                  "success")
-                        else:
-                            flash("The IVR service refused the call: %s"
-                                  % (body.get("error") or r.text[:200]), "error")
-                    except Exception as e:
-                        flash("Could not reach the IVR service at %s (%s)." % (IVR_URL, e), "error")
+                    ok, detail = voice.place_call(alert["phone_number"], alert["message"], "hi")
+                    voice.log_call(alert["farmer_id"], alert["message"], ok, detail,
+                                   booking_id=alert["booking_id"])
+                    flash("%s - %s" % (alert["name"], detail), "success" if ok else "error")
             elif action == "check_weather":
                 district = request.form.get("district") or "Karnal"
                 fc, source = weather.get_forecast(district, 5)
@@ -826,11 +814,11 @@ def register_routes(app):
             return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
                                    districts=_districts(), result=result,
                                    owm=bool(weather.OWM_API_KEY),
-                                   queued_calls=_queued_calls(), ivr_url=IVR_URL)
+                                   queued_calls=_queued_calls(), voice=voice.status())
         return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
                                districts=_districts(), result=None,
                                owm=bool(weather.OWM_API_KEY),
-                               queued_calls=_queued_calls(), ivr_url=IVR_URL)
+                               queued_calls=_queued_calls(), voice=voice.status())
 
     @app.route("/admin/logout")
     def admin_logout():
@@ -899,7 +887,8 @@ def _queued_calls(limit=8):
     return query(
         "SELECT a.*, f.name, f.phone_number FROM alerts_log a"
         " JOIN farmers f ON f.id = a.farmer_id"
-        " WHERE a.channel = 'ivr' ORDER BY a.id DESC LIMIT ?", (limit,))
+        " WHERE a.channel = 'ivr' AND a.alert_type != 'voice_call'"
+        " ORDER BY a.id DESC LIMIT ?", (limit,))
 
 
 def _districts():
