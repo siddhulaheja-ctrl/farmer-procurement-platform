@@ -1,39 +1,24 @@
-"""Outbound calls through Vonage.
+"""Outbound calls, we ring the farmer.
 
-We only do outbound for now - the portal rings the farmer. Farmers ringing us
-needs a number we can publish, so that is parked (see farmer-ivr/).
+Vonage takes the whole message in the api request (inline ncco) so it never
+calls back to us. That means no webhook and no server anywhere, it all runs
+from here.
 
-The nice thing about outbound is that we send the whole message in the api
-request as an inline NCCO, so vonage never calls us back. No webhook, no public
-url, no server on render. Everything runs on localhost.
+Calls from the staff screens always go to DEMO_NUMBER, not the farmer's real
+number. Running this file directly dials whatever you type.
 
-Every call from the staff screens goes to DEMO_NUMBER, not to the farmer's own
-number. The seeded farmers are fake, so there is nobody real to ring, and it
-means a stray click can never dial a stranger. Running this file from the
-command line dials whatever number you type.
+    python voice.py 9876543210 "Namaste, test" hi
 
-Config, all optional:
-    VOICE_DEMO_NUMBER        where the staff Call buttons ring. Defaults to the
-                             team phone we test with.
-    VONAGE_APPLICATION_ID    from the vonage dashboard
-    VONAGE_NUMBER            caller id. If unset vonage picks one of its own,
-                             which is why test calls show up as a US number.
-    VONAGE_PRIVATE_KEY       the key itself (for hosting), or
-    VONAGE_PRIVATE_KEY_PATH  path to private.key (defaults to farmer-ivr/)
-    VOICE_DRY_RUN=1          never dial, whatever else is set
-    VOICE_LEVEL              volume, -1 to 1. Default 1, the loudest vonage
-                             allows, because the default was too quiet.
-    VOICE_LEAD_IN            seconds of silence before speaking, so the farmer
-                             has time to get the phone to their ear. Default 2.
-    VOICE_RATE               overall speech rate. Default slow.
-    VOICE_TOKEN_RATE         rate for the token number, which people write
-                             down. Default x-slow.
-    VOICE_PREMIUM=1          use vonage's premium (neural) voice. Sounds much
-                             better, costs more per call.
-
-Quick test from the command line - a number typed here is dialled straight
-away, the allowlist only guards the buttons in the web ui:
-    python voice.py 9876543210 "Namaste, this is a test" hi
+Env vars, all optional:
+    VOICE_DEMO_NUMBER   where the staff Call buttons ring
+    VOICE_DRY_RUN=1     log instead of dialling
+    VOICE_LEVEL         volume -1 to 1, default 1 (0 was too quiet)
+    VOICE_LEAD_IN       seconds of silence first, default 2
+    VOICE_RATE          speech rate, default slow
+    VOICE_TOKEN_RATE    rate for the token, default x-slow
+    VOICE_PREMIUM=1     better voice, costs more
+    VONAGE_NUMBER       caller id, otherwise vonage picks a random US one
+    VONAGE_APPLICATION_ID / VONAGE_PRIVATE_KEY / VONAGE_PRIVATE_KEY_PATH
 """
 
 import os
@@ -42,22 +27,29 @@ from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# defaults to the application we already made in the vonage dashboard, so the
-# only thing that normally needs setting is the allowlist
+# our app from the vonage dashboard
 APP_ID = os.environ.get("VONAGE_APPLICATION_ID",
                         "fb926ccb-0da7-4d10-814f-9a3ae05428e3").strip()
-# vonage wants the field populated even when it substitutes its own caller id
+# vonage wants this filled in even though it swaps in its own number
 FROM_NUMBER = os.environ.get("VONAGE_NUMBER", "").strip() or "12345678901"
-# Calls from the staff screens always land here while we are testing.
+# every call from the ui lands here for now
 DEMO_NUMBER = os.environ.get("VOICE_DEMO_NUMBER", "9876543210").strip()
 KEY_PATH = os.environ.get("VONAGE_PRIVATE_KEY_PATH",
                           os.path.join(HERE, "farmer-ivr", "private.key"))
 
 VOICE = {"en": "en-IN", "hi": "hi-IN"}
 
-# Vonage's talk action has a volume knob but no speed one, so the pacing has to
-# come from SSML in the text itself.
-LEVEL = float(os.environ.get("VOICE_LEVEL", "1"))
+# talk has a volume setting but no speed one, so pacing comes from ssml
+def _level():
+    # a typo in the env var used to kill the whole app on startup
+    try:
+        v = float(os.environ.get("VOICE_LEVEL", "1"))
+    except ValueError:
+        return 1.0
+    return max(-1.0, min(1.0, v))       # outside -1..1 vonage just rejects it
+
+
+LEVEL = _level()
 LEAD_IN = os.environ.get("VOICE_LEAD_IN", "2")
 RATE = os.environ.get("VOICE_RATE", "slow")
 TOKEN_RATE = os.environ.get("VOICE_TOKEN_RATE", "x-slow")
@@ -78,9 +70,10 @@ def spoken_date(iso):
 
 
 def spell_token(token):
-    """PC01-S017-001 -> the digits spaced out, read extra slowly, with a pause
-    between the groups. People write this number down off the call."""
-    groups = [" ".join(part) for part in str(token or "").split("-")]
+    """Spaced out and slowed down, people write this down off the call."""
+    if not token:
+        return ""
+    groups = [" ".join(part) for part in str(token).split("-")]
     spaced = ' <break time="400ms"/> '.join(groups)
     return '<prosody rate="%s">%s</prosody>' % (TOKEN_RATE, spaced)
 
@@ -90,12 +83,8 @@ def _escape(text):
 
 
 def to_ssml(message, token=None):
-    """Wrap the message for the text to speech engine.
-
-    Escapes the text first and only then puts our own tags in, so a farmer
-    called "A & B" can't break the markup. {{token}} in the message is where
-    the slowed down token number goes.
-    """
+    """Build the ssml. Escape first, then add our tags, otherwise a farmer
+    called "A & B" breaks the xml. {{token}} is where the token goes."""
     body = _escape(message)
     if token:
         body = body.replace("{{token}}", spell_token(token))
@@ -106,7 +95,7 @@ def to_ssml(message, token=None):
 
 
 def plain(message, token=None):
-    """The same message without markup, for logging and the screen."""
+    """Same thing without the tags, for the screen and the log."""
     text = str(message)
     if token:
         text = text.replace("{{token}}", ", ".join(" ".join(p)
@@ -132,7 +121,7 @@ def _private_key():
 
 
 def status():
-    """What's configured, so the demo page can be honest about it."""
+    """What is set up, so the screens can say whether calls are real."""
     missing = []
     if not APP_ID:
         missing.append("VONAGE_APPLICATION_ID")
@@ -146,13 +135,11 @@ def status():
 
 
 def place_call(phone, message, lang="hi", token=None):
-    """Ring `phone` and read out `message`.
+    """Ring the number and read out the message.
 
-    Put {{token}} in the message where the token number should go and pass it
-    as `token`, so it gets read slowly enough to write down.
-
-    Returns (ok, detail). Never raises - a failed call belongs on the screen,
-    not as a 500 in the middle of a demo.
+    Put {{token}} in the message and pass token= to have it read slowly.
+    Returns (ok, detail) and never raises - a failed call should show up as a
+    message, not a 500 in the middle of a demo.
     """
     number = to_e164(phone)
     if not number:
@@ -190,8 +177,7 @@ def place_call(phone, message, lang="hi", token=None):
 
 
 def log_call(farmer_id, message, ok, detail, booking_id=None):
-    """Record what happened so there is a trail on the alerts page.
-    alert_type voice_call is filtered out of the dial queue in app.py."""
+    """Keep a record on the alerts page of what we rang about."""
     from alerts import raise_alert
     prefix = "Call placed" if ok else "Call failed"
     raise_alert(farmer_id, "voice_call", "ivr",

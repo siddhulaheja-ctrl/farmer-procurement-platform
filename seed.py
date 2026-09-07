@@ -99,9 +99,8 @@ def main():
     for i in range(48):
         name = fake.name()
         district = random.choice(DISTRICTS)[0]
-        # Sequential fake numbers on purpose. Faker generates ones that look
-        # real and could belong to an actual person, which is a bad idea in
-        # something that can place phone calls.
+        # sequential on purpose - faker makes numbers that look real and
+        # might actually be someone's, and this app can place calls
         phone = "90000001%02d" % i
 
         aadhaar = valid_aadhaar()

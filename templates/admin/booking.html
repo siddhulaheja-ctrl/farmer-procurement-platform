@@ -125,9 +125,7 @@
         <form method="post" action="{{ url_for('admin_call', booking_id=b.id) }}" class="mt">
           <button class="btn block" type="submit">Call farmer about this booking</button>
         </form>
-        <div class="hint">
-          While testing, every call goes to {{ call_to }} rather than the farmer's own number.
-        </div>
+        <div class="hint">Calls go to {{ call_to }} for now, not the farmer's own number.</div>
         <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">
           Open full record
         </a>

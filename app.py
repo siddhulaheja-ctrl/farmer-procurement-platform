@@ -2,16 +2,15 @@
 
 SIH 2026, PS 26032.
 
-The IVR part is not built yet, there is just a stub under /ivr that the
-other team member can build on top of.
+Outbound calls are in voice.py. Farmers ringing us is not built, the half
+finished menu is in farmer-ivr/ and reads from /ivr/status.json.
 
 Login is kept simple for now, OTP is hardcoded and staff share one password.
 TODO: real OTP + hash the staff passwords
 """
 
 import os
-import random
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from functools import wraps
 
 from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
@@ -29,8 +28,6 @@ from validation import unresolved_flags, validate_and_flag
 
 # hardcoded otp, shown on the login page
 DEMO_OTP = "123456"
-
-# Outbound calls go straight from here to vonage, no second server involved.
 
 
 # App factory
@@ -155,6 +152,7 @@ def register_routes(app):
 
     @app.context_processor
     def _call_target():
+        # so the staff templates can show where calls actually go
         return {"call_to": voice.DEMO_NUMBER}
 
     # public
@@ -542,8 +540,8 @@ def register_routes(app):
     @app.route("/admin/booking/<int:booking_id>/call", methods=["POST"])
     @staff_required
     def admin_call(booking_id):
-        """Ring the farmer about this booking. While we are testing every call
-        goes to voice.DEMO_NUMBER, not to the farmer's own number."""
+        """Ring the farmer about this booking. Goes to voice.DEMO_NUMBER for
+        now, not to the farmer's real number."""
         b = query(_BOOKING_SELECT + " WHERE b.id = ?", (booking_id,), one=True)
         if b is None:
             abort(404)
