@@ -12,10 +12,7 @@
 <div class="card">
   <div class="card-head">
     <span>{{ rows|length }} upcoming booking{{ 's' if rows|length != 1 }}</span>
-    <form method="post" action="{{ url_for('admin_demo') }}">
-      <input type="hidden" name="action" value="rescan_risk">
-      <button class="btn small secondary" type="submit">Re-scan forecasts now</button>
-    </form>
+
   </div>
   {% if rows %}
   <div class="table-scroll">
@@ -39,7 +36,14 @@
           <td>{{ r.crop_type }}</td>
           <td class="num nowrap">{{ '%.1f'|format(r.estimated_quantity) }}</td>
           <td class="nowrap">
-            <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=r.id) }}">Open</a>
+            <div class="btn-row">
+              <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=r.id) }}">Open</a>
+              {% if r.storage_risk == 'high' %}
+              <form method="post" action="{{ url_for('admin_call', booking_id=r.id) }}">
+                <button class="btn small" type="submit">Call</button>
+              </form>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -49,6 +53,10 @@
   {% else %}
     <div class="empty">No upcoming bookings.</div>
   {% endif %}
+</div>
+
+<div class="notice info small">
+  Calls go to {{ call_to }} while we are testing, not to the farmer's own number.
 </div>
 
 <div class="notice info small">

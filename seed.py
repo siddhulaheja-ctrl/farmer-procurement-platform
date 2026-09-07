@@ -96,15 +96,13 @@ def main():
 
     # farmers
     farmer_ids = []
-    used_phones = set()
     for i in range(48):
         name = fake.name()
         district = random.choice(DISTRICTS)[0]
-        while True:
-            phone = "9%09d" % random.randint(0, 999999999)
-            if phone not in used_phones:
-                used_phones.add(phone)
-                break
+        # Sequential fake numbers on purpose. Faker generates ones that look
+        # real and could belong to an actual person, which is a bad idea in
+        # something that can place phone calls.
+        phone = "90000001%02d" % i
 
         aadhaar = valid_aadhaar()
         acct = str(random.randint(10 ** 10, 10 ** 15))
