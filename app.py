@@ -16,7 +16,11 @@ from functools import wraps
 from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
                    request, session, url_for)
 
-import alerts as alerts_mod
+import env
+
+env.load()          # has to run before the modules below read os.environ
+
+import alerts as alerts_mod  # noqa: E402
 import core
 import db
 import voice
@@ -562,8 +566,10 @@ def register_routes(app):
                        % (b["farmer_name"], voice.spoken_date(b["date"]), b["time_window"],
                           b["centre_name"]))
 
-        ok, detail = voice.place_call(voice.DEMO_NUMBER, message, "hi",
-                                      token=b["token_no"])
+        to, redirected = voice.target_for(b["phone_number"])
+        ok, detail = voice.place_call(to, message, "hi", token=b["token_no"])
+        if redirected:
+            detail = "(demo number, %s has a placeholder) %s" % (b["farmer_name"], detail)
         voice.log_call(b["farmer_id"], message, ok, detail, booking_id=booking_id)
         flash(detail, "success" if ok else "error")
         return redirect(request.referrer or url_for("admin_booking", booking_id=booking_id))

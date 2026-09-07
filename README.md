@@ -83,8 +83,12 @@ staff screens, and a **Call** button on the high risk rows of the Storage Risk
 page. What gets said depends on the booking - a storage risk warning, a held
 payment, or a plain slot reminder.
 
-While we are testing, every call from those buttons goes to `9876543210`, not
-to the farmer's own number. Change it with `VOICE_DEMO_NUMBER`.
+Farmers who registered with a real number are rung on it, so anyone on the team
+who signs up gets their own call. The seeded demo farmers have made up numbers
+(the `9000000xxx` block), so those calls go to `VOICE_DEMO_NUMBER` instead.
+
+Note that Vonage trial accounts only call numbers verified in the dashboard, so
+add each teammate's number there first or the call fails.
 
 Testing straight from the command line, dials whatever you type:
 
@@ -120,6 +124,20 @@ the slot reminder reads it twice.
 
 Farmers ringing *us* is parked until we have a number to publish. The half
 built menu is in `farmer-ivr/`.
+
+## Local settings
+
+Put keys and settings in a `.env` file in this folder, which is gitignored.
+Saves fighting with environment variable syntax, which is different in
+powershell, cmd and bash.
+
+```
+OWM_API_KEY=your_openweathermap_key
+VOICE_DEMO_NUMBER=9876543210
+```
+
+Anything already set in the real environment still wins, so you can override
+one value for a single run.
 
 ## Demo data
 

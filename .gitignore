@@ -28,3 +28,6 @@ LAST_SHARE_LINK.txt
 
 # the IVR is its own repo with its own render service
 farmer-ivr/
+
+# local settings and keys
+.env
