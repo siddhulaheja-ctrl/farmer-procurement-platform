@@ -169,9 +169,13 @@ def evaluate_booking(booking_id: int):
                "Consider requesting an earlier slot, or store your produce on a raised, "
                "covered platform." % (row["centre_name"], result["lead_days"], result["reason"]))
         raise_alert(row["farmer_id"], "storage_risk", "app", msg, booking_id=booking_id)
-        # Queued for the IVR module to pick up and place a voice call.
+        # This text is what actually gets read out if staff place the call,
+        # so it has to be a message for the farmer, not a note for us.
         raise_alert(row["farmer_id"], "storage_risk", "ivr",
-                    "Voice call queued: storage risk warning for booking #%d." % booking_id,
+                    "नमस्ते %s जी। कृषि सूत्र से सूचना। %s पर आपका स्लॉट %d दिन दूर है और "
+                    "आपके क्षेत्र में बारिश का अनुमान है। अपनी उपज को ढककर ऊंची जगह रखें, "
+                    "या अपने केंद्र से पहले का स्लॉट मांगें। धन्यवाद।"
+                    % (row["name"], row["centre_name"], result["lead_days"]),
                     booking_id=booking_id)
     return result
 

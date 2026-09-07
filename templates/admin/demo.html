@@ -117,16 +117,53 @@
 </div>
 
 <div class="card">
+  <h2>Queued voice calls</h2>
+  <div class="card-body">
+    <p class="small muted" style="margin-top:0">
+      Every alert the portal raises for the phone channel is queued here. The IVR service at
+      <code>{{ ivr_url }}</code> holds the Vonage credentials and does the actual dialling, so
+      no telephony keys live in this application.
+    </p>
+    {% if queued_calls %}
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Queued</th><th>Farmer</th><th>Number</th><th>Message</th><th></th></tr></thead>
+        <tbody>
+          {% for a in queued_calls %}
+          <tr>
+            <td class="small muted nowrap">{{ a.sent_at|stamp }}</td>
+            <td>{{ a.name }}</td>
+            <td class="mono nowrap">{{ a.phone_number }}</td>
+            <td class="small">{{ a.message }}</td>
+            <td class="nowrap">
+              <form method="post">
+                <input type="hidden" name="action" value="place_call">
+                <input type="hidden" name="alert_id" value="{{ a.id }}">
+                <button class="btn small" type="submit">Call now</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">Nothing queued. Book a slot far enough out to trigger a storage-risk call.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
   <h2>IVR module interface</h2>
   <div class="card-body">
     <p class="small muted" style="margin-top:0">
-      The telephone channel is built as a separate module. It reads everything it needs from the
-      JSON feed below, so it can be developed and tested without touching this application.
+      The telephone channel runs as its own service. It keeps no database of its own and reads
+      everything from the feed below, which is why it can be deployed and restarted separately.
     </p>
     <ul class="small">
       <li><code>GET /ivr/status.json?phone=9000000001</code> &mdash; slots, payments, open flags and
         queued voice calls for one farmer</li>
-      <li><code>POST /ivr/webhook</code> &mdash; stub for Twilio keypress callbacks; returns TwiML</li>
+      <li><code>POST {{ ivr_url }}/place-call</code> &mdash; asks the IVR service to ring a farmer</li>
     </ul>
     <a class="btn small secondary" href="{{ url_for('ivr_status', phone='9000000001') }}">Open the feed</a>
   </div>

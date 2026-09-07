@@ -29,6 +29,9 @@ from validation import unresolved_flags, validate_and_flag
 # hardcoded otp, shown on the login page
 DEMO_OTP = "123456"
 
+# The IVR service. It holds the vonage credentials, we just ask it to dial.
+IVR_URL = os.environ.get("IVR_URL", "https://farmer-ivr-jky0.onrender.com").rstrip("/")
+
 
 # App factory
 
@@ -319,9 +322,13 @@ def register_routes(app):
                                                 b["token_no"]),
             booking_id=booking_id)
         # for the ivr module to pick up later
-        alerts_mod.raise_alert(g.farmer["id"], "booking_confirmed", "ivr",
-                               "Voice call queued: booking confirmation for token %s."
-                               % b["token_no"], booking_id=booking_id)
+        alerts_mod.raise_alert(
+            g.farmer["id"], "booking_confirmed", "ivr",
+            "नमस्ते %s जी। आपका खरीद स्लॉट %s को %s बजे, %s पर बुक हो गया है। "
+            "आपका टोकन नंबर %s है। कृपया आधार कार्ड और बैंक पासबुक साथ लाएं। धन्यवाद।"
+            % (g.farmer["name"], b["date"], b["time_window"], b["centre_name"],
+               ", ".join(" ".join(part) for part in str(b["token_no"]).split("-"))),
+            booking_id=booking_id)
 
         # check storage risk now that we know the slot date
         risk = weather.evaluate_booking(booking_id)
@@ -560,9 +567,11 @@ def register_routes(app):
             b["farmer_id"], "payment_update", "app",
             "Transaction complete. %.2f is being credited to your registered bank account. "
             "Expect credit within 48-72 hours." % txn["total_amount"], booking_id=booking_id)
-        alerts_mod.raise_alert(b["farmer_id"], "payment_update", "ivr",
-                               "Voice call queued: payment processing notification.",
-                               booking_id=booking_id)
+        alerts_mod.raise_alert(
+            b["farmer_id"], "payment_update", "ivr",
+            "नमस्ते। आपकी उपज की खरीद पूरी हो गई है। %d रुपये का भुगतान प्रक्रिया में है "
+            "और दो से तीन दिन में आपके बैंक खाते में जमा हो जाएगा। धन्यवाद।"
+            % int(txn["total_amount"] or 0), booking_id=booking_id)
         flash("Transaction completed. Payment moved to 'processing'.", "success")
         return redirect(url_for("admin_booking", booking_id=booking_id))
 
@@ -786,16 +795,42 @@ def register_routes(app):
                     execute("UPDATE transactions SET payment_status='completed', payment_date=?"
                             " WHERE id=?", (datetime.now().isoformat(timespec="seconds"), r["id"]))
                 flash("Settled %d in-flight payments." % len(rows), "success")
+            elif action == "place_call":
+                alert = query(
+                    "SELECT a.*, f.name, f.phone_number FROM alerts_log a"
+                    " JOIN farmers f ON f.id = a.farmer_id WHERE a.id = ?",
+                    (request.form.get("alert_id"),), one=True)
+                if alert is None:
+                    flash("That queued call no longer exists.", "error")
+                else:
+                    try:
+                        import requests
+                        r = requests.post(IVR_URL + "/place-call", timeout=25, json={
+                            "phone": alert["phone_number"],
+                            "message": alert["message"],
+                            "lang": "hi",
+                        })
+                        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+                        if r.status_code == 200 and body.get("ok"):
+                            flash("Calling %s on %s now." % (alert["name"], alert["phone_number"]),
+                                  "success")
+                        else:
+                            flash("The IVR service refused the call: %s"
+                                  % (body.get("error") or r.text[:200]), "error")
+                    except Exception as e:
+                        flash("Could not reach the IVR service at %s (%s)." % (IVR_URL, e), "error")
             elif action == "check_weather":
                 district = request.form.get("district") or "Karnal"
                 fc, source = weather.get_forecast(district, 5)
                 result = {"district": district, "forecast": fc, "source": source}
             return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
                                    districts=_districts(), result=result,
-                                   owm=bool(weather.OWM_API_KEY))
+                                   owm=bool(weather.OWM_API_KEY),
+                                   queued_calls=_queued_calls(), ivr_url=IVR_URL)
         return render_template("admin/demo.html", forced=weather.DEMO_FORCE_RISK["on"],
                                districts=_districts(), result=None,
-                               owm=bool(weather.OWM_API_KEY))
+                               owm=bool(weather.OWM_API_KEY),
+                               queued_calls=_queued_calls(), ivr_url=IVR_URL)
 
     @app.route("/admin/logout")
     def admin_logout():
@@ -803,12 +838,12 @@ def register_routes(app):
         flash("Staff signed out.", "success")
         return redirect(url_for("admin_login"))
 
-    # IVR stub - not built yet, these are just so the twilio part can plug in
+    # The IVR runs as its own service (see farmer-ivr/). It has no database,
+    # it reads everything from this feed.
 
     @app.route("/ivr/status.json")
     def ivr_status():
-        """Everything the IVR flow needs about one farmer, by phone number.
-        The IVR module can be developed against this feed alone."""
+        """Everything the IVR needs about one farmer, looked up by phone."""
         phone = request.args.get("phone", "")
         farmer = query("SELECT * FROM farmers WHERE phone_number = ?", (phone,), one=True)
         if farmer is None:
@@ -831,33 +866,6 @@ def register_routes(app):
                 " ORDER BY id DESC LIMIT 10", (farmer["id"],))],
         })
 
-    @app.route("/ivr/webhook", methods=["POST", "GET"])
-    def ivr_webhook():
-        """Stub for Twilio keypress callbacks. Returns TwiML.
-        TODO: implement the full menu tree in the IVR module."""
-        digits = request.values.get("Digits", "")
-        phone = (request.values.get("From", "") or "").replace("+91", "")
-        farmer = query("SELECT * FROM farmers WHERE phone_number = ?", (phone,), one=True)
-        if farmer is None:
-            say = "Your number is not registered. Please visit your nearest common service centre."
-        elif digits == "1":
-            b = query(_BOOKING_SELECT + " WHERE b.farmer_id = ? AND b.status = 'booked'"
-                      " ORDER BY s.date LIMIT 1", (farmer["id"],), one=True)
-            say = ("Your next slot is at %s on %s, %s. Token %s."
-                   % (b["centre_name"], b["date"], b["time_window"], b["token_no"])) if b \
-                else "You have no upcoming slots."
-        elif digits == "2":
-            t = query("SELECT t.* FROM transactions t JOIN bookings b ON b.id = t.booking_id"
-                      " WHERE b.farmer_id = ? ORDER BY t.id DESC LIMIT 1",
-                      (farmer["id"],), one=True)
-            say = ("Your last payment of %.0f rupees is %s." % (t["total_amount"], t["payment_status"])) \
-                if t else "No payment records found."
-        else:
-            say = ("Welcome to the procurement helpline. Press 1 for slot status. "
-                   "Press 2 for payment status.")
-        twiml = ('<?xml version="1.0" encoding="UTF-8"?><Response><Say language="en-IN">%s</Say>'
-                 '<Gather numDigits="1" action="/ivr/webhook"/></Response>' % say)
-        return app.response_class(twiml, mimetype="text/xml")
 
     # errors
 
@@ -884,6 +892,14 @@ _BOOKING_SELECT = (
     " JOIN procurement_centres c ON c.id = s.centre_id"
     " JOIN farmers f ON f.id = b.farmer_id"
     " LEFT JOIN transactions t ON t.booking_id = b.id")
+
+
+def _queued_calls(limit=8):
+    """Alerts that were queued for the phone channel but not dialled yet."""
+    return query(
+        "SELECT a.*, f.name, f.phone_number FROM alerts_log a"
+        " JOIN farmers f ON f.id = a.farmer_id"
+        " WHERE a.channel = 'ivr' ORDER BY a.id DESC LIMIT ?", (limit,))
 
 
 def _districts():
