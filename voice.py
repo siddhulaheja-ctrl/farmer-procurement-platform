@@ -4,8 +4,9 @@ Vonage takes the whole message in the api request (inline ncco) so it never
 calls back to us. That means no webhook and no server anywhere, it all runs
 from here.
 
-Calls from the staff screens always go to DEMO_NUMBER, not the farmer's real
-number. Running this file directly dials whatever you type.
+Staff screens ring the farmer's own number if it is a real one. The seeded
+farmers have made up numbers so those go to DEMO_NUMBER instead. Running this
+file directly dials whatever you type.
 
     python voice.py 9876543210 "Namaste, test" hi
 
@@ -24,6 +25,10 @@ Env vars, all optional:
 import os
 import sys
 from datetime import datetime
+
+import env
+
+env.load()
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -101,6 +106,21 @@ def plain(message, token=None):
         text = text.replace("{{token}}", ", ".join(" ".join(p)
                                                    for p in str(token).split("-")))
     return text.replace("{{token}}", "")
+
+
+# the seeded demo farmers all have numbers in this block, see seed.py
+PLACEHOLDER_PREFIX = "900000"
+
+
+def target_for(phone):
+    """Who do we actually ring. Seeded farmers have made up numbers so those
+    go to the team phone, but anyone who registered with a real number gets
+    rung on it. Returns (number, was_redirected)."""
+    number = to_e164(phone)
+    local = number[2:] if number.startswith("91") else number
+    if not local or local.startswith(PLACEHOLDER_PREFIX):
+        return to_e164(DEMO_NUMBER), True
+    return number, False
 
 
 def to_e164(phone):

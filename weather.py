@@ -13,6 +13,10 @@ from datetime import date, datetime, timedelta
 
 from db import execute, query
 
+import env
+
+env.load()
+
 # TODO: handle the case where the api key is missing
 OWM_API_KEY = os.environ.get("OWM_API_KEY", "").strip()
 OWM_URL = "https://api.openweathermap.org/data/2.5/forecast"
@@ -65,6 +69,10 @@ def _live_forecast(district: str, days: int):
             "q": "%s,IN" % district, "appid": OWM_API_KEY, "units": "metric",
         }, timeout=6)
         if r.status_code != 200:
+            # we used to fall back to the fake forecast without saying anything,
+            # so you could never tell whether the live data was actually working
+            print("[weather] %s -> HTTP %s from openweathermap, using mock. %s"
+                  % (district, r.status_code, r.text[:120]))
             return None
         buckets = {}
         for entry in r.json().get("list", []):
@@ -83,7 +91,8 @@ def _live_forecast(district: str, days: int):
                 "description": b["desc"],
             })
         return out or None
-    except Exception:
+    except Exception as e:
+        print("[weather] %s -> %s, using mock" % (district, e))
         return None
 
 
