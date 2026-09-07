@@ -559,12 +559,13 @@ def register_routes(app):
                        "लेकर आएं। धन्यवाद।" % b["farmer_name"])
         else:
             message = ("नमस्ते %s जी। आपका खरीद स्लॉट %s को %s बजे, %s पर बुक है। "
-                       "आपका टोकन नंबर %s है। धन्यवाद।"
+                       "आपका टोकन नंबर {{token}} है। मैं इसे दोबारा बोलती हूं। "
+                       "टोकन नंबर {{token}}। धन्यवाद।"
                        % (b["farmer_name"], voice.spoken_date(b["date"]), b["time_window"],
-                          b["centre_name"],
-                          ", ".join(" ".join(p) for p in str(b["token_no"]).split("-"))))
+                          b["centre_name"]))
 
-        ok, detail = voice.place_call(voice.DEMO_NUMBER, message, "hi")
+        ok, detail = voice.place_call(voice.DEMO_NUMBER, message, "hi",
+                                      token=b["token_no"])
         voice.log_call(b["farmer_id"], message, ok, detail, booking_id=booking_id)
         flash(detail, "success" if ok else "error")
         return redirect(request.referrer or url_for("admin_booking", booking_id=booking_id))
