@@ -85,10 +85,24 @@ page with a "Call now" button.
 `voice.py` sends the whole spoken message inline with the Vonage request, so
 there is no webhook and no second server. Everything runs on localhost.
 
-To place real calls set `VONAGE_NUMBER` to our virtual number. Without it the
-portal runs in dry run and shows exactly what it would have said, which is
-useful for practising the demo without spending credit. The private key is read
-from `farmer-ivr/private.key` and is never committed.
+Real calls only go to numbers in `VOICE_ALLOWLIST`. Everything else is a dry
+run that prints what it would have said. The seeded farmers have randomly
+generated numbers that could belong to real people, so this stops a stray click
+cold calling a stranger.
+
+```bash
+set VOICE_ALLOWLIST=919876543210 && python app.py
+```
+
+Quick test without the browser:
+
+```bash
+python voice.py 9876543210 "Namaste, test call" hi
+```
+
+The private key is read from `farmer-ivr/private.key` and is never committed.
+`VONAGE_NUMBER` is optional - without it Vonage picks its own caller id, which
+is why test calls arrive from a US number.
 
 Farmers ringing *us* is parked until we have a number to publish. The half
 built menu is in `farmer-ivr/`.

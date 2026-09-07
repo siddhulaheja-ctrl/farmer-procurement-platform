@@ -7,29 +7,54 @@ The nice thing about outbound is that we send the whole message in the api
 request as an inline NCCO, so vonage never calls us back. No webhook, no public
 url, no server on render. Everything runs on localhost.
 
+IMPORTANT: the seeded farmers have Faker generated phone numbers that look like
+real indian mobiles, because that is what Faker does. So real calls only go to
+numbers listed in VOICE_ALLOWLIST. Everything else is a dry run, however the
+rest of the config is set. Otherwise one stray click during a demo cold calls a
+stranger.
+
 Config, all optional:
+    VOICE_ALLOWLIST          comma separated numbers allowed to be really rung.
+                             Empty (the default) means nothing is really rung.
     VONAGE_APPLICATION_ID    from the vonage dashboard
-    VONAGE_NUMBER            our virtual number, used as the caller id
+    VONAGE_NUMBER            caller id. If unset vonage picks one of its own,
+                             which is why test calls show up as a US number.
     VONAGE_PRIVATE_KEY       the key itself (for hosting), or
     VONAGE_PRIVATE_KEY_PATH  path to private.key (defaults to farmer-ivr/)
-    VOICE_DRY_RUN=1          pretend to dial, log instead. Turns itself on
-                             automatically when credentials are missing.
+    VOICE_DRY_RUN=1          never dial, whatever else is set
+
+Quick test from the command line:
+    python voice.py 9876543210 "Namaste, this is a test" hi
 """
 
 import os
+import sys
 from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # defaults to the application we already made in the vonage dashboard, so the
-# only thing that normally needs setting is the number
+# only thing that normally needs setting is the allowlist
 APP_ID = os.environ.get("VONAGE_APPLICATION_ID",
                         "fb926ccb-0da7-4d10-814f-9a3ae05428e3").strip()
-FROM_NUMBER = os.environ.get("VONAGE_NUMBER", "").strip()
+# vonage wants the field populated even when it substitutes its own caller id
+FROM_NUMBER = os.environ.get("VONAGE_NUMBER", "").strip() or "12345678901"
 KEY_PATH = os.environ.get("VONAGE_PRIVATE_KEY_PATH",
                           os.path.join(HERE, "farmer-ivr", "private.key"))
 
 VOICE = {"en": "en-IN", "hi": "hi-IN"}
+
+
+def to_e164(phone):
+    digits = "".join(c for c in str(phone or "") if c.isdigit())
+    if len(digits) == 10:
+        digits = "91" + digits
+    return digits
+
+
+def _allowlist():
+    raw = os.environ.get("VOICE_ALLOWLIST", "")
+    return {to_e164(n) for n in raw.replace(";", ",").split(",") if n.strip()}
 
 
 def _private_key():
@@ -43,46 +68,44 @@ def _private_key():
 
 
 def status():
-    """What's configured, so the demo page can show it honestly."""
-    key = _private_key()
+    """What's configured, so the demo page can be honest about it."""
     missing = []
     if not APP_ID:
         missing.append("VONAGE_APPLICATION_ID")
-    if not FROM_NUMBER:
-        missing.append("VONAGE_NUMBER")
-    if not key:
+    if not _private_key():
         missing.append("a private key")
+    allow = _allowlist()
     forced = os.environ.get("VOICE_DRY_RUN", "").strip() in ("1", "true", "yes")
-    return {"ready": not missing, "missing": missing,
-            "dry_run": forced or bool(missing),
-            "forced_dry_run": forced,
+    return {"credentials_ok": not missing, "missing": missing,
+            "allowlist": sorted(allow), "forced_dry_run": forced,
+            "dry_run": forced or bool(missing) or not allow,
             "from_number": FROM_NUMBER, "key_path": KEY_PATH}
-
-
-def to_e164(phone):
-    digits = "".join(c for c in str(phone or "") if c.isdigit())
-    if len(digits) == 10:
-        digits = "91" + digits
-    return digits
 
 
 def place_call(phone, message, lang="hi"):
     """Ring the farmer and read out `message`.
 
-    Returns (ok, detail). Never raises - a failed call should show up as a
-    message on the screen, not a 500 in the middle of a demo.
+    Returns (ok, detail). Never raises - a failed call belongs on the screen,
+    not as a 500 in the middle of a demo.
     """
-    st = status()
     number = to_e164(phone)
     if not number:
         return False, "No phone number on that record."
 
-    if st["dry_run"]:
-        why = ("VOICE_DRY_RUN is set" if st["forced_dry_run"]
-               else "not configured yet: missing " + ", ".join(st["missing"]))
-        print("[voice] DRY RUN (%s) -> would call +%s in %s:\n         %s"
-              % (why, number, VOICE.get(lang, "hi-IN"), message))
-        return True, ("Dry run (%s). Would have called +%s and said: %s" % (why, number, message))
+    st = status()
+    if st["forced_dry_run"]:
+        reason = "VOICE_DRY_RUN is set"
+    elif st["missing"]:
+        reason = "missing " + ", ".join(st["missing"])
+    elif number not in st["allowlist"]:
+        reason = ("+%s is not in VOICE_ALLOWLIST" % number)
+    else:
+        reason = None
+
+    if reason:
+        print("[voice] DRY RUN (%s) -> +%s / %s\n         %s"
+              % (reason, number, VOICE.get(lang, "hi-IN"), message))
+        return True, "Dry run (%s). Would have said: %s" % (reason, message)
 
     try:
         from vonage import Auth, Vonage
@@ -94,15 +117,28 @@ def place_call(phone, message, lang="hi"):
             from_=Phone(number=FROM_NUMBER),
             ncco=[Talk(text=message, language=VOICE.get(lang, "hi-IN"))],
         ))
-        return True, "Calling +%s now (%s)" % (number, response)
+        return True, "Calling +%s now. %s" % (number, response)
     except Exception as e:
         return False, "Vonage refused the call: %s" % e
 
 
 def log_call(farmer_id, message, ok, detail, booking_id=None):
-    """Record what happened so there is a trail on the alerts page."""
+    """Record what happened so there is a trail on the alerts page.
+    alert_type voice_call is filtered out of the dial queue in app.py."""
     from alerts import raise_alert
     prefix = "Call placed" if ok else "Call failed"
     raise_alert(farmer_id, "voice_call", "ivr",
                 "%s at %s. %s" % (prefix, datetime.now().strftime("%H:%M"), detail),
                 booking_id=booking_id)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print(__doc__)
+        print("current config:", status())
+        sys.exit(1)
+    ok, detail = place_call(sys.argv[1],
+                            sys.argv[2] if len(sys.argv) > 2 else
+                            "Namaste. This is a test call from Krishi Sutra.",
+                            sys.argv[3] if len(sys.argv) > 3 else "en")
+    print(("OK: " if ok else "FAILED: ") + detail)
