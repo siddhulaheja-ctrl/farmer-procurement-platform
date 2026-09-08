@@ -5,5 +5,10 @@ requests==2.34.2
 # without it - you just get an error on the Call button instead of a call.
 vonage==4.8.2
 
+# Gate pass QR codes. Pure python and it writes SVG, so no pillow and no
+# canvas library on the front end - the code goes straight into the page and
+# still prints.
+qrcode==8.2
+
 # Only needed if you serve it with gunicorn instead of the flask dev server
 gunicorn==26.2.0

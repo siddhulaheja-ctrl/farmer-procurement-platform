@@ -25,11 +25,11 @@ from validation import run_checks
 env.load()
 
 CENTRES = [
-    ("Rudrapur Mandi Samiti", "Rudrapur, Udham Singh Nagar", "Udham Singh Nagar", 220,
+    ("Rudrapur Mandi Samiti", "Rudrapur", "Udham Singh Nagar", 220,
      "Paddy,Wheat,Maize"),
     ("Kichha Kharid Kendra", "Kichha Block", "Udham Singh Nagar", 160, "Paddy,Wheat"),
-    ("Haridwar Kharid Kendra", "Jwalapur, Haridwar", "Haridwar", 140, "Wheat,Paddy"),
-    ("Vikasnagar Grain Market", "Vikasnagar, Dehradun", "Dehradun", 120, "Wheat,Gram"),
+    ("Haridwar Kharid Kendra", "Jwalapur", "Haridwar", 140, "Wheat,Paddy"),
+    ("Vikasnagar Grain Market", "Vikasnagar", "Dehradun", 120, "Wheat,Gram"),
     ("Haldwani Mandi Centre", "Mandi Road, Haldwani", "Nainital", 150, "Paddy,Wheat,Maize"),
 ]
 
@@ -253,6 +253,23 @@ def build_bookings(s):
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", -1, "Gram", 12, status="cancelled")
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", 6, "Gram", 20, window=2)
 
+    # A real queue in one window, otherwise every farmer is alone in their slot
+    # and the position card has nothing to say. Aayush is already in this one
+    # from case 5, so these land behind him: two more who have been weighed in
+    # and two still waiting. Chandra ends up last and sees the whole picture.
+    shared = ("Rudrapur Mandi Samiti", 0, 1)     # centre, today, second window
+    s.booking("Vivek Kumar", shared[0], shared[1], "Paddy", 32, window=shared[2],
+              status="arrived", grade="FAQ", actual=31.5, payment="pending")
+    s.booking("Mayank Verma", shared[0], shared[1], "Wheat", 22, window=shared[2])
+    s.booking("Chandra Bhushan Kumar", shared[0], shared[1], "Wheat", 26, window=shared[2])
+
+
+def mark_a_centre_late(cur, now):
+    """One centre running behind, so the farmer booking page has something to
+    show for it. Staff set this by hand from the slots screen."""
+    cur.execute("UPDATE procurement_centres SET delay_minutes = 35, delay_set_at = ?"
+                " WHERE name = 'Rudrapur Mandi Samiti'", (now,))
+
 
 def score_storage_risk(cur, now):
     """Run the weather check over every upcoming booking. Hits the live api, so
@@ -312,6 +329,7 @@ def main():
 
     flag_everyone(cur, s, now)
     build_bookings(s)
+    mark_a_centre_late(cur, now)
     conn.commit()
 
     risks = score_storage_risk(cur, now)     # last, so every booking exists

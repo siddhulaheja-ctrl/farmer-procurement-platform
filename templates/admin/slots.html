@@ -62,6 +62,36 @@
   </div>
 
   <div class="card">
+    <h2>Running late</h2>
+    <div class="card-body">
+      <p class="small muted" style="margin-top:0">
+        Set this when the counter falls behind. Farmers see it on their booking page
+        with a note of how long ago it was set, so an old number can be judged for
+        what it is. Zero clears it.
+      </p>
+      {% for c in centres %}
+      <form method="post" action="{{ url_for('admin_set_delay', centre_id=c.id) }}"
+            class="delay-row">
+        <div>
+          <div class="small"><strong>{{ c.name }}</strong></div>
+          <div class="small muted">
+            {% if c.delay_minutes %}
+              Showing {{ c.delay_minutes }} min behind
+              {% if c.delay_set_at %}&middot; set {{ c.delay_set_at|stamp }}{% endif %}
+            {% else %}On time{% endif %}
+          </div>
+        </div>
+        <div class="delay-input">
+          <input type="number" name="delay_minutes" min="0" max="600" step="5"
+                 value="{{ c.delay_minutes }}" aria-label="Minutes behind at {{ c.name }}">
+          <button class="btn small" type="submit">Set</button>
+        </div>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
     <h2>Add or update a slot</h2>
     <div class="card-body">
       <form method="post">

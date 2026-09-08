@@ -23,6 +23,7 @@ env.load()          # has to run before the modules below read os.environ
 import alerts as alerts_mod  # noqa: E402
 import core
 import db
+import qr
 import voice
 import weather
 from core import BookingError
@@ -248,6 +249,26 @@ def register_routes(app):
         _visits(bump=True)
         return render_template("home.html")
 
+    @app.route("/t/<token>")
+    def token_lookup(token):
+        """Where a scanned gate pass lands.
+
+        Whoever is holding the phone decides what they get: a signed in clerk
+        goes to the counter screen for that booking, the farmer it belongs to
+        goes to their own copy, and anyone else gets asked to sign in. Nothing
+        about the booking is shown before that.
+        """
+        b = query("SELECT id, farmer_id FROM bookings WHERE token_no = ?", (token,), one=True)
+        if b is None:
+            flash("No booking found for token %s." % token, "error")
+            return redirect(url_for("admin_login"))
+        if g.staff:
+            return redirect(url_for("admin_booking", booking_id=b["id"]))
+        if g.farmer and g.farmer["id"] == b["farmer_id"]:
+            return redirect(url_for("farmer_booking", booking_id=b["id"]))
+        flash("Sign in to open token %s." % token, "info")
+        return redirect(url_for("admin_login"))
+
     @app.route("/policy/<slug>")
     def policy(slug):
         if slug not in POLICIES:
@@ -435,7 +456,9 @@ def register_routes(app):
         risk = None
         if b["status"] == "booked":
             risk = weather.assess_risk(g.farmer["district"], b["date"], g.farmer["village"])
-        return render_template("farmer/booking.html", b=b, txn=txn, risk=risk)
+        return render_template("farmer/booking.html", b=b, txn=txn, risk=risk,
+                               queue=core.queue_position(booking_id),
+                               delay=core.centre_delay(b["centre_id"]))
 
     @app.route("/farmer/booking/<int:booking_id>/cancel", methods=["POST"])
     @farmer_required
@@ -468,8 +491,12 @@ def register_routes(app):
     @farmer_required
     def farmer_gatepass(booking_id):
         b = _owned_booking(booking_id)
+        # absolute, because the point is that it opens from the clerk's camera
+        # app on a different device to the one that rendered it
+        target = url_for("token_lookup", token=b["token_no"], _external=True)
         return render_template("farmer/gatepass.html", b=b, farmer=g.farmer,
-                               issued=datetime.now())
+                               issued=datetime.now(), qr_svg=qr.gatepass_svg(target),
+                               qr_target=target)
 
     @app.route("/farmer/alerts")
     @farmer_required
@@ -883,6 +910,25 @@ def register_routes(app):
                                sel_centre=str(centre_id), sel_date=on,
                                windows=["08:00 - 10:00", "10:00 - 12:00",
                                         "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00"])
+
+    @app.route("/admin/centre/<int:centre_id>/delay", methods=["POST"])
+    @staff_required
+    def admin_set_delay(centre_id):
+        """One number, set by hand when somebody notices. It is shown to
+        farmers with its own age attached, so a stale one can be judged."""
+        try:
+            mins = int(request.form.get("delay_minutes") or 0)
+        except ValueError:
+            flash("Enter the delay in whole minutes.", "error")
+            return redirect(request.referrer or url_for("admin_slots"))
+        mins = max(0, min(600, mins))
+        execute("UPDATE procurement_centres SET delay_minutes = ?, delay_set_at = ?"
+                " WHERE id = ?",
+                (mins, datetime.now().isoformat(timespec="seconds") if mins else None,
+                 centre_id))
+        flash("Running %d minutes behind." % mins if mins else "Marked as running on time.",
+              "success")
+        return redirect(request.referrer or url_for("admin_slots"))
 
     @app.route("/admin/storage-risk")
     @staff_required

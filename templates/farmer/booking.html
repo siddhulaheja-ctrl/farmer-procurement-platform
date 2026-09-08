@@ -25,6 +25,48 @@
 </div>
 {% endif %}
 
+{% if queue %}
+<div class="card queue-card">
+  <h2>{{ t("Your place in the queue") }}</h2>
+  <div class="card-body">
+    <div class="queue-line">
+      <div class="q-num">{{ queue.position }}<span class="of">/ {{ queue.total }}</span></div>
+      <div class="q-text">
+        <strong>{{ t("You are number") }} {{ queue.position }} {{ t("of") }} {{ queue.total }}
+          {{ t("booked in this time window") }}.</strong>
+        {% if queue.done_ahead %}
+          <div class="small muted">{{ queue.done_ahead }}
+            {{ t("of those ahead of you have already been weighed in") }}.</div>
+        {% elif queue.waiting_ahead %}
+          <div class="small muted">{{ queue.waiting_ahead }}
+            {{ t("ahead of you have not arrived yet") }}.</div>
+        {% else %}
+          <div class="small muted">{{ t("Nobody is ahead of you in this window") }}.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if delay %}
+    <div class="notice warning small" style="margin:10px 0 0">
+      <strong>{{ b.centre_name }} {{ t("is running about") }} {{ delay.minutes }}
+        {{ t("minutes behind") }}.</strong>
+      {% if delay.stale_mins is not none %}
+        <span class="muted">({{ t("centre last updated this") }}
+          {%- if delay.stale_mins < 1 %} {{ t("just now") }}
+          {%- elif delay.stale_mins < 60 %} {{ delay.stale_mins }} {{ t("minutes ago") }}
+          {%- else %} {{ (delay.stale_mins / 60)|round(0, 'floor')|int }} {{ t("hours ago") }}
+          {%- endif %})</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <p class="small muted" style="margin:10px 0 0">
+      {{ t("This is your position, not a promise about the clock. How long each farmer takes depends on the load being weighed and any quality check, so treat it as a guide.") }}
+    </p>
+  </div>
+</div>
+{% endif %}
+
 <div class="grid side">
   <div>
     <div class="card">
