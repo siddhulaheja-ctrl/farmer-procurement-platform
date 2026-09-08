@@ -11,13 +11,6 @@
   </div>
 </div>
 
-<div class="stat-row">
-  <div class="stat"><div class="n">{{ stats.centres }}</div><div class="l">{{ t("Procurement centre") }}s") }}</div></div>
-  <div class="stat"><div class="n">{{ stats.farmers }}</div><div class="l">{{ t("Registered farmers") }}</div></div>
-  <div class="stat"><div class="n">{{ stats.bookings }}</div><div class="l">{{ t("Slots booked") }}</div></div>
-  <div class="stat good"><div class="n">{{ stats.slots_open }}</div><div class="l">{{ t("Slots still open") }}</div></div>
-</div>
-
 <div class="login-split">
   <div class="card">
     <img class="card-photo" src="{{ url_for('static', filename='img/harvest.jpg') }}"
@@ -45,35 +38,10 @@
     <h2>{{ t("For centre staff") }}</h2>
     <div class="card-body">
       <p class="small muted">
-        Manage slot capacity, verify arriving produce, record quantity and quality grade, close
-        transactions, and clear flagged farmer records before they hold up a payment.
+        {{ t("Manage slot capacity, verify arriving produce, record quantity and quality grade, close transactions, and clear flagged farmer records before they hold up a payment.") }}
       </p>
       <div class="btn-row">
         <a class="btn" href="{{ url_for('admin_login') }}">{{ t("Staff sign in") }}</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <h2>What this portal does differently</h2>
-  <div class="card-body">
-    <div class="grid two">
-      <div>
-        <h3 style="font-size:14px;color:var(--navy);margin:0 0 4px">Detail mismatches are caught at registration</h3>
-        <p class="small muted" style="margin-top:0">
-          Aadhaar, bank account, IFSC and land-record details are checked the moment they are
-          entered. In existing systems the mismatch surfaces weeks later, when the payment fails.
-          Here the farmer and the centre both see it before the slot date.
-        </p>
-      </div>
-      <div>
-        <h3 style="font-size:14px;color:var(--navy);margin:0 0 4px">{{ t("Storage risk") }} is flagged before the grain spoils</h3>
-        <p class="small muted" style="margin-top:0">
-          If a slot is more than five days away and rain or high humidity is forecast for the
-          farmer's district, the portal warns them and offers an earlier slot &mdash; instead of
-          letting the produce sit and get downgraded at the gate.
-        </p>
       </div>
     </div>
   </div>

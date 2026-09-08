@@ -163,15 +163,7 @@ def register_routes(app):
 
     @app.route("/")
     def home():
-        stats = {
-            "centres": query("SELECT COUNT(*) c FROM procurement_centres", one=True)["c"],
-            "farmers": query("SELECT COUNT(*) c FROM farmers", one=True)["c"],
-            "bookings": query("SELECT COUNT(*) c FROM bookings", one=True)["c"],
-            "slots_open": query(
-                "SELECT COALESCE(SUM(max_capacity - booked_count),0) c FROM slots"
-                " WHERE date >= ?", (date.today().isoformat(),), one=True)["c"],
-        }
-        return render_template("home.html", stats=stats)
+        return render_template("home.html")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
