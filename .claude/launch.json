@@ -4,8 +4,11 @@
     {
       "name": "procurement-portal",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["app.py"],
-      "port": 5000
+      "runtimeArgs": [
+        "app.py"
+      ],
+      "port": 5000,
+      "autoPort": true
     }
   ]
 }

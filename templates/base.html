@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ t("Krishi Sutra") }}{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gov.css') }}">
+<script src="{{ url_for('static', filename='js/a11y.js') }}"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">{{ t("Skip to main content") }}</a>
@@ -12,7 +13,18 @@
 <div class="utility-strip">
   <div class="wrap">
     <span>{{ t("Government of India") }} &middot; {{ t("Department of Food & Public Distribution") }}</span>
-    <span>
+    <span class="util-right">
+      <span class="a11y" role="group" aria-label="{{ t("Display settings") }}">
+        <button type="button" data-fontstep="0" aria-pressed="false"
+                title="{{ t("Smaller text") }}">A<sup>&minus;</sup></button>
+        <button type="button" data-fontstep="1" aria-pressed="true"
+                title="{{ t("Normal text size") }}">A</button>
+        <button type="button" data-fontstep="3" aria-pressed="false"
+                title="{{ t("Larger text") }}">A<sup>+</sup></button>
+        <button type="button" id="contrast-toggle" aria-pressed="false"
+                title="{{ t("High contrast") }}">{{ t("Contrast") }}</button>
+      </span>
+      &middot;
       <span class="langswitch">
         <a href="{{ url_for('set_lang', code='en') }}" class="{{ 'on' if lang() == 'en' }}">English</a>
         <a href="{{ url_for('set_lang', code='hi') }}" class="{{ 'on' if lang() == 'hi' }}">हिन्दी</a>
@@ -78,7 +90,42 @@
 
 <footer class="site">
   <div class="wrap">
-    <span>Smart Farmer Procurement Platform &middot; Smart India Hackathon 2026 &middot; PS 26032</span>
+    <div class="foot-cols">
+      <div>
+        <h4>{{ t("Related links") }}</h4>
+        <ul>
+          <li><a href="https://dfpd.gov.in/" rel="noopener">Department of Food &amp; Public Distribution</a></li>
+          <li><a href="https://fci.gov.in/" rel="noopener">Food Corporation of India</a></li>
+          <li><a href="https://www.enam.gov.in/" rel="noopener">e-NAM</a></li>
+          <li><a href="https://agmarknet.gov.in/" rel="noopener">Agmarknet</a></li>
+          <li><a href="https://pmkisan.gov.in/" rel="noopener">PM-KISAN</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>{{ t("Policies") }}</h4>
+        <ul>
+          {% for slug, p in policies.items() %}
+          <li><a href="{{ url_for('policy', slug=slug) }}">{{ p[0] }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h4>{{ t("Contact") }}</h4>
+        <ul class="plain">
+          <li>{{ t("Kisan Call Centre (national)") }}<br><strong>1800-180-1551</strong></li>
+          <li>{{ t("District Supply Office") }}<br>{{ t("Rudrapur, Udham Singh Nagar") }}<br>{{ t("Uttarakhand 263153") }}</li>
+        </ul>
+      </div>
+      <div>
+        <h4>{{ t("About this portal") }}</h4>
+        <ul class="plain">
+          <li>Smart India Hackathon 2026<br>{{ t("Problem statement") }} 26032</li>
+          <li>{{ t("Last updated on") }} <strong>{{ last_updated.strftime('%d-%m-%Y') }}</strong></li>
+          <li>{{ t("Visitors") }} <strong class="counter">{{ '%08d'|format(visits) }}</strong></li>
+        </ul>
+      </div>
+    </div>
+
     <div class="photo-credit">
       Photographs from Wikimedia Commons &mdash; CIAT (CC BY-SA 2.0);
       Nanditha Gogate, WELL Labs (CC BY-SA 4.0);
@@ -86,8 +133,7 @@
       Full details in static/img/credits.json.
     </div>
     <div class="demo-note">
-      Prototype for demonstration only. Aadhaar, bank and land-record details are mock data and
-      are not verified against any live government database. Payment status is simulated.
+      {{ t("Prototype for demonstration only. Aadhaar, bank and land-record details are mock data and are not verified against any live government database. Payment status is simulated.") }}
     </div>
   </div>
 </footer>
