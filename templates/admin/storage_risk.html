@@ -18,7 +18,7 @@
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Risk</th><th>Farmer</th><th>District</th><th>Centre</th><th>Slot date</th>
+        <tr><th>Risk</th><th>Farmer</th><th>Village</th><th>Centre</th><th>Slot date</th>
             <th class="num">Days away</th><th>Crop</th><th class="num">Est. qty</th><th></th></tr>
       </thead>
       <tbody>
@@ -29,7 +29,8 @@
             <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
             <div class="small muted">{{ r.phone_number }}</div>
           </td>
-          <td class="nowrap">{{ r.farmer_district }}</td>
+          <td class="nowrap">{{ r.village }}
+            <div class="small muted">{{ r.farmer_district }}</div></td>
           <td class="small">{{ r.centre_name }}</td>
           <td class="nowrap">{{ r.date|nicedate }}</td>
           <td class="num">{{ r.date|daysaway }}</td>
@@ -56,13 +57,13 @@
 </div>
 
 <div class="notice info small">
-  Farmers who registered a real number are rung on it. Seeded demo farmers have fake
-  numbers, so those calls go to {{ call_to }}.
+  Every farmer here is rung on their own registered number.
 </div>
 
 <div class="notice info small">
-  Risk is assessed from the rainfall and humidity forecast for the farmer's district across the
-  days between today and their slot. Bookings less than five days out are not assessed &mdash;
-  the storage exposure is too short to matter.
+  Risk comes from the rainfall and humidity forecast between today and their slot date. We look
+  up the farmer's village, and fall back to the district headquarters when the weather service
+  has never heard of it &mdash; which is most villages. Bookings less than five days out are not
+  assessed, the produce is not sitting at home long enough to matter.
 </div>
 {% endblock %}

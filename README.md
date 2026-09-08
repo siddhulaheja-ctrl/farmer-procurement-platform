@@ -39,14 +39,24 @@ moves to 5001 by itself. If you run it manually use `PORT=5001 python app.py`.
 
 ## Logins
 
-OTP is always `123456`.
+Staff: `ADMIN` / `demo123`.
 
-| who | login |
+Farmers sign in with their own mobile number. Nothing is actually sent, so any
+six digits work as the OTP.
+
+The six seeded farmers are the six of us - our numbers come out of `.env`, which
+is not in the repo, so `python seed.py` will tell you which ones are missing
+rather than writing half a database. `seed.py` prints who is who, and between
+them they cover every state the app can be in:
+
+| farmer | case |
 |---|---|
-| farmer (clean record) | 9000000001 |
-| farmer (has data problems) | 9000000002 |
-| staff, all centres | ADMIN / demo123 |
-| staff, one centre | STAFF01 / demo123 |
+| 1 | clean record, slot in three days, gets the token reminder call |
+| 2 | slot nine days out, so the weather check has something to say |
+| 3 | bank account in a relative's name - a warning, payment still goes through |
+| 4 | bad Aadhaar and IFSC - blocking, so the payment is held |
+| 5 | registered at a CSC counter, arrived this morning, graded B |
+| 6 | some history: one paid, one cancelled, one upcoming |
 
 ## Sharing the demo
 
@@ -148,7 +158,7 @@ powershell, cmd and bash.
 
 ```
 OWM_API_KEY=your_openweathermap_key
-VOICE_DEMO_NUMBER=9876543210
+VOICE_DEMO_NUMBER=          # a real number, so keep it here and not in the code
 DEMO_FARMER_PHONE_1=  team phone, seeded as Chandra Bhushan Kumar
 DEMO_FARMER_PHONE_2=  team phone, seeded as Ravi Kumar
 ```
@@ -163,177 +173,27 @@ one value for a single run.
 
 ## Demo data
 
-The farmer table is currently **empty**. We cleared out the fifty random seeded
-farmers and are rebuilding with a small set of realistic Uttarakhand cases.
+`python seed.py` drops every table and rebuilds. Six farmers, all of us, with
+our own numbers pulled from `.env` - if one is missing it says so and writes
+nothing rather than leaving you half a database.
 
-`python seed.py` gives you the scaffolding only:
+Between them they cover every state the app can reach:
 
-- 5 procurement centres, all Uttarakhand (Rudrapur, Kichha, Haridwar,
-  Vikasnagar, Haldwani)
-- their slots, 3 days back and 14 days forward
-- one staff login, `ADMIN` / `demo123`
+| farmer | case |
+|---|---|
+| 1 | clean record, slot in three days, gets the token reminder call |
+| 2 | slot nine days out, so the storage risk check has something to say |
+| 3 | bank account in a relative's name - a warning, the payment still clears |
+| 4 | Aadhaar fails its checksum and the IFSC is malformed - payment held |
+| 5 | registered at a CSC counter, arrived this morning, graded B |
+| 6 | some history: one paid, one cancelled, one upcoming |
 
-Farmers are added through the portal, either self registration or
-**Register Farmer** on the staff side.
+That works out as 10 bookings covering all four booking states, all four
+payment states and all four quality grades, plus one farmer with warning flags
+and one with blocking ones. `seed.py` prints who is who when it finishes.
 
-The team phone numbers verified with Vonage are kept in `.env` so they are not
-lost while the table is empty:
-
-```
-DEMO_FARMER_PHONE_1=   Chandra Bhushan Kumar
-DEMO_FARMER_PHONE_2=   Ravi Kumar
-```
+Five centres, all Uttarakhand: Rudrapur, Kichha, Haridwar, Vikasnagar and
+Haldwani, with slots four days back and fourteen forward.
 
 `STORAGE_RISK_FORCE=1` makes every booking come back as high storage risk, for
 when the forecast is dry and we still need to show the alert.
-
-## Files
-
-| file | what it does |
-|---|---|
-| app.py | routes |
-| core.py | booking rules, capacity and the per farmer limits |
-| validation.py | aadhaar / bank / land checks |
-| weather.py | storage risk from the weather forecast |
-| alerts.py | writes to alerts_log |
-| db.py | sqlite helpers |
-| schema.sql | tables |
-| seed.py | fake data |
-| i18n.py | hindi strings for the farmer pages |
-
-## Phone calls
-
-We ring the farmer. There is a **Call farmer** button on each booking in the
-staff screens, and a **Call** button on the high risk rows of the Storage Risk
-page. What gets said depends on the booking - a storage risk warning, a held
-payment, or a plain slot reminder.
-
-Farmers who registered with a real number are rung on it, so anyone on the team
-who signs up gets their own call. The seeded demo farmers have made up numbers
-(the `9000000xxx` block), so those calls go to `VOICE_DEMO_NUMBER` instead.
-
-Note that Vonage trial accounts only call numbers verified in the dashboard, so
-add each teammate's number there first or the call fails.
-
-Testing straight from the command line, dials whatever you type:
-
-```bash
-python voice.py 9876543210 "Namaste, test call" hi
-```
-
-`voice.py` sends the whole spoken message inline with the Vonage request, so
-there is no webhook and no second server. The private key is read from
-`farmer-ivr/private.key` and is never committed. `VONAGE_NUMBER` is optional -
-without it Vonage picks its own caller id, which is why test calls arrive from
-a US number.
-
-Set `VOICE_DRY_RUN=1` to print what would be said instead of dialling. Do that
-before testing anything that isn't the call itself, or you will ring the phone
-by accident.
-
-### Voice tuning
-
-Vonage's talk action has a volume setting but no speed one, so the pacing comes
-from SSML we build in `to_ssml()`.
-
-| Variable | Default | What it does |
-|---|---|---|
-| `VOICE_LEVEL` | 1 | Volume, -1 to 1. 1 is the loudest Vonage allows |
-| `VOICE_LEAD_IN` | 2 | Seconds of silence before speaking, so the farmer can get the phone to their ear |
-| `VOICE_RATE` | slow | Overall speech rate |
-| `VOICE_TOKEN_RATE` | x-slow | Rate for the token number, which people write down |
-| `VOICE_PREMIUM` | off | Vonage's neural voice. Much less robotic, costs more per call |
-| `VOICE_STYLE` | unset | Which Hindi voice. 0, 1, 3, 4, 5, 6 exist; premium works on all but 0 |
-
-The token is spelled out digit by digit with a pause between the groups, and
-the slot reminder reads it twice.
-
-To pick a voice, ring yourself once and listen to all of them:
-
-```bash
-python voice.py --voices 9876543210
-```
-
-That reads the same line in every Hindi voice, announcing each style number
-first. Put the one you like in `.env` as `VOICE_STYLE`, with `VOICE_PREMIUM=1`.
-
-Real IVRs like the gas booking line mostly play **recorded human audio** for
-the fixed sentences and only use text to speech for the changing numbers.
-Vonage can do that too with the `stream` NCCO action pointing at an mp3, which
-is the route if premium still is not good enough.
-
-Farmers ringing *us* is parked until we have a number to publish. The half
-built menu is in `farmer-ivr/`.
-
-## Local settings
-
-Put keys and settings in a `.env` file in this folder, which is gitignored.
-Saves fighting with environment variable syntax, which is different in
-powershell, cmd and bash.
-
-```
-OWM_API_KEY=your_openweathermap_key
-VOICE_DEMO_NUMBER=9876543210
-DEMO_FARMER_PHONE_1=  team phone, seeded as Chandra Bhushan Kumar
-DEMO_FARMER_PHONE_2=  team phone, seeded as Ravi Kumar
-```
-
-The team phone numbers are real people's, so they stay out of git. Without them
-the seeder uses placeholders and those calls go to `VOICE_DEMO_NUMBER` instead.
-Whichever numbers you use have to be verified in the Vonage dashboard first,
-trial accounts refuse anything else.
-
-Anything already set in the real environment still wins, so you can override
-one value for a single run.
-
-## Demo data
-
-Most seeded farmers have a number in the `90000001xx` block. They are fake on
-purpose - Faker generates numbers that look real and could belong to an actual
-person, which is a bad idea in something that can place calls.
-
-`STORAGE_RISK_FORCE=1` makes every booking come back as high storage risk, for
-when the forecast is dry and we still need to show the alert.
-
-## Files
-
-| file | what it does |
-|---|---|
-| app.py | routes |
-| core.py | booking rules, capacity and the per farmer limits |
-| validation.py | aadhaar / bank / land checks |
-| weather.py | storage risk from the weather forecast |
-| alerts.py | writes to alerts_log |
-| db.py | sqlite helpers |
-| schema.sql | tables |
-| seed.py | fake data |
-| i18n.py | hindi strings for the farmer pages |
-
-## Phone calls
-
-We ring the farmer. Storage risk warnings, booking confirmations and payment
-updates are queued in `alerts_log` with channel `ivr`, and show up on the demo
-page with a "Call now" button.
-
-`voice.py` sends the whole spoken message inline with the Vonage request, so
-there is no webhook and no second server. Everything runs on localhost.
-
-Quick test, dials straight away:
-
-```bash
-python voice.py 9876543210 "Namaste, test call" hi
-```
-
-
-The private key is read from `farmer-ivr/private.key` and is never committed.
-`VONAGE_NUMBER` is optional - without it Vonage picks its own caller id, which
-is why test calls arrive from a US number.
-
-Farmers ringing *us* is parked until we have a number to publish. The half
-built menu is in `farmer-ivr/`.
-
-Aadhaar, bank and land details are all fake, nothing talks to a real
-government API. Payment status is just a field we update.
-
-Photos on the home page are from Wikimedia Commons and are CC BY-SA, credits
-are in the footer and in static/img/credits.json.

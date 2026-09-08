@@ -4,9 +4,11 @@ Vonage takes the whole message in the api request (inline ncco) so it never
 calls back to us. That means no webhook and no server anywhere, it all runs
 from here.
 
-Staff screens ring the farmer's own number if it is a real one. The seeded
-farmers have made up numbers so those go to DEMO_NUMBER instead. Running this
-file directly dials whatever you type.
+Staff screens ring the farmer's own number. Everyone in the seed data is one of
+us with a number registered in vonage, so the calls actually land. Anyone who
+registers through the site with a made up 900000 number gets redirected to
+DEMO_NUMBER so a stray click cannot dial a stranger. Running this file directly
+dials whatever you type.
 
     python voice.py 9876543210 "Namaste, test" hi
 
@@ -40,8 +42,9 @@ APP_ID = os.environ.get("VONAGE_APPLICATION_ID",
                         "fb926ccb-0da7-4d10-814f-9a3ae05428e3").strip()
 # vonage wants this filled in even though it swaps in its own number
 FROM_NUMBER = os.environ.get("VONAGE_NUMBER", "").strip() or "12345678901"
-# every call from the ui lands here for now
-DEMO_NUMBER = os.environ.get("VOICE_DEMO_NUMBER", "9876543210").strip()
+# fallback for anyone whose number we do not want to dial by accident.
+# no default on purpose - it is a real phone, so it lives in .env.
+DEMO_NUMBER = os.environ.get("VOICE_DEMO_NUMBER", "").strip()
 KEY_PATH = os.environ.get("VONAGE_PRIVATE_KEY_PATH",
                           os.path.join(HERE, "farmer-ivr", "private.key"))
 
@@ -124,14 +127,14 @@ def plain(message, token=None):
     return text.replace("{{token}}", "")
 
 
-# the seeded demo farmers all have numbers in this block, see seed.py
+# nobody real is in this block, so it is safe to treat as made up
 PLACEHOLDER_PREFIX = "900000"
 
 
 def target_for(phone):
-    """Who do we actually ring. Seeded farmers have made up numbers so those
-    go to the team phone, but anyone who registered with a real number gets
-    rung on it. Returns (number, was_redirected)."""
+    """Who do we actually ring. Real numbers get rung directly; the 900000
+    block is what people type when they are filling the form in to look at it,
+    and those go to the team phone instead. Returns (number, was_redirected)."""
     number = to_e164(phone)
     local = number[2:] if number.startswith("91") else number
     if not local or local.startswith(PLACEHOLDER_PREFIX):
@@ -170,6 +173,16 @@ def status():
             "from_number": FROM_NUMBER, "key_path": KEY_PATH}
 
 
+def _log(line):
+    """print() blows up on the hindi messages when stdout is a plain windows
+    console (cp1252). That came back as a 500 from the Call button, which is a
+    silly way to lose a demo, so drop to ascii instead of raising."""
+    try:
+        print(line)
+    except UnicodeEncodeError:
+        print(line.encode("ascii", "backslashreplace").decode("ascii"))
+
+
 def place_call(phone, message, lang="hi", token=None):
     """Ring the number and read out the message.
 
@@ -191,8 +204,8 @@ def place_call(phone, message, lang="hi", token=None):
 
     spoken = plain(message, token)
     if reason:
-        print("[voice] DRY RUN (%s) -> +%s / %s\n         %s"
-              % (reason, number, VOICE.get(lang, "hi-IN"), spoken))
+        _log("[voice] DRY RUN (%s) -> +%s / %s\n         %s"
+             % (reason, number, VOICE.get(lang, "hi-IN"), spoken))
         return True, "Dry run (%s). Would have said: %s" % (reason, spoken)
 
     try:

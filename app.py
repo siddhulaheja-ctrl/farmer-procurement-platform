@@ -352,7 +352,7 @@ def register_routes(app):
         txn = query("SELECT * FROM transactions WHERE booking_id = ?", (booking_id,), one=True)
         risk = None
         if b["status"] == "booked":
-            risk = weather.assess_risk(g.farmer["district"], b["date"])
+            risk = weather.assess_risk(g.farmer["district"], b["date"], g.farmer["village"])
         return render_template("farmer/booking.html", b=b, txn=txn, risk=risk)
 
     @app.route("/farmer/booking/<int:booking_id>/cancel", methods=["POST"])
@@ -550,15 +550,29 @@ def register_routes(app):
         if b is None:
             abort(404)
 
-        if b["storage_risk"] == "high":
+        # Order matters. Status comes first - a cancelled or finished booking
+        # must never be read out as "your slot is booked, please come", which
+        # is what happened while this only looked at risk and payment.
+        if b["status"] == "cancelled":
+            flash("That booking was cancelled, so there is nothing to tell them. "
+                  "Ring them from the farmer's page instead.", "error")
+            return redirect(request.referrer
+                            or url_for("admin_booking", booking_id=booking_id))
+
+        if b["payment_status"] == "failed":
+            message = ("नमस्ते %s जी। आपका भुगतान रुका हुआ है क्योंकि आपके दस्तावेज़ों में "
+                       "गड़बड़ी है। कृपया अपने खरीद केंद्र पर आधार कार्ड और बैंक पासबुक "
+                       "लेकर आएं। धन्यवाद।" % b["farmer_name"])
+        elif b["status"] == "completed":
+            message = ("नमस्ते %s जी। आपकी उपज की खरीद पूरी हो गई है। %d रुपये का भुगतान "
+                       "प्रक्रिया में है और दो से तीन दिन में आपके बैंक खाते में जमा हो "
+                       "जाएगा। धन्यवाद।"
+                       % (b["farmer_name"], int(b["total_amount"] or 0)))
+        elif b["storage_risk"] == "high":
             message = ("नमस्ते %s जी। कृषि सूत्र से सूचना। %s पर आपका स्लॉट %s को है और "
                        "आपके क्षेत्र में बारिश का अनुमान है। अपनी उपज को ढककर ऊंची जगह रखें, "
                        "या अपने केंद्र से पहले का स्लॉट मांगें। धन्यवाद।"
                        % (b["farmer_name"], b["centre_name"], voice.spoken_date(b["date"])))
-        elif b["payment_status"] == "failed":
-            message = ("नमस्ते %s जी। आपका भुगतान रुका हुआ है क्योंकि आपके दस्तावेज़ों में "
-                       "गड़बड़ी है। कृपया अपने खरीद केंद्र पर आधार कार्ड और बैंक पासबुक "
-                       "लेकर आएं। धन्यवाद।" % b["farmer_name"])
         else:
             message = ("नमस्ते %s जी। आपका खरीद स्लॉट %s को %s बजे, %s पर बुक है। "
                        "आपका टोकन नंबर {{token}} है। मैं इसे दोबारा बोलती हूं। "
