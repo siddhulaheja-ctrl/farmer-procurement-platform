@@ -16,7 +16,9 @@ HINDI = {
     "Procurement Slot Booking Portal": "खरीद स्लॉट बुकिंग पोर्टल",
     "Slot Booking & Procurement Management System": "स्लॉट बुकिंग एवं खरीद प्रबंधन प्रणाली",
     "Government of India": "भारत सरकार",
-    "Department of Food & Public Distribution": "खाद्य एवं सार्वजनिक वितरण विभाग",
+    "Ministry of Consumer Affairs, Food & Public Distribution":
+        "उपभोक्ता मामले, खाद्य एवं सार्वजनिक वितरण मंत्रालय",
+    "Department of Consumer Affairs": "उपभोक्ता मामले विभाग",
     "Farmer sign in": "किसान लॉगिन",
     "Centre staff": "केंद्र कर्मचारी",
     "Sign out": "साइन आउट",
@@ -38,6 +40,27 @@ HINDI = {
     "Problem statement": "समस्या विवरण",
     "Last updated on": "अंतिम अद्यतन",
     "Visitors": "आगंतुक",
+
+    # queue position on the booking page
+    "Your place in the queue": "कतार में आपका स्थान",
+    "You are number": "आप क्रमांक",
+    "of": "में से",
+    "booked in this time window": "इस समय स्लॉट में बुक हैं",
+    "of those ahead of you have already been weighed in":
+        "आपसे आगे वालों में से इतने की तौल हो चुकी है",
+    "ahead of you have not arrived yet": "आपसे आगे वाले अभी नहीं पहुंचे हैं",
+    "Nobody is ahead of you in this window": "इस स्लॉट में आपसे आगे कोई नहीं है",
+    "is running about": "लगभग",
+    "minutes behind": "मिनट पीछे चल रहा है",
+    "centre last updated this": "केंद्र ने यह अंतिम बार बताया",
+    "minutes ago": "मिनट पहले",
+    "just now": "अभी-अभी",
+    "hours ago": "घंटे पहले",
+    "This is your position, not a promise about the clock. How long each farmer takes "
+    "depends on the load being weighed and any quality check, so treat it as a guide.":
+        "यह आपका क्रम है, समय का वादा नहीं। हर किसान में कितना समय लगेगा यह तौली जा रही "
+        "उपज और गुणवत्ता जांच पर निर्भर करता है, इसलिए इसे अनुमान मानें।",
+    "For centre staff": "केंद्र कर्मचारी हेतु",
     "Prototype for demonstration only. Aadhaar, bank and land-record details are mock data "
     "and are not verified against any live government database. Payment status is simulated.":
         "केवल प्रदर्शन हेतु प्रारूप। आधार, बैंक और भूमि रिकॉर्ड विवरण नमूना डेटा हैं और किसी भी "

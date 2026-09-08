@@ -334,6 +334,36 @@ input[readonly] { background: #f1f4f1; color: var(--muted); }
 .fc-day.wet { background: var(--info-soft); border-color: var(--info-line); }
 .fc-day.wet .r { color: var(--leaf); }
 
+/* ------------------------------------------------------------ queue card */
+
+.queue-card { border-left: 3px solid var(--leaf); }
+.queue-line { display: flex; align-items: center; gap: 14px; }
+.q-num {
+    font-family: var(--serif); font-size: 2.2857rem; font-weight: 700;
+    color: var(--leaf); line-height: 1; flex: 0 0 auto;
+}
+.q-num .of { font-size: 1rem; color: var(--muted); font-weight: 400; margin-left: 2px; }
+.q-text { flex: 1 1 auto; }
+
+/* staff control for how far behind a centre is running */
+.delay-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 7px 0; border-top: 1px solid var(--border-soft); flex-wrap: wrap;
+}
+.delay-row:first-of-type { border-top: none; }
+.delay-input { display: flex; gap: 5px; align-items: center; }
+.delay-input input { width: 74px; }
+
+/* --------------------------------------------------------------------- qr */
+
+.qr-box { text-align: center; flex: 0 0 auto; }
+.qr-box svg.qr { width: 104px; height: 104px; display: block; margin: 0 auto 2px; }
+.qr-box svg.qr path { fill: var(--text); }
+.token-main {
+    display: flex; align-items: center; justify-content: center; gap: 22px;
+    flex-wrap: wrap;
+}
+
 /* ---------------------------------------------------------------- gatepass */
 
 .gatepass {
@@ -423,6 +453,7 @@ hr.rule { border: none; border-top: 1px solid var(--border-soft); margin: 11px 0
     .utility-strip, .navbar, footer.site, .no-print, .masthead { display: none !important; }
     body { background: #fff; }
     .gatepass { border-color: #000; }
+    .qr-box svg.qr path { fill: #000; }
     main.wrap { padding: 0; }
 }
 

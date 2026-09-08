@@ -137,6 +137,60 @@ def reschedule_booking(booking_id, new_slot_id, farmer_id=None):
     return b
 
 
+def queue_position(booking_id):
+    """Where this booking sits in its own slot window.
+
+    Deliberately not an ETA. An ETA needs somebody at the counter marking each
+    farmer served the moment it happens, and they are busy weighing grain and
+    arguing about moisture - the logging goes patchy and the estimate drifts.
+    A wrong ETA is worse than none, because the farmer who trusted it and went
+    for chai comes back to find he has been passed.
+
+    So this counts positions, which cannot drift, and reports how many ahead
+    have already been processed - which staff record anyway as part of taking
+    delivery, so it costs nobody an extra tap.
+
+    Returns None if the booking is not waiting for anything.
+    """
+    b = query("SELECT id, slot_id, status FROM bookings WHERE id = ?", (booking_id,), one=True)
+    if b is None or b["status"] not in ACTIVE_STATUSES:
+        return None
+
+    ph = ",".join("?" * len(ACTIVE_STATUSES))
+    rows = query("SELECT id, status FROM bookings WHERE slot_id = ? AND status IN (%s)"
+                 " ORDER BY id" % ph, (b["slot_id"],) + ACTIVE_STATUSES)
+    ids = [r["id"] for r in rows]
+    if booking_id not in ids:
+        return None
+    place = ids.index(booking_id)
+
+    return {
+        "position": place + 1,
+        "total": len(ids),
+        "done_ahead": sum(1 for r in rows[:place] if r["status"] == "arrived"),
+        "waiting_ahead": sum(1 for r in rows[:place] if r["status"] == "booked"),
+    }
+
+
+def centre_delay(centre_id):
+    """How far behind the centre says it is running, with how long ago they
+    said it. The staleness is shown too - a farmer should be able to see that
+    the number is four hours old and weigh it accordingly."""
+    row = query("SELECT delay_minutes, delay_set_at FROM procurement_centres WHERE id = ?",
+                (centre_id,), one=True)
+    if row is None or not row["delay_minutes"]:
+        return None
+    stale_mins = None
+    if row["delay_set_at"]:
+        try:
+            set_at = datetime.fromisoformat(row["delay_set_at"])
+            stale_mins = int((datetime.now() - set_at).total_seconds() // 60)
+        except ValueError:
+            pass
+    return {"minutes": row["delay_minutes"], "set_at": row["delay_set_at"],
+            "stale_mins": stale_mins}
+
+
 def compute_amount(crop_type, quantity, grade):
     rate = MSP.get(crop_type, 2000.0) * GRADE_FACTOR.get(grade, 1.0)
     return round(rate, 2), round(rate * float(quantity), 2)

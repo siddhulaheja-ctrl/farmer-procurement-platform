@@ -150,6 +150,36 @@ is the route if premium still is not good enough.
 Farmers ringing *us* is parked until we have a number to publish. The half
 built menu is in `farmer-ivr/`.
 
+## Queue position and the gate pass QR
+
+A farmer's booking page shows where they sit in their own time window - "you
+are 4 of 4 booked in this window, 2 of those ahead of you have already been
+weighed in".
+
+It is a position, not an ETA, and that is on purpose. An ETA needs somebody at
+the counter marking each farmer served the moment it happens, and they are busy
+weighing grain and arguing about moisture. The logging goes patchy, the
+estimate drifts, and a farmer who trusted "35 minutes" and went for chai comes
+back to find he has been passed. Positions cannot drift. The "already weighed
+in" count comes from the arrival staff record anyway when they take delivery,
+so it costs nobody an extra tap.
+
+Alongside it, staff can set how far behind a centre is running from the Slots
+screen. One number, maintained by a human, shown to farmers with its own age
+attached so a four hour old number can be judged for what it is. A stale "40
+minutes behind" is still roughly true; a stale per-farmer ETA is a lie with a
+decimal point.
+
+The gate pass carries a QR next to the token. It holds a URL, so it opens in
+whatever camera app the clerk already has - no scanner app to install at every
+gate. It is a lookup shortcut for staff, not the thing that identifies the
+farmer: the token number stays primary because it works on a feature phone, a
+printout, or a number written on a scrap of paper, and a QR does not.
+
+Note the QR encodes the address the page was served from. On localhost it
+encodes `localhost`, which a phone cannot open - scan it from the shared
+tunnel link instead.
+
 ## Local settings
 
 Put keys and settings in a `.env` file in this folder, which is gitignored.

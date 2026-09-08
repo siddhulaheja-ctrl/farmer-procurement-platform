@@ -44,7 +44,13 @@ CREATE TABLE procurement_centres (
     location            TEXT,
     district            TEXT NOT NULL,
     daily_capacity      INTEGER NOT NULL DEFAULT 200,
-    crop_types_accepted TEXT NOT NULL          -- comma separated
+    crop_types_accepted TEXT NOT NULL,         -- comma separated
+    -- How far behind the counter is running, in minutes, set by staff when
+    -- they notice. One number a human maintains beats a per-farmer estimate
+    -- nobody has time to keep accurate: a stale "40 minutes behind" is still
+    -- roughly true, a stale per-farmer ETA is a lie with a decimal point.
+    delay_minutes       INTEGER NOT NULL DEFAULT 0,
+    delay_set_at        TEXT
 );
 
 CREATE TABLE slots (
