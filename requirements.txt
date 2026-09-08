@@ -1,4 +1,9 @@
 Flask==3.1.3
-Faker==40.37.0
 requests==2.34.2
+
+# Outbound voice calls. Imported lazily in voice.py so the portal still runs
+# without it - you just get an error on the Call button instead of a call.
+vonage==4.8.2
+
+# Only needed if you serve it with gunicorn instead of the flask dev server
 gunicorn==26.2.0
