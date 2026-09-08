@@ -85,6 +85,7 @@ a:hover { color: var(--leaf); }
 .masthead { background: #fff; border-bottom: 2px solid var(--soil); }
 .masthead .wrap {
     display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    justify-content: center; text-align: center;
 }
 .emblem {
     width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%;
@@ -118,9 +119,13 @@ a:hover { color: var(--leaf); }
     font-size: 0.7857rem; padding: 0 6px; margin-left: 4px; font-weight: 700;
 }
 
-.wrap { max-width: 1180px; margin: 0 auto; width: 100%; }
+/* 1180 left a lot of empty carpet either side on a normal desktop. The
+   tables are the widest thing here and they would rather have the room.
+   Prose is capped separately by .prose so the policy pages do not end up
+   as one very long line. */
+.wrap { max-width: 1760px; margin: 0 auto; width: 100%; }
 
-main.wrap { padding: 14px 16px 20px; }
+main.wrap { padding: 12px 20px 20px; }
 
 /* --------------------------------------------------------------- headings */
 
@@ -448,119 +453,6 @@ hr.rule { border: none; border-top: 1px solid var(--border-soft); margin: 11px 0
 .a11y button[aria-pressed="true"] {
     background: #fff; color: var(--leaf-dark); font-weight: 700;
     border-color: #fff;
-}
-
-/* High contrast.
-
-   The first attempt drained the colour out of the page but left the header and
-   nav green, so half the site went stark and half did not, and the hero turned
-   into a black slab where the photo had been. It looked broken rather than
-   deliberate.
-
-   This is the scheme the .gov.in sites actually use, and the reason they all
-   use it: white on black is 21:1, yellow on black is 19.6:1, and because every
-   surface goes black together it reads as a mode rather than a fault. Yellow
-   is reserved for links and focus, so the one thing you most need to find is
-   the one thing that is a different colour. */
-:root[data-contrast="high"] {
-    --leaf:        #000000;
-    --leaf-dark:   #000000;
-    --leaf-mid:    #000000;
-    --leaf-pale:   #000000;
-    --soil:        #ffffff;
-    --saffron:     #ffe000;
-    --bg:          #000000;
-    --card:        #000000;
-    --border:      #ffffff;
-    --border-soft: #ffffff;
-    --text:        #ffffff;
-    --muted:       #ffffff;
-    --green:       #4ee08a;
-    --red:         #ff8f8f;
-    --amber:       #ffe000;
-    --green-soft:  #000000;
-    --red-soft:    #000000;
-    --amber-soft:  #000000;
-    --info-soft:   #000000;
-    --info-line:   #ffffff;
-    --info-text:   #ffffff;
-}
-:root[data-contrast="high"] body { background: #000; color: #fff; }
-:root[data-contrast="high"] a { color: #ffe000; text-decoration: underline; }
-:root[data-contrast="high"] a:hover { color: #fff; }
-
-/* photographs cannot be made high contrast, so they go */
-:root[data-contrast="high"] .hero img,
-:root[data-contrast="high"] .card-photo { display: none; }
-:root[data-contrast="high"] .hero { border-color: #fff; }
-:root[data-contrast="high"] .hero .hero-text { position: static; background: none; }
-
-:root[data-contrast="high"] .utility-strip,
-:root[data-contrast="high"] .masthead,
-:root[data-contrast="high"] .navbar,
-:root[data-contrast="high"] footer.site,
-:root[data-contrast="high"] .filter-bar,
-:root[data-contrast="high"] .gatepass .gp-head { background: #000; color: #fff; }
-:root[data-contrast="high"] .utility-strip { border-bottom: 1px solid #fff; }
-:root[data-contrast="high"] .masthead { border-bottom: 2px solid #fff; }
-:root[data-contrast="high"] .navbar { border-bottom: 1px solid #fff; }
-:root[data-contrast="high"] .navbar a { color: #ffe000; }
-:root[data-contrast="high"] .navbar a.active,
-:root[data-contrast="high"] .navbar a:hover { background: #ffe000; color: #000; }
-:root[data-contrast="high"] .emblem { background: #000; color: #fff; border-color: #fff; }
-:root[data-contrast="high"] .masthead h1,
-:root[data-contrast="high"] .page-title,
-:root[data-contrast="high"] .card > h2,
-:root[data-contrast="high"] .card > .card-head,
-:root[data-contrast="high"] .foot-cols h4,
-:root[data-contrast="high"] .notice h3,
-:root[data-contrast="high"] form label { color: #fff; }
-:root[data-contrast="high"] .card > h2,
-:root[data-contrast="high"] .card > .card-head { border-bottom: 1px solid #fff; }
-
-/* yellow fill, black text - the same pair as the links, the other way round */
-:root[data-contrast="high"] .btn {
-    background: #ffe000; border-color: #ffe000; color: #000; text-decoration: none;
-}
-:root[data-contrast="high"] .btn:hover { background: #fff; border-color: #fff; color: #000; }
-:root[data-contrast="high"] .btn.secondary { background: #000; color: #ffe000; border-color: #ffe000; }
-:root[data-contrast="high"] .btn[disabled],
-:root[data-contrast="high"] .btn.disabled { background: #000; color: #999; border-color: #999; }
-
-:root[data-contrast="high"] input, :root[data-contrast="high"] select,
-:root[data-contrast="high"] textarea { background: #000; color: #fff; border-color: #fff; }
-:root[data-contrast="high"] input[readonly] { background: #222; color: #ccc; }
-:root[data-contrast="high"] input:focus, :root[data-contrast="high"] select:focus,
-:root[data-contrast="high"] textarea:focus { outline: 3px solid #ffe000; }
-
-:root[data-contrast="high"] table.data,
-:root[data-contrast="high"] table.data th { background: #000; color: #fff; }
-:root[data-contrast="high"] table.data tbody tr:hover { background: #333; }
-:root[data-contrast="high"] table.data td { border-bottom-color: #fff; }
-
-/* status still has to be readable at a glance, so the badges keep a hue -
-   but it is never the only signal, the word is written in the badge too */
-:root[data-contrast="high"] .badge { border-width: 2px; background: #000; }
-:root[data-contrast="high"] .badge.grey  { color: #fff; border-color: #fff; }
-:root[data-contrast="high"] .badge.blue  { color: #9ad4ff; border-color: #9ad4ff; }
-:root[data-contrast="high"] .badge.green { color: #4ee08a; border-color: #4ee08a; }
-:root[data-contrast="high"] .badge.amber { color: #ffe000; border-color: #ffe000; }
-:root[data-contrast="high"] .badge.red   { color: #ff8f8f; border-color: #ff8f8f; }
-:root[data-contrast="high"] .notice { background: #000; color: #fff; }
-:root[data-contrast="high"] .notice.info    { border-color: #9ad4ff; }
-:root[data-contrast="high"] .notice.success { border-color: #4ee08a; }
-:root[data-contrast="high"] .notice.warning { border-color: #ffe000; }
-:root[data-contrast="high"] .notice.error   { border-color: #ff8f8f; }
-
-:root[data-contrast="high"] .counter { background: #000; border-color: #fff; color: #fff !important; }
-:root[data-contrast="high"] .capbar { background: #333; }
-:root[data-contrast="high"] .stat, :root[data-contrast="high"] .slot,
-:root[data-contrast="high"] .fc-day { background: #000; }
-:root[data-contrast="high"] .slot.full { background: #222; }
-:root[data-contrast="high"] .langswitch a { opacity: 1; }
-:root[data-contrast="high"] .a11y button:hover { background: #ffe000; color: #000; }
-:root[data-contrast="high"] .a11y button[aria-pressed="true"] {
-    background: #ffe000; color: #000; border-color: #ffe000;
 }
 
 /* language switch in the top strip */

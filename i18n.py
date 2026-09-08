@@ -25,8 +25,6 @@ HINDI = {
     "Smaller text": "छोटा अक्षर",
     "Normal text size": "सामान्य अक्षर आकार",
     "Larger text": "बड़ा अक्षर",
-    "High contrast": "उच्च कंट्रास्ट",
-    "Contrast": "कंट्रास्ट",
 
     # footer
     "Related links": "संबंधित लिंक",
