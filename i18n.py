@@ -21,6 +21,29 @@ HINDI = {
     "Centre staff": "केंद्र कर्मचारी",
     "Sign out": "साइन आउट",
     "Skip to main content": "मुख्य सामग्री पर जाएं",
+    "Display settings": "प्रदर्शन सेटिंग्स",
+    "Smaller text": "छोटा अक्षर",
+    "Normal text size": "सामान्य अक्षर आकार",
+    "Larger text": "बड़ा अक्षर",
+    "High contrast": "उच्च कंट्रास्ट",
+    "Contrast": "कंट्रास्ट",
+
+    # footer
+    "Related links": "संबंधित लिंक",
+    "Policies": "नीतियां",
+    "Contact": "संपर्क",
+    "About this portal": "इस पोर्टल के बारे में",
+    "Kisan Call Centre (national)": "किसान कॉल सेंटर (राष्ट्रीय)",
+    "District Supply Office": "जिला आपूर्ति कार्यालय",
+    "Rudrapur, Udham Singh Nagar": "रुद्रपुर, उधम सिंह नगर",
+    "Uttarakhand 263153": "उत्तराखंड 263153",
+    "Problem statement": "समस्या विवरण",
+    "Last updated on": "अंतिम अद्यतन",
+    "Visitors": "आगंतुक",
+    "Prototype for demonstration only. Aadhaar, bank and land-record details are mock data "
+    "and are not verified against any live government database. Payment status is simulated.":
+        "केवल प्रदर्शन हेतु प्रारूप। आधार, बैंक और भूमि रिकॉर्ड विवरण नमूना डेटा हैं और किसी भी "
+        "सरकारी डेटाबेस से सत्यापित नहीं हैं। भुगतान की स्थिति अनुकरणीय है।",
     "Home": "होम",
     "Register": "पंजीकरण",
     "Farmer Sign In": "किसान लॉगिन",

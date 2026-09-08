@@ -33,6 +33,75 @@ from validation import unresolved_flags, validate_and_flag
 # hardcoded otp, shown on the login page
 DEMO_OTP = "123456"
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _last_updated():
+    """Newest mtime across the code and templates. Government footers carry a
+    "last updated" date and it is always stale because somebody has to remember
+    to change it - deriving it means ours cannot be wrong."""
+    newest = 0
+    for root, dirs, files in os.walk(HERE):
+        dirs[:] = [d for d in dirs if d not in
+                   (".git", "__pycache__", "farmer-ivr", "venv", ".venv")]
+        for f in files:
+            if f.endswith((".py", ".html", ".css", ".js", ".sql")):
+                try:
+                    newest = max(newest, os.path.getmtime(os.path.join(root, f)))
+                except OSError:
+                    pass
+    return date.fromtimestamp(newest) if newest else date.today()
+
+
+LAST_UPDATED = _last_updated()
+
+# Footer links. Real portals carry these and every one of them resolves, so
+# ours do too rather than being decorative dead anchors.
+POLICIES = {
+    "terms": ("Terms of use", [
+        "This is a prototype built for Smart India Hackathon 2026 against problem "
+        "statement 26032. It is not a live government service and no part of it is "
+        "connected to a real procurement system.",
+        "Nothing entered here creates any entitlement, booking or payment obligation. "
+        "Do not use real Aadhaar numbers, bank details or land record identifiers.",
+    ]),
+    "privacy": ("Privacy policy", [
+        "The portal stores what you type into the registration form - your name, mobile "
+        "number, village, district, and the identity and bank fields used by the "
+        "validation checks. It is all held in a single SQLite file on the machine "
+        "running the demo.",
+        "Nothing is shared with a third party. The only outbound requests the portal "
+        "makes are to OpenWeatherMap for the forecast in your district, which sends a "
+        "place name and no personal data, and to Vonage when staff place a voice call, "
+        "which sends the number being dialled and the words to be read out.",
+        "There is no analytics, no advertising and no tracking cookie. The one cookie "
+        "is the session that keeps you signed in.",
+    ]),
+    "copyright": ("Copyright policy", [
+        "The source code is published at github.com/siddhulaheja-ctrl/farmer-procurement-platform.",
+        "Photographs are from Wikimedia Commons and remain under their own CC BY-SA "
+        "licences, credited in the page footer and in static/img/credits.json.",
+        "The Minimum Support Price figures quoted are indicative published rates for "
+        "RMS 2025-26 and are reproduced for demonstration only.",
+    ]),
+    "hyperlinking": ("Hyperlinking policy", [
+        "Links to external sites are provided for convenience. We do not control their "
+        "content and a link does not imply endorsement.",
+        "You may link to any page on this portal without asking. We do not permit our "
+        "pages to be loaded inside a frame on another site.",
+    ]),
+    "accessibility": ("Accessibility statement", [
+        "The portal aims to meet WCAG 2.1 level AA. Text size and a high contrast mode "
+        "can be set from the controls at the top of every page, and both are remembered "
+        "in your browser.",
+        "Every page can be reached with the keyboard alone, there is a skip link to the "
+        "main content, form fields carry labels, and colour is never the only way "
+        "something is communicated - status is always written out as well.",
+        "This has not been through a formal audit. If you find something unusable, that "
+        "is a defect and we want to hear about it.",
+    ]),
+}
+
 
 # App factory
 
@@ -155,15 +224,36 @@ def register_routes(app):
         g.today = date.today()
 
     @app.context_processor
-    def _call_target():
-        # so the staff templates can show where calls actually go
-        return {"call_to": voice.DEMO_NUMBER}
+    def _footer_context():
+        # so the staff templates can show where calls actually go, and every
+        # page gets the footer's last-updated and visit count
+        return {"call_to": voice.DEMO_NUMBER, "last_updated": LAST_UPDATED,
+                "visits": _visits(), "policies": POLICIES}
+
+    def _visits(bump=False):
+        """Reads, and optionally bumps, the footer counter. Wrapped because a
+        database made before this table existed should not 500 the whole site."""
+        try:
+            if bump:
+                execute("UPDATE site_counters SET value = value + 1 WHERE name = 'visits'")
+            row = query("SELECT value FROM site_counters WHERE name = 'visits'", one=True)
+            return row["value"] if row else 0
+        except Exception:
+            return 0
 
     # public
 
     @app.route("/")
     def home():
+        _visits(bump=True)
         return render_template("home.html")
+
+    @app.route("/policy/<slug>")
+    def policy(slug):
+        if slug not in POLICIES:
+            abort(404)
+        title, paragraphs = POLICIES[slug]
+        return render_template("policy.html", title=title, paragraphs=paragraphs)
 
     @app.route("/login", methods=["GET", "POST"])
     def login():

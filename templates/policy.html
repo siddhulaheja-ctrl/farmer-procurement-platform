@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - {{ t("Krishi Sutra") }}{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="{{ url_for('home') }}">{{ t("Home") }}</a> &rsaquo; {{ title }}</div>
+
+<h2 class="page-title">{{ title }}</h2>
+<p class="page-sub">{{ t("Last updated on") }} {{ last_updated.strftime('%d-%m-%Y') }}</p>
+
+<div class="card">
+  <div class="card-body prose">
+    {% for para in paragraphs %}<p>{{ para }}</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

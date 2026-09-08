@@ -3,6 +3,7 @@
 -- inspected with any sqlite browser during the presentation.
 -- TODO: migrate to PostgreSQL for production (see spec section 2).
 
+DROP TABLE IF EXISTS site_counters;
 DROP TABLE IF EXISTS alerts_log;
 DROP TABLE IF EXISTS data_validation_flags;
 DROP TABLE IF EXISTS transactions;
@@ -110,3 +111,12 @@ CREATE TABLE alerts_log (
     FOREIGN KEY (farmer_id) REFERENCES farmers(id)
 );
 CREATE INDEX idx_alerts_farmer ON alerts_log(farmer_id);
+
+-- Footer visitor count. A real number rather than a decorative one - gov
+-- portals have carried these since the nineties and it is the kind of detail
+-- people notice. One row, bumped on each home page view.
+CREATE TABLE site_counters (
+    name  TEXT    PRIMARY KEY,
+    value INTEGER NOT NULL DEFAULT 0
+);
+INSERT INTO site_counters (name, value) VALUES ('visits', 0);
