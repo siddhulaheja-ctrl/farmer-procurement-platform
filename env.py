@@ -28,6 +28,12 @@ def load():
                 continue
             key, _, value = line.partition("=")
             key = key.strip()
-            value = value.strip().strip('"').strip("'")
+            value = value.strip()
+            # trailing comment, e.g. FOO=bar   # a note. only when there is a
+            # space before the hash, so a value can still contain one
+            hashed = value.find(" #")
+            if hashed != -1:
+                value = value[:hashed].strip()
+            value = value.strip('"').strip("'")
             if key and key not in os.environ:
                 os.environ[key] = value
