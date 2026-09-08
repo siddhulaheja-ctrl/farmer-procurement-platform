@@ -52,7 +52,7 @@
           <td class="nowrap">
             <form method="post" action="{{ url_for('admin_payment', txn_id=r.id) }}"
                   style="display:flex;gap:4px">
-              <select name="payment_status" style="width:auto;font-size:12px;padding:2px 4px">
+              <select name="payment_status" style="width:auto;font-size:0.857rem;padding:2px 4px">
                 {% for s in ['pending','processing','completed','failed'] %}
                   <option value="{{ s }}" {{ 'selected' if r.payment_status == s }}>{{ s|title }}</option>
                 {% endfor %}
