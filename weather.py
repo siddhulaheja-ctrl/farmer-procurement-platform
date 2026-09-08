@@ -17,9 +17,9 @@ import env
 
 env.load()
 
-# TODO: handle the case where the api key is missing
 OWM_API_KEY = os.environ.get("OWM_API_KEY", "").strip()
 OWM_URL = "https://api.openweathermap.org/data/2.5/forecast"
+OWM_GEO_URL = "https://api.openweathermap.org/geo/1.0/direct"
 
 # Slots further out than this trigger a storage-risk evaluation.
 LEAD_DAYS_THRESHOLD = int(os.environ.get("STORAGE_RISK_LEAD_DAYS", "5"))
@@ -32,14 +32,65 @@ HUMIDITY_HIGH = 80        # average relative humidity %
 # need to show the alert. STORAGE_RISK_FORCE=1
 DEMO_FORCE_RISK = {"on": os.environ.get("STORAGE_RISK_FORCE", "").strip() in ("1", "true", "yes")}
 
-# Districts the mock forecast treats as being in a wet spell, and the full set
-# of districts the mock knows about. Only used when no live API key is set.
-MOCK_KNOWN_DISTRICTS = {"Karnal", "Kurukshetra", "Sirsa", "Ludhiana", "Patiala",
-                        "Sangrur", "Hoshangabad", "Vidisha",
-                        "Udham Singh Nagar", "Haridwar"}
-# udham singh nagar is in here so chandra's booking trips the warning and we
-# have something to demo the storage risk call with
-MOCK_WET_DISTRICTS = {"Karnal", "Sangrur", "Hoshangabad", "Udham Singh Nagar"}
+# --- working out where the farmer actually is -------------------------------
+# We used to ask openweathermap for the district by name. It does not know
+# districts - "Udham Singh Nagar" comes back "city not found" - and it does not
+# know most villages either, so every lookup quietly fell through to the mock
+# forecast and nobody noticed. Real addresses are villages, so this is not an
+# edge case, it is the normal case.
+#
+# So we resolve to coordinates first and ask by lat/lon, which always answers:
+#   1. geocode the village. Works for the larger ones (Dineshpur, Bhagwanpur).
+#   2. otherwise the district headquarters, from the table below.
+#   3. otherwise the mock forecast.
+# Step 2 is hard coded so it cannot fail. A farmer from a village nobody has
+# heard of still gets a real forecast, just from the nearest town instead.
+# Rain fronts are regional so a reading 30km away is still worth having, and
+# we tell the farmer which town it came from rather than pretending otherwise.
+#
+# TODO: the proper answer is IMD's Gramin Krishi Mausam Sewa, which publishes
+# block level agro-advisories. That is the resolution this feature really
+# wants. OWM is what we can get at without a govt data agreement.
+DISTRICT_POINTS = {
+    "Udham Singh Nagar": (28.975, 79.396, "Rudrapur"),
+    "Haridwar":          (29.967, 78.167, "Haridwar"),
+    "Dehradun":          (30.326, 78.044, "Dehradun"),
+    "Nainital":          (29.217, 79.517, "Haldwani"),
+}
+
+_geo_cache = {}
+
+
+def resolve_point(district, village=None):
+    """Where do we ask for the forecast. Returns dict with lat/lon, the name of
+    the place we ended up using, and how precise that is."""
+    if village:
+        key = "%s|%s" % (village, district)
+        if key not in _geo_cache:
+            _geo_cache[key] = _geocode("%s,Uttarakhand,IN" % village)
+        hit = _geo_cache[key]
+        if hit:
+            return {"lat": hit[0], "lon": hit[1], "place": village, "precision": "village"}
+
+    point = DISTRICT_POINTS.get(district)
+    if point:
+        return {"lat": point[0], "lon": point[1], "place": point[2], "precision": "district"}
+    return None
+
+
+def _geocode(q):
+    """village name -> (lat, lon), or None if openweathermap has never heard
+    of it, which is most of the time."""
+    if not OWM_API_KEY:
+        return None
+    try:
+        import requests
+        r = requests.get(OWM_GEO_URL, params={"q": q, "limit": 1, "appid": OWM_API_KEY},
+                         timeout=6)
+        hits = r.json() if r.status_code == 200 else []
+        return (hits[0]["lat"], hits[0]["lon"]) if hits else None
+    except Exception:
+        return None
 
 
 def _mock_forecast(district: str, days: int):
@@ -62,20 +113,22 @@ def _mock_forecast(district: str, days: int):
     return out
 
 
-def _live_forecast(district: str, days: int):
-    """Query OpenWeatherMap. Returns None on any failure so callers fall back."""
-    if not OWM_API_KEY:
+def _live_forecast(point, days):
+    """Query OpenWeatherMap by coordinate. Returns None on any failure so
+    callers fall back to the mock."""
+    if not OWM_API_KEY or not point:
         return None
     try:
         import requests
         r = requests.get(OWM_URL, params={
-            "q": "%s,IN" % district, "appid": OWM_API_KEY, "units": "metric",
+            "lat": point["lat"], "lon": point["lon"],
+            "appid": OWM_API_KEY, "units": "metric",
         }, timeout=6)
         if r.status_code != 200:
             # we used to fall back to the fake forecast without saying anything,
             # so you could never tell whether the live data was actually working
             print("[weather] %s -> HTTP %s from openweathermap, using mock. %s"
-                  % (district, r.status_code, r.text[:120]))
+                  % (point["place"], r.status_code, r.text[:120]))
             return None
         buckets = {}
         for entry in r.json().get("list", []):
@@ -95,45 +148,52 @@ def _live_forecast(district: str, days: int):
             })
         return out or None
     except Exception as e:
-        print("[weather] %s -> %s, using mock" % (district, e))
+        print("[weather] %s -> %s, using mock" % (point["place"], e))
         return None
 
 
-def get_forecast(district: str, days: int = 5):
-    """Returns (forecast_list, source) where source is 'live' or 'mock'."""
-    live = _live_forecast(district, days)
+def get_forecast(district, days=5, village=None):
+    """Returns (forecast_list, source, place) where source is live or mock and
+    place is the town the reading actually came from."""
+    point = resolve_point(district, village)
+    live = _live_forecast(point, days)
     if live:
-        return live, "live"
-    return _mock_forecast(district, days), "mock"
+        return live, "live", point
+    return _mock_forecast(district, days), "mock", point
 
 
-def assess_risk(district: str, slot_date_str: str):
+def assess_risk(district, slot_date_str, village=None):
     """Evaluate spoilage risk for grain stored until `slot_date_str`.
 
-    Returns dict: level (none|low|high), lead_days, reason, forecast, source.
+    Returns dict: level (none|low|high), lead_days, reason, forecast, source,
+    place (the town the forecast came from) and nearby (True when we had to
+    fall back from the village to the district town).
     """
     try:
         slot_date = datetime.strptime(slot_date_str, "%Y-%m-%d").date()
     except (TypeError, ValueError):
         return {"level": "none", "lead_days": 0, "reason": "Invalid slot date.",
-                "forecast": [], "source": "mock"}
+                "forecast": [], "source": "mock", "place": district, "nearby": False}
 
     lead_days = (slot_date - date.today()).days
     window = max(1, min(lead_days, 5))       # OWM free tier gives 5 days
-    forecast, source = get_forecast(district, window)
+    forecast, source, point = get_forecast(district, window, village)
+
+    place = point["place"] if point else district
+    # say so when the reading is from the district town rather than their own
+    # village, otherwise "no rain expected" reads like a promise about their field
+    nearby = bool(point and village and point["precision"] == "district")
+    where = "%s (nearest station to %s)" % (place, village) if nearby else place
+    meta = {"source": source, "place": place, "nearby": nearby}
 
     if DEMO_FORCE_RISK["on"]:
-        return {
-            "level": "high", "lead_days": lead_days, "source": source, "forecast": forecast,
-            "reason": "Demo override active: heavy rain and high humidity forecast for %s "
-                      "during the %d-day wait before your slot." % (district, lead_days),
-        }
+        return dict(meta, level="high", lead_days=lead_days, forecast=forecast,
+                    reason="Demo override active: heavy rain and high humidity forecast for %s "
+                           "during the %d-day wait before your slot." % (where, lead_days))
 
     if lead_days < LEAD_DAYS_THRESHOLD:
-        return {
-            "level": "none", "lead_days": lead_days, "source": source, "forecast": forecast,
-            "reason": "Slot is only %d day(s) away - storage exposure is minimal." % lead_days,
-        }
+        return dict(meta, level="none", lead_days=lead_days, forecast=forecast,
+                    reason="Slot is only %d day(s) away - storage exposure is minimal." % lead_days)
 
     total_rain = sum(d["rain_mm"] for d in forecast)
     avg_hum = sum(d["humidity"] for d in forecast) / len(forecast)
@@ -142,27 +202,27 @@ def assess_risk(district: str, slot_date_str: str):
     if total_rain >= RAIN_MM_HIGH or avg_hum >= HUMIDITY_HIGH:
         level = "high"
         reason = ("%.1f mm rain expected across %d of the next %d days and average humidity "
-                  "of %d%% in %s. Grain stored for %d days is at high risk of moisture damage "
+                  "of %d%% at %s. Grain stored for %d days is at high risk of moisture damage "
                   "and quality downgrade at the gate."
-                  % (total_rain, rainy_days, len(forecast), avg_hum, district, lead_days))
+                  % (total_rain, rainy_days, len(forecast), avg_hum, where, lead_days))
     elif rainy_days >= 1 or avg_hum >= 65:
         level = "low"
-        reason = ("Light rain possible on %d of the next %d days in %s (avg humidity %d%%). "
+        reason = ("Light rain possible on %d of the next %d days at %s (avg humidity %d%%). "
                   "Keep produce covered and on raised platforms."
-                  % (rainy_days, len(forecast), district, avg_hum))
+                  % (rainy_days, len(forecast), where, avg_hum))
     else:
         level = "none"
         reason = ("Dry weather forecast for %s (avg humidity %d%%). No storage risk identified."
-                  % (district, avg_hum))
+                  % (where, avg_hum))
 
-    return {"level": level, "lead_days": lead_days, "reason": reason,
-            "forecast": forecast, "source": source}
+    return dict(meta, level=level, lead_days=lead_days, reason=reason, forecast=forecast)
 
 
 def evaluate_booking(booking_id: int):
     """Assess one booking, persist the risk level, and alert the farmer if high."""
     row = query(
-        "SELECT b.id, b.farmer_id, b.storage_risk, s.date AS slot_date, f.district, f.name,"
+        "SELECT b.id, b.farmer_id, b.storage_risk, s.date AS slot_date, f.district,"
+        "       f.village, f.name,"
         "       c.name AS centre_name"
         "  FROM bookings b"
         "  JOIN slots s ON s.id = b.slot_id"
@@ -172,7 +232,7 @@ def evaluate_booking(booking_id: int):
     if row is None:
         return None
 
-    result = assess_risk(row["district"], row["slot_date"])
+    result = assess_risk(row["district"], row["slot_date"], row["village"])
     execute("UPDATE bookings SET storage_risk = ? WHERE id = ?", (result["level"], booking_id))
 
     if result["level"] == "high" and row["storage_risk"] != "high":

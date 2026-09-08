@@ -126,8 +126,8 @@
           <button class="btn block" type="submit">Call farmer about this booking</button>
         </form>
         <div class="hint">
-          Rings the farmer's own number if they registered a real one. The seeded demo
-          farmers have fake numbers, so those go to {{ call_to }} instead.
+          Rings {{ b.farmer_name }} on {{ b.phone_number }}. What it says depends on where the
+          booking has got to &mdash; a held payment, a rain warning, or the slot and token.
         </div>
         <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">
           Open full record
