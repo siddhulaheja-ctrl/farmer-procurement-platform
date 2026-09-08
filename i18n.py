@@ -45,6 +45,10 @@ HINDI = {
     "Slots still open": "उपलब्ध स्लॉट",
     "For farmers": "किसानों के लिए",
     "For centre staff": "केंद्र कर्मचारियों के लिए",
+    "Manage slot capacity, verify arriving produce, record quantity and quality grade, "
+    "close transactions, and clear flagged farmer records before they hold up a payment.":
+        "स्लॉट क्षमता प्रबंधित करें, आने वाली उपज की जांच करें, मात्रा और गुणवत्ता ग्रेड "
+        "दर्ज करें, लेनदेन पूरा करें, और भुगतान रुकने से पहले चिह्नित किसान रिकॉर्ड ठीक करें।",
     "Register once with your mobile number. You can then book, reschedule or cancel a slot, "
     "and check your payment status at any time.":
         "अपने मोबाइल नंबर से एक बार पंजीकरण करें। इसके बाद आप कभी भी स्लॉट बुक, आगे-पीछे या "
