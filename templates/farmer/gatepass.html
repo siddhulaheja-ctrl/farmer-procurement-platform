@@ -20,8 +20,8 @@
         <div class="t">{{ b.token_no }}</div>
         <div class="c">{{ b.date|nicedate }} &middot; {{ b.time_window }}</div>
       </div>
-      {# scanned by the clerk to pull the record up. the token above is still
-         the thing that identifies you - read it out if the scan will not work #}
+      {# clerk scans this to pull the record up. the token above is still
+         what identifies you, so read it out if the scan won't work #}
       <div class="qr-box">
         {{ qr_svg|safe }}
         <div class="c">{{ t("For centre staff") }}</div>

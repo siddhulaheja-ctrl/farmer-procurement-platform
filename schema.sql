@@ -45,10 +45,9 @@ CREATE TABLE procurement_centres (
     district            TEXT NOT NULL,
     daily_capacity      INTEGER NOT NULL DEFAULT 200,
     crop_types_accepted TEXT NOT NULL,         -- comma separated
-    -- How far behind the counter is running, in minutes, set by staff when
-    -- they notice. One number a human maintains beats a per-farmer estimate
-    -- nobody has time to keep accurate: a stale "40 minutes behind" is still
-    -- roughly true, a stale per-farmer ETA is a lie with a decimal point.
+    -- How far behind the counter is running, set by staff when they notice.
+    -- One number a person keeps up beats a per-farmer estimate nobody has time
+    -- for. An old "40 minutes behind" is still roughly right.
     delay_minutes       INTEGER NOT NULL DEFAULT 0,
     delay_set_at        TEXT
 );
@@ -118,9 +117,8 @@ CREATE TABLE alerts_log (
 );
 CREATE INDEX idx_alerts_farmer ON alerts_log(farmer_id);
 
--- Footer visitor count. A real number rather than a decorative one - gov
--- portals have carried these since the nineties and it is the kind of detail
--- people notice. One row, bumped on each home page view.
+-- Footer visitor count. Gov portals have had these forever. One row, bumped
+-- on each home page view.
 CREATE TABLE site_counters (
     name  TEXT    PRIMARY KEY,
     value INTEGER NOT NULL DEFAULT 0

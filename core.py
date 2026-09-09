@@ -138,19 +138,14 @@ def reschedule_booking(booking_id, new_slot_id, farmer_id=None):
 
 
 def queue_position(booking_id):
-    """Where this booking sits in its own slot window.
+    """Where this booking sits in its slot window.
 
-    Deliberately not an ETA. An ETA needs somebody at the counter marking each
-    farmer served the moment it happens, and they are busy weighing grain and
-    arguing about moisture - the logging goes patchy and the estimate drifts.
-    A wrong ETA is worse than none, because the farmer who trusted it and went
-    for chai comes back to find he has been passed.
+    Position, not an ETA. An ETA needs someone marking each farmer served as
+    it happens and nobody at a counter has time for that, so it drifts - and a
+    wrong ETA is worse than none. Positions can't drift. The "already done"
+    count comes from the arrival record staff enter anyway.
 
-    So this counts positions, which cannot drift, and reports how many ahead
-    have already been processed - which staff record anyway as part of taking
-    delivery, so it costs nobody an extra tap.
-
-    Returns None if the booking is not waiting for anything.
+    None if the booking isn't waiting for anything.
     """
     b = query("SELECT id, slot_id, status FROM bookings WHERE id = ?", (booking_id,), one=True)
     if b is None or b["status"] not in ACTIVE_STATUSES:
@@ -173,9 +168,8 @@ def queue_position(booking_id):
 
 
 def centre_delay(centre_id):
-    """How far behind the centre says it is running, with how long ago they
-    said it. The staleness is shown too - a farmer should be able to see that
-    the number is four hours old and weigh it accordingly."""
+    """How far behind the centre says it is, and how old that answer is.
+    The age matters - a four hour old number should be read as one."""
     row = query("SELECT delay_minutes, delay_set_at FROM procurement_centres WHERE id = ?",
                 (centre_id,), one=True)
     if row is None or not row["delay_minutes"]:

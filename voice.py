@@ -1,14 +1,12 @@
-"""Outbound calls, we ring the farmer.
+"""Outbound calls - we ring the farmer.
 
-Vonage takes the whole message in the api request (inline ncco) so it never
-calls back to us. That means no webhook and no server anywhere, it all runs
-from here.
+The whole message goes in the api request (inline ncco), so vonage never calls
+back to us. No webhook, no server, it runs from here.
 
-Staff screens ring the farmer's own number. Everyone in the seed data is one of
-us with a number registered in vonage, so the calls actually land. Anyone who
-registers through the site with a made up 900000 number gets redirected to
-DEMO_NUMBER so a stray click cannot dial a stranger. Running this file directly
-dials whatever you type.
+Staff screens ring the farmer's own number. The seeded farmers are all us, with
+numbers registered in vonage, so the calls land. Anyone who signs up with a
+made up 900000 number goes to DEMO_NUMBER instead so a stray click can't dial a
+stranger. Run this file directly to dial whatever you type.
 
     python voice.py 9876543210 "Namaste, test" hi
 
@@ -42,17 +40,16 @@ APP_ID = os.environ.get("VONAGE_APPLICATION_ID",
                         "fb926ccb-0da7-4d10-814f-9a3ae05428e3").strip()
 # vonage wants this filled in even though it swaps in its own number
 FROM_NUMBER = os.environ.get("VONAGE_NUMBER", "").strip() or "12345678901"
-# fallback for anyone whose number we do not want to dial by accident.
-# no default on purpose - it is a real phone, so it lives in .env.
+# where placeholder numbers get sent. real phone, so it lives in .env
 DEMO_NUMBER = os.environ.get("VOICE_DEMO_NUMBER", "").strip()
 KEY_PATH = os.environ.get("VONAGE_PRIVATE_KEY_PATH",
                           os.path.join(HERE, "farmer-ivr", "private.key"))
 
 VOICE = {"en": "en-IN", "hi": "hi-IN"}
 
-# talk has a volume setting but no speed one, so pacing comes from ssml
+# Talk has volume but no speed, so pacing comes from ssml
 def _level():
-    # a typo in the env var used to kill the whole app on startup
+    # a typo in the env var used to kill the app on startup
     try:
         v = float(os.environ.get("VOICE_LEVEL", "1"))
     except ValueError:
@@ -94,7 +91,7 @@ def spoken_date(iso):
 
 
 def spell_token(token):
-    """Spaced out and slowed down, people write this down off the call."""
+    """Spaced out and slow. People write this down off the call."""
     if not token:
         return ""
     groups = [" ".join(part) for part in str(token).split("-")]
@@ -107,8 +104,8 @@ def _escape(text):
 
 
 def to_ssml(message, token=None):
-    """Build the ssml. Escape first, then add our tags, otherwise a farmer
-    called "A & B" breaks the xml. {{token}} is where the token goes."""
+    """Build the ssml. Escape first then add tags, or a farmer called
+    "A & B" breaks the xml. {{token}} is where the token goes."""
     body = _escape(message)
     if token:
         body = body.replace("{{token}}", spell_token(token))
@@ -127,14 +124,14 @@ def plain(message, token=None):
     return text.replace("{{token}}", "")
 
 
-# nobody real is in this block, so it is safe to treat as made up
+# nobody real is in this block
 PLACEHOLDER_PREFIX = "900000"
 
 
 def target_for(phone):
-    """Who do we actually ring. Real numbers get rung directly; the 900000
-    block is what people type when they are filling the form in to look at it,
-    and those go to the team phone instead. Returns (number, was_redirected)."""
+    """Who we actually ring. Real numbers go through; the 900000 block is
+    what people type when they're just looking around, so those go to the team
+    phone. Returns (number, was_redirected)."""
     number = to_e164(phone)
     local = number[2:] if number.startswith("91") else number
     if not local or local.startswith(PLACEHOLDER_PREFIX):
@@ -174,9 +171,9 @@ def status():
 
 
 def _log(line):
-    """print() blows up on the hindi messages when stdout is a plain windows
-    console (cp1252). That came back as a 500 from the Call button, which is a
-    silly way to lose a demo, so drop to ascii instead of raising."""
+    """print() dies on the hindi when stdout is a plain windows console
+    (cp1252), and that came back as a 500 from the Call button. Drop to ascii
+    instead of raising."""
     try:
         print(line)
     except UnicodeEncodeError:
@@ -186,9 +183,9 @@ def _log(line):
 def place_call(phone, message, lang="hi", token=None):
     """Ring the number and read out the message.
 
-    Put {{token}} in the message and pass token= to have it read slowly.
-    Returns (ok, detail) and never raises - a failed call should show up as a
-    message, not a 500 in the middle of a demo.
+    Put {{token}} in the message and pass token= to get it read slowly.
+    Returns (ok, detail), never raises - a failed call should be a message on
+    screen, not a 500 mid-demo.
     """
     number = to_e164(phone)
     if not number:
@@ -226,9 +223,8 @@ def place_call(phone, message, lang="hi", token=None):
 
 
 def sample_voices(phone, premium=True):
-    """One call that reads the same line in every hindi voice, announcing each
-    style number, so we can pick one instead of guessing. Cheaper and less
-    annoying than dialling once per style."""
+    """One call reading the same line in every hindi voice, announcing each
+    style number, so we can pick instead of guessing. Cheaper than six calls."""
     number = to_e164(phone)
     if not number:
         return False, "No phone number given."
