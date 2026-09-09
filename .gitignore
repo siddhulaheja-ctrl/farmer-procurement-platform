@@ -31,3 +31,6 @@ farmer-ivr/
 
 # local settings and keys
 .env
+
+# generated docs, not part of the code
+docs/

@@ -1,14 +1,12 @@
 /* Text size control.
 
    Every font size in the stylesheet is a rem, so setting --fs on the root
-   element scales the whole page from one value. It is a text size control
-   rather than a zoom, so the padding and the column widths stay put and the
-   wide admin tables keep fitting.
+   scales the whole page from one value. Text size, not zoom, so padding and
+   column widths stay put and the wide admin tables still fit.
 
-   The choice is kept per browser in localStorage and applied before the first
-   paint, otherwise the page renders at the default size and then jumps.
-   Everything is wrapped because localStorage throws outright in some privacy
-   modes, and losing a font size preference should not take the page with it. */
+   Kept in localStorage per browser and applied before first paint, otherwise
+   the page renders at the default size and jumps. Everything is wrapped
+   because localStorage throws outright in some privacy modes. */
 (function () {
     var STEPS = [12.5, 14, 15.5, 17];   // 14 is the default, index 1
     var root = document.documentElement;
@@ -36,8 +34,7 @@
     if (isNaN(step)) { step = 1; }
     applySize(step);
 
-    // the high contrast mode was dropped, clear what it left behind so an old
-    // visitor is not carrying a dead key around
+    // contrast mode was dropped, clear the key it left behind
     try { localStorage.removeItem('ks-contrast'); } catch (e) { /* private mode */ }
     root.removeAttribute('data-contrast');
 

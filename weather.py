@@ -28,29 +28,19 @@ LEAD_DAYS_THRESHOLD = int(os.environ.get("STORAGE_RISK_LEAD_DAYS", "5"))
 RAIN_MM_HIGH = 5.0        # total forecast rain (mm) over the window
 HUMIDITY_HIGH = 80        # average relative humidity %
 
-# makes every check come back HIGH, for when the forecast is dry and we still
-# need to show the alert. STORAGE_RISK_FORCE=1
+# STORAGE_RISK_FORCE=1 makes everything come back HIGH, for when the weather
+# is dry and we still need to show the alert
 DEMO_FORCE_RISK = {"on": os.environ.get("STORAGE_RISK_FORCE", "").strip() in ("1", "true", "yes")}
 
-# --- working out where the farmer actually is -------------------------------
-# We used to ask openweathermap for the district by name. It does not know
-# districts - "Udham Singh Nagar" comes back "city not found" - and it does not
-# know most villages either, so every lookup quietly fell through to the mock
-# forecast and nobody noticed. Real addresses are villages, so this is not an
-# edge case, it is the normal case.
-#
-# So we resolve to coordinates first and ask by lat/lon, which always answers:
-#   1. geocode the village. Works for the larger ones (Dineshpur, Bhagwanpur).
-#   2. otherwise the district headquarters, from the table below.
-#   3. otherwise the mock forecast.
-# Step 2 is hard coded so it cannot fail. A farmer from a village nobody has
-# heard of still gets a real forecast, just from the nearest town instead.
-# Rain fronts are regional so a reading 30km away is still worth having, and
-# we tell the farmer which town it came from rather than pretending otherwise.
-#
-# TODO: the proper answer is IMD's Gramin Krishi Mausam Sewa, which publishes
-# block level agro-advisories. That is the resolution this feature really
-# wants. OWM is what we can get at without a govt data agreement.
+# Where to ask for the forecast.
+# OWM only knows towns. Districts come back "city not found" and so do most
+# villages, so asking for the farmer's address never worked - it just fell
+# through to the mock and we didn't notice for weeks.
+# Now: geocode the village, else use the district HQ coords below, else mock.
+# The HQ coords are hardcoded so step 2 can't fail. A reading from 30km away
+# is still useful for rain, and we show which town it came from.
+# TODO: IMD's Gramin Krishi Mausam Sewa does this at block level. Needs a govt
+# data agreement.
 DISTRICT_POINTS = {
     "Udham Singh Nagar": (28.975, 79.396, "Rudrapur"),
     "Haridwar":          (29.967, 78.167, "Haridwar"),
@@ -62,8 +52,7 @@ _geo_cache = {}
 
 
 def resolve_point(district, village=None):
-    """Where do we ask for the forecast. Returns dict with lat/lon, the name of
-    the place we ended up using, and how precise that is."""
+    """Returns lat/lon, the place name we used, and how precise it is."""
     if village:
         key = "%s|%s" % (village, district)
         if key not in _geo_cache:
@@ -79,8 +68,7 @@ def resolve_point(district, village=None):
 
 
 def _geocode(q):
-    """village name -> (lat, lon), or None if openweathermap has never heard
-    of it, which is most of the time."""
+    """village -> (lat, lon), or None. Usually None."""
     if not OWM_API_KEY:
         return None
     try:
@@ -94,11 +82,11 @@ def _geocode(q):
 
 
 def _mock_forecast(district: str, days: int):
-    """Deterministic pseudo-forecast so the same district always behaves the
-    same way in a demo. Districts whose name hashes 'wet' get rain."""
+    """Fake forecast. Same district always gives the same answer so demos
+    are repeatable."""
     seed = sum(ord(c) for c in (district or "X"))
-    # only some districts are wet, otherwise everything gets flagged and the
-    # watchlist is useless. karnal is in the list because our demo farmer is there.
+    # only some are wet, otherwise everything gets flagged and the watchlist
+    # is useless
     wet_district = (district in MOCK_WET_DISTRICTS) if district in MOCK_KNOWN_DISTRICTS \
         else (seed % 3 == 0)
     out = []
@@ -125,8 +113,8 @@ def _live_forecast(point, days):
             "appid": OWM_API_KEY, "units": "metric",
         }, timeout=6)
         if r.status_code != 200:
-            # we used to fall back to the fake forecast without saying anything,
-            # so you could never tell whether the live data was actually working
+            # used to fall back silently, so you couldn't tell if live data
+            # was working
             print("[weather] %s -> HTTP %s from openweathermap, using mock. %s"
                   % (point["place"], r.status_code, r.text[:120]))
             return None
@@ -153,8 +141,7 @@ def _live_forecast(point, days):
 
 
 def get_forecast(district, days=5, village=None):
-    """Returns (forecast_list, source, place) where source is live or mock and
-    place is the town the reading actually came from."""
+    """Returns (forecast, source, place). source is 'live' or 'mock'."""
     point = resolve_point(district, village)
     live = _live_forecast(point, days)
     if live:
@@ -163,11 +150,10 @@ def get_forecast(district, days=5, village=None):
 
 
 def assess_risk(district, slot_date_str, village=None):
-    """Evaluate spoilage risk for grain stored until `slot_date_str`.
+    """Risk of the grain spoiling while it waits for `slot_date_str`.
 
-    Returns dict: level (none|low|high), lead_days, reason, forecast, source,
-    place (the town the forecast came from) and nearby (True when we had to
-    fall back from the village to the district town).
+    Returns level (none|low|high), lead_days, reason, forecast, source, place,
+    and nearby=True if we fell back from the village to the district town.
     """
     try:
         slot_date = datetime.strptime(slot_date_str, "%Y-%m-%d").date()
@@ -180,8 +166,8 @@ def assess_risk(district, slot_date_str, village=None):
     forecast, source, point = get_forecast(district, window, village)
 
     place = point["place"] if point else district
-    # say so when the reading is from the district town rather than their own
-    # village, otherwise "no rain expected" reads like a promise about their field
+    # say when the reading is from the district town, not their village -
+    # otherwise "no rain expected" sounds like a promise about their field
     nearby = bool(point and village and point["precision"] == "district")
     where = "%s (nearest station to %s)" % (place, village) if nearby else place
     meta = {"source": source, "place": place, "nearby": nearby}
@@ -241,8 +227,8 @@ def evaluate_booking(booking_id: int):
                "Consider requesting an earlier slot, or store your produce on a raised, "
                "covered platform." % (row["centre_name"], result["lead_days"], result["reason"]))
         raise_alert(row["farmer_id"], "storage_risk", "app", msg, booking_id=booking_id)
-        # This text is what actually gets read out if staff place the call,
-        # so it has to be a message for the farmer, not a note for us.
+        # this gets read out on the call, so write it to the farmer, not
+        # as a note to ourselves
         raise_alert(row["farmer_id"], "storage_risk", "ivr",
                     "नमस्ते %s जी। कृषि सूत्र से सूचना। %s पर आपका स्लॉट %d दिन दूर है और "
                     "आपके क्षेत्र में बारिश का अनुमान है। अपनी उपज को ढककर ऊंची जगह रखें, "

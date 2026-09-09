@@ -38,9 +38,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def _last_updated():
-    """Newest mtime across the code and templates. Government footers carry a
-    "last updated" date and it is always stale because somebody has to remember
-    to change it - deriving it means ours cannot be wrong."""
+    """Newest mtime across the code and templates. Gov footers always have a
+    stale "last updated" because someone has to remember to change it. Work it
+    out instead."""
     newest = 0
     for root, dirs, files in os.walk(HERE):
         dirs[:] = [d for d in dirs if d not in
@@ -56,8 +56,8 @@ def _last_updated():
 
 LAST_UPDATED = _last_updated()
 
-# Footer links. Real portals carry these and every one of them resolves, so
-# ours do too rather than being decorative dead anchors.
+# Footer links. Real portals have these, and ours all go somewhere rather
+# than being dead anchors.
 POLICIES = {
     "terms": ("Terms of use", [
         "This is a prototype built for Smart India Hackathon 2026 against problem "
@@ -92,9 +92,8 @@ POLICIES = {
         "pages to be loaded inside a frame on another site.",
     ]),
     "accessibility": ("Accessibility statement", [
-        "The portal aims to meet WCAG 2.1 level AA. Text size and a high contrast mode "
-        "can be set from the controls at the top of every page, and both are remembered "
-        "in your browser.",
+        "The portal aims to meet WCAG 2.1 level AA. Text size can be set from the "
+        "controls at the top of every page and is remembered in your browser.",
         "Every page can be reached with the keyboard alone, there is a skip link to the "
         "main content, form fields carry labels, and colour is never the only way "
         "something is communicated - status is always written out as well.",
@@ -226,14 +225,14 @@ def register_routes(app):
 
     @app.context_processor
     def _footer_context():
-        # so the staff templates can show where calls actually go, and every
-        # page gets the footer's last-updated and visit count
+        # staff screens need to know where calls go, every page needs the
+        # footer bits
         return {"call_to": voice.DEMO_NUMBER, "last_updated": LAST_UPDATED,
                 "visits": _visits(), "policies": POLICIES}
 
     def _visits(bump=False):
-        """Reads, and optionally bumps, the footer counter. Wrapped because a
-        database made before this table existed should not 500 the whole site."""
+        """Read (and optionally bump) the footer counter. Wrapped so an old
+        database without this table doesn't 500 the site."""
         try:
             if bump:
                 execute("UPDATE site_counters SET value = value + 1 WHERE name = 'visits'")
@@ -253,10 +252,8 @@ def register_routes(app):
     def token_lookup(token):
         """Where a scanned gate pass lands.
 
-        Whoever is holding the phone decides what they get: a signed in clerk
-        goes to the counter screen for that booking, the farmer it belongs to
-        goes to their own copy, and anyone else gets asked to sign in. Nothing
-        about the booking is shown before that.
+        Staff get the counter screen, the farmer it belongs to gets their own
+        copy, anyone else gets the login. Nothing is shown before that.
         """
         b = query("SELECT id, farmer_id FROM bookings WHERE token_no = ?", (token,), one=True)
         if b is None:
@@ -491,8 +488,7 @@ def register_routes(app):
     @farmer_required
     def farmer_gatepass(booking_id):
         b = _owned_booking(booking_id)
-        # absolute, because the point is that it opens from the clerk's camera
-        # app on a different device to the one that rendered it
+        # absolute - it gets scanned from a different phone
         target = url_for("token_lookup", token=b["token_no"], _external=True)
         return render_template("farmer/gatepass.html", b=b, farmer=g.farmer,
                                issued=datetime.now(), qr_svg=qr.gatepass_svg(target),
@@ -653,15 +649,16 @@ def register_routes(app):
     @app.route("/admin/booking/<int:booking_id>/call", methods=["POST"])
     @staff_required
     def admin_call(booking_id):
-        """Ring the farmer about this booking. Goes to voice.DEMO_NUMBER for
-        now, not to the farmer's real number."""
+        """Ring the farmer about this booking.
+
+        Which of the four messages they hear depends on the booking state.
+        Rings their own number - only the fake 900000 block gets diverted."""
         b = query(_BOOKING_SELECT + " WHERE b.id = ?", (booking_id,), one=True)
         if b is None:
             abort(404)
 
-        # Order matters. Status comes first - a cancelled or finished booking
-        # must never be read out as "your slot is booked, please come", which
-        # is what happened while this only looked at risk and payment.
+        # order matters. status first, or a cancelled booking gets read out
+        # as "your slot is booked, please come" - which it did for a while.
         if b["status"] == "cancelled":
             flash("That booking was cancelled, so there is nothing to tell them. "
                   "Ring them from the farmer's page instead.", "error")
@@ -706,7 +703,7 @@ def register_routes(app):
             flash("Record the weighed quantity before completing the transaction.", "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
 
-        # don't let the payment go through if their details are still wrong
+        # don't pay out if their details are still wrong
         blocking = [f for f in unresolved_flags(b["farmer_id"]) if f["severity"] == "blocking"]
         if blocking:
             execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
@@ -914,8 +911,8 @@ def register_routes(app):
     @app.route("/admin/centre/<int:centre_id>/delay", methods=["POST"])
     @staff_required
     def admin_set_delay(centre_id):
-        """One number, set by hand when somebody notices. It is shown to
-        farmers with its own age attached, so a stale one can be judged."""
+        """One number, set by hand when someone notices. Farmers see it with
+        its age, so an old one can be judged."""
         try:
             mins = int(request.form.get("delay_minutes") or 0)
         except ValueError:
@@ -1050,7 +1047,7 @@ def _create_farmer(form, registered_via):
          (form.get("district") or "").strip(),
          registered_via, datetime.now().isoformat(timespec="seconds")))
 
-    # Novelty Feature A runs here, at registration - not weeks later at payout.
+    # the checks run here, at registration - not weeks later at payout
     problems = validate_and_flag(farmer_id)
     return {"error": None, "farmer_id": farmer_id, "problems": problems}
 

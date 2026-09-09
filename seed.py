@@ -3,13 +3,11 @@
 Run:  python seed.py
 DROPS every table and recreates it.
 
-Six farmers, all real people on the team whose numbers are registered in the
-vonage dashboard, so any of them can actually be rung from the staff screens.
-Between them they cover every state the app can be in - CASES below says which
-farmer is which. Everyone is in Uttarakhand, and every village either resolves
-in the weather api or falls back to its district town.
+Six farmers, all of us, with numbers registered in vonage so the calls land.
+Between them they cover every state the app can be in - see CASES below.
+Everyone is in Uttarakhand.
 
-Phone numbers are read from .env so they stay out of the repo.
+Phone numbers come from .env so they stay out of the repo.
 """
 
 import os
@@ -35,8 +33,7 @@ CENTRES = [
 
 TIME_WINDOWS = ["08:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00"]
 
-# What each farmer is here to show. Kept beside the data so it does not drift
-# the moment somebody edits a row.
+# What each farmer is here to show. Kept next to the data so it doesn't drift.
 CASES = """
   1  Chandra Bhushan Kumar   clean record, slot in 3 days     -> token reminder call
   2  Ravi Kumar              clean, slot 9 days out           -> storage risk + rain call
@@ -56,12 +53,11 @@ PEOPLE = [
     ("Siddharth Laheja", "VOICE_DEMO_NUMBER", "Vikasnagar", "Dehradun", "self"),
 ]
 
-# aadhaar, account no, ifsc, name the bank has, land record id.
-# All valid except where the case needs otherwise. Vivek's aadhaar fails the
-# verhoeff check the way a mistyped one would and his ifsc has no 0 in the
-# fifth position. Mayank's account is in his father's name, which is the single
-# most common reason a DBT payment bounces, and his land id is in the older
-# format the tehsil used to hand out.
+# aadhaar, account no, ifsc, name on the account, land record id.
+# All valid except where a case needs otherwise. Vivek's aadhaar fails the
+# verhoeff check like a mistyped one would, and his ifsc is missing the 0.
+# Mayank's account is in his father's name - the most common reason a DBT
+# payment bounces - and his land id is in the old tehsil format.
 PAPERWORK = {
     "Chandra Bhushan Kumar": ("482910563723", "30671249885210", "SBIN0004567",
                               "Chandra Bhushan Kumar", "USN-104238-12"),
@@ -87,13 +83,13 @@ def phone_for(var):
 
 
 def workday(offset):
-    """Slot dates skip Sundays, so step past one if we land on it."""
+    """Slots skip Sundays, so step past if we land on one."""
     d = date.today() + timedelta(days=offset)
     return d + timedelta(days=1) if d.weekday() == 6 else d
 
 
 class Seeder:
-    """Thin wrapper so the case list below reads as data rather than SQL."""
+    """Wrapper so the cases below read as data instead of SQL."""
 
     def __init__(self, cur):
         self.cur = cur
@@ -108,8 +104,8 @@ class Seeder:
 
     def booking(self, who, centre, day, crop, qty, status="booked", window=0,
                 grade=None, actual=None, payment=None):
-        """Writes a booking straight in. Deliberately not going through
-        core.book_slot, which refuses past dates - half of these are history."""
+        """Writes a booking straight in. Not using core.book_slot because it
+        refuses past dates and half of these are history."""
         sid = self.slot(centre, day, window)
         created = (date.today() + timedelta(days=min(day, 0) - 4)).isoformat() + "T09:15:00"
         self.cur.execute(
@@ -169,7 +165,7 @@ def build_centres_and_slots(cur, s):
 
 
 def build_farmers(cur, s, now):
-    """Returns the names of anyone whose number is missing from .env."""
+    """Returns anyone whose number is missing from .env."""
     missing = []
     for name, var, village, district, via in PEOPLE:
         phone = phone_for(var)
@@ -187,7 +183,7 @@ def build_farmers(cur, s, now):
 
 
 def flag_everyone(cur, s, now):
-    """run_checks is pure, so it works out here without an app context."""
+    """run_checks has no db calls, so it works without an app context."""
     for name, fid in s.farmers.items():
         problems = run_checks(dict(cur.execute("SELECT * FROM farmers WHERE id=?",
                                                (fid,)).fetchone()))
@@ -206,9 +202,8 @@ def flag_everyone(cur, s, now):
 
 
 def build_bookings(s):
-    # 1. chandra - upcoming slot, close enough that storage is not a worry.
-    #    also a load that got turned away at the gate last week, so the
-    #    grade -> zero rupees path has something in it.
+    # 1. chandra - slot soon, so no storage worry. plus a load rejected at
+    #    the gate last week, to fill in the grade -> zero rupees path.
     b = s.booking("Chandra Bhushan Kumar", "Rudrapur Mandi Samiti", 3, "Wheat", 42)
     s.alert("Chandra Bhushan Kumar", "booking_confirmed", "app",
             "Slot confirmed at Rudrapur Mandi Samiti. Bring your gate pass and Aadhaar card.",
@@ -216,12 +211,12 @@ def build_bookings(s):
     s.booking("Chandra Bhushan Kumar", "Rudrapur Mandi Samiti", -3, "Paddy", 18, window=2,
               status="completed", grade="Rejected", actual=17.4, payment="failed")
 
-    # 2. ravi - far enough out that the weather check has something to say
+    # 2. ravi - far enough out for the weather check to matter
     b = s.booking("Ravi Kumar", "Kichha Kharid Kendra", 9, "Paddy", 60, window=1)
     s.alert("Ravi Kumar", "booking_confirmed", "app",
             "Slot confirmed at Kichha Kharid Kendra.", booking_id=b, days_ago=2)
 
-    # 3. mayank - warnings only, so the money still went out
+    # 3. mayank - warnings only, money still went out
     b = s.booking("Mayank Verma", "Haridwar Kharid Kendra", -2, "Wheat", 35,
                   status="completed", grade="FAQ", actual=34.2, payment="completed")
     s.alert("Mayank Verma", "payment_update", "app",
@@ -229,7 +224,7 @@ def build_bookings(s):
             booking_id=b, days_ago=1)
     s.booking("Mayank Verma", "Haridwar Kharid Kendra", 7, "Wheat", 30, window=1)
 
-    # 4. vivek - blocking flags, so completing the transaction held the payment
+    # 4. vivek - blocking flags, so the payment got held
     b = s.booking("Vivek Kumar", "Haridwar Kharid Kendra", -3, "Paddy", 48, window=3,
                   status="completed", grade="A", actual=47.1, payment="failed")
     s.alert("Vivek Kumar", "payment_update", "app",
@@ -237,14 +232,14 @@ def build_bookings(s):
             "Visit the centre with correct documents to release the payment.",
             booking_id=b, days_ago=2)
 
-    # 5. aayush - booked at the csc counter, weighed in this morning
+    # 5. aayush - booked at a csc counter, weighed in this morning
     b = s.booking("Aayush Raj", "Rudrapur Mandi Samiti", 0, "Wheat", 28, window=1,
                   status="arrived", grade="B", actual=26.8, payment="pending")
     s.alert("Aayush Raj", "payment_update", "app",
             "Produce weighed at the centre: 26.8 quintals of Wheat, grade B. "
             "Provisional value 61090.60. Awaiting transaction completion.", booking_id=b)
 
-    # 6. siddharth - a bit of history behind him
+    # 6. siddharth - some history
     b = s.booking("Siddharth Laheja", "Vikasnagar Grain Market", -4, "Wheat", 25,
                   status="completed", grade="A", actual=25.6, payment="processing")
     s.alert("Siddharth Laheja", "payment_update", "app",
@@ -253,10 +248,9 @@ def build_bookings(s):
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", -1, "Gram", 12, status="cancelled")
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", 6, "Gram", 20, window=2)
 
-    # A real queue in one window, otherwise every farmer is alone in their slot
-    # and the position card has nothing to say. Aayush is already in this one
-    # from case 5, so these land behind him: two more who have been weighed in
-    # and two still waiting. Chandra ends up last and sees the whole picture.
+    # A real queue in one window, or every farmer is alone in their slot and
+    # the position card says "1 of 1". Aayush is already in this one, so these
+    # land behind him and Chandra ends up last with the full picture.
     shared = ("Rudrapur Mandi Samiti", 0, 1)     # centre, today, second window
     s.booking("Vivek Kumar", shared[0], shared[1], "Paddy", 32, window=shared[2],
               status="arrived", grade="FAQ", actual=31.5, payment="pending")
@@ -265,15 +259,15 @@ def build_bookings(s):
 
 
 def mark_a_centre_late(cur, now):
-    """One centre running behind, so the farmer booking page has something to
-    show for it. Staff set this by hand from the slots screen."""
+    """One centre running behind so the booking page has something to show.
+    Staff set this by hand from the slots screen."""
     cur.execute("UPDATE procurement_centres SET delay_minutes = 35, delay_set_at = ?"
                 " WHERE name = 'Rudrapur Mandi Samiti'", (now,))
 
 
 def score_storage_risk(cur, now):
-    """Run the weather check over every upcoming booking. Hits the live api, so
-    what comes back depends on the actual weather in Uttarakhand today."""
+    """Weather check over every upcoming booking. Hits the live api, so what
+    comes back depends on the actual weather today."""
     out = []
     rows = cur.execute(
         "SELECT b.id, b.farmer_id, f.name, f.district, f.village, s.date, c.name centre"
@@ -294,8 +288,7 @@ def score_storage_risk(cur, now):
              "STORAGE RISK: Your slot at %s is %d days away and %s Consider requesting an earlier "
              "slot, or store your produce on a raised, covered platform."
              % (row["centre"], r["lead_days"], r["reason"]), now))
-        # this is the text that actually gets read out if staff ring them, so
-        # it has to be a message for the farmer and not a note for us
+        # this gets read out if staff ring them, so write it to the farmer
         cur.execute(
             "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message, sent_at)"
             " VALUES (?,?,'storage_risk','ivr',?,?)",

@@ -5,11 +5,10 @@
    No CSS framework and no CDN, so the demo works with the venue wifi down. */
 
 :root {
-    /* One green family carries the whole site - it is an agriculture
-       department, so the colour should look like a field rather than a bank.
-       Saturated colour is reserved for status: a badge, a capacity bar, a
-       notice. Nothing decorative is allowed to use it, otherwise the things
-       that actually mean something stop standing out. */
+    /* One green family for the whole site - it's an agriculture department,
+       it should look like a field not a bank. Saturated colour is for status
+       only (badges, capacity bars, notices). If decoration uses it too, the
+       things that mean something stop standing out. */
     --leaf:        #1c5334;   /* primary: headings, nav, buttons */
     --leaf-dark:   #123522;   /* strips above and below the page */
     --leaf-mid:    #2a7049;   /* hover and focus */
@@ -119,10 +118,8 @@ a:hover { color: var(--leaf); }
     font-size: 0.7857rem; padding: 0 6px; margin-left: 4px; font-weight: 700;
 }
 
-/* 1180 left a lot of empty carpet either side on a normal desktop. The
-   tables are the widest thing here and they would rather have the room.
-   Prose is capped separately by .prose so the policy pages do not end up
-   as one very long line. */
+/* 1180 left big empty margins on a normal desktop. The tables want the room.
+   Prose is capped separately by .prose. */
 .wrap { max-width: 1760px; margin: 0 auto; width: 100%; }
 
 main.wrap { padding: 12px 20px 20px; }
@@ -412,7 +409,7 @@ footer.site a:hover { color: #fff; text-decoration: underline; }
 .foot-cols ul.plain li { color: #a8bcae; margin-bottom: 9px; }
 .foot-cols strong { color: #e4efe8; font-weight: 600; }
 
-/* the old odometer look. tabular figures so it does not jitter as it ticks */
+/* odometer look. tabular figures so it doesn't jitter */
 .counter {
     font-family: var(--mono); letter-spacing: .12em; background: #071a0f;
     border: 1px solid #2c5c42; padding: 1px 5px; color: #cfe0d3 !important;
@@ -479,8 +476,7 @@ hr.rule { border: none; border-top: 1px solid var(--border-soft); margin: 11px 0
 .a11y button sup { font-size: 0.5714rem; vertical-align: super; }
 .a11y button:hover { background: var(--leaf-mid); color: #fff; }
 .a11y button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
-/* aria-pressed is the source of truth for which one is on, so the styling
-   hangs off it rather than a class we would have to keep in sync */
+/* style off aria-pressed rather than a class we'd have to keep in sync */
 .a11y button[aria-pressed="true"] {
     background: #fff; color: var(--leaf-dark); font-weight: 700;
     border-color: #fff;
