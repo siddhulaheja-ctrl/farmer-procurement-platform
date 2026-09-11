@@ -246,7 +246,16 @@ def register_routes(app):
     @app.route("/")
     def home():
         _visits(bump=True)
-        return render_template("home.html")
+        # Public weather lookup. A plain GET form, so the chosen district ends
+        # up in the url and the page can be linked or reloaded.
+        districts = _districts()
+        picked = request.args.get("district", "")
+        forecast = place = source = None
+        if picked in districts:
+            forecast, source, point = weather.get_forecast(picked, 5)
+            place = point["place"] if point else picked
+        return render_template("home.html", districts=districts, picked=picked,
+                               forecast=forecast, place=place, source=source)
 
     @app.route("/t/<token>")
     def token_lookup(token):

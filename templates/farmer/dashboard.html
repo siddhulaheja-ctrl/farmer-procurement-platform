@@ -22,10 +22,14 @@
 {% endif %}
 
 <div class="stat-row">
-  <div class="stat"><div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
-  <div class="stat good"><div class="n">{{ paid_amount|rupee }}</div><div class="l">{{ t("Received") }}</div></div>
-  <div class="stat warn"><div class="n">{{ pending_amount|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
-  <div class="stat {{ 'bad' if flags else 'good' }}"><div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>
+  <div class="stat {{ 'zero' if not upcoming }}">
+    <div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
+  <div class="stat {{ 'good' if paid_amount else 'zero' }}">
+    <div class="n">{{ paid_amount|rupee }}</div><div class="l">{{ t("Received") }}</div></div>
+  <div class="stat {{ 'warn' if pending_amount else 'zero' }}">
+    <div class="n">{{ pending_amount|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
+  <div class="stat {{ 'bad' if flags else 'zero' }}">
+    <div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>
 </div>
 
 <div class="card">
@@ -50,7 +54,7 @@
           <td>{{ b.crop_type }}</td>
           <td class="num nowrap">{{ '%.1f'|format(b.estimated_quantity) }} qtl</td>
           <td>{{ status_badge(b.status) }}</td>
-          <td>{{ risk_badge(b.storage_risk) }}</td>
+          <td>{% if b.storage_risk != 'none' %}{{ risk_badge(b.storage_risk) }}{% endif %}</td>
           <td class="nowrap"><a class="btn small secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ t("Open") }}</a></td>
         </tr>
         {% endfor %}
