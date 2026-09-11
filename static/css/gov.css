@@ -96,12 +96,10 @@ a:hover { color: var(--leaf); }
     justify-content: center; text-align: center;
 }
 .emblem {
-    width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%;
-    background: var(--leaf); color: #fff; display: flex;
-    align-items: center; justify-content: center;
-    font-family: var(--serif); font-size: 1.3571rem; font-weight: 700;
-    border: 2px solid var(--soil);
+    width: 48px; height: 48px; flex: 0 0 48px;
+    display: block; object-fit: contain;
 }
+@media (min-width: 620px) { .emblem { width: 56px; height: 56px; flex-basis: 56px; } }
 .masthead h1 {
     font-family: var(--serif); font-size: 1.3571rem; line-height: 1.2;
     margin: 0; color: var(--leaf); font-weight: 700;
@@ -382,6 +380,13 @@ input[readonly] { background: #f1f4f1; color: var(--muted); }
 }
 .gatepass .gp-head {
     background: var(--leaf); color: #fff; padding: 12px 16px; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+/* white roundel behind the mark so it reads on the green band, and it still
+   prints - the pass is meant to be carried to the mandi on paper */
+.gp-crest {
+    flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%;
+    background: #fff; padding: 3px;
 }
 .gatepass .gp-head h2 { font-family: var(--serif); margin: 0; font-size: 1.2143rem; }
 .gatepass .gp-head .s { font-size: 0.8214rem; color: #cfe0d3; letter-spacing: .05em; }
@@ -476,6 +481,7 @@ hr.rule { border: none; border-top: 1px solid var(--border-soft); margin: 11px 0
     body { background: #fff; }
     .gatepass { border-color: #000; }
     .qr-box svg.qr path { fill: #000; }
+    .gatepass .gp-head { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     main.wrap { padding: 0; }
 }
 
