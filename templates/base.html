@@ -48,12 +48,16 @@
 
 <header class="masthead">
   <div class="wrap">
-    <img class="emblem" src="{{ url_for('static', filename='img/logo-mark-96.png') }}"
-         width="48" height="48" alt="{{ t("Krishi Sutra") }}">
-    <div>
-      <h1>{{ t("Krishi Sutra") }}</h1>
-      <div class="sub">{{ t("Slot Booking & Procurement Management System") }}</div>
-    </div>
+    {# the whole lockup is the way home, which is what people try first #}
+    <a class="brand" href="{{ url_for('home') }}">
+      {# alt is empty on purpose, the heading next to it already says the name #}
+      <img class="emblem" src="{{ url_for('static', filename='img/logo-mark-96.png') }}"
+           width="48" height="48" alt="">
+      <span>
+        <h1>{{ t("Krishi Sutra") }}</h1>
+        <span class="sub">{{ t("Slot Booking & Procurement Management System") }}</span>
+      </span>
+    </a>
   </div>
 </header>
 

@@ -92,9 +92,15 @@ a:hover { color: var(--leaf); }
 
 .masthead { background: #fff; border-bottom: 2px solid var(--soil); }
 .masthead .wrap {
-    display: flex; align-items: center; gap: 14px; padding: 14px 16px;
-    justify-content: center; text-align: center;
+    display: flex; padding: 14px 16px; justify-content: center;
 }
+.brand {
+    display: flex; align-items: center; gap: 14px;
+    text-decoration: none; color: inherit; text-align: left;
+    border-radius: 3px; padding: 2px;
+}
+.brand:hover h1 { color: var(--leaf-mid); text-decoration: underline; }
+.brand:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
 .emblem {
     width: 48px; height: 48px; flex: 0 0 48px;
     display: block; object-fit: contain;
@@ -105,6 +111,7 @@ a:hover { color: var(--leaf); }
     margin: 0; color: var(--leaf); font-weight: 700;
 }
 .masthead .sub {
+    display: block;
     font-size: 0.8214rem; color: var(--muted); margin-top: 2px;
     text-transform: uppercase; letter-spacing: .05em;
 }
