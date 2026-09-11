@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ t("Krishi Sutra") }}{% endblock %}</title>
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-180.png') }}">
+<meta name="description" content="Book a weighing slot at your nearest government procurement centre, check your payment details before the slot date, and track your payment.">
+<meta property="og:title" content="Krishi Sutra">
+<meta property="og:description" content="Slot booking and procurement management for government mandis.">
+<meta property="og:type" content="website">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gov.css') }}">
 <script src="{{ url_for('static', filename='js/a11y.js') }}"></script>
 </head>
@@ -86,7 +92,7 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="site">
+<footer class="site{{ ' lean' if g.farmer or g.staff }}">
   <div class="wrap">
     <div class="foot-cols">
       <div>
@@ -123,6 +129,15 @@
           <li>{{ t("Visitors") }} <strong class="counter">{{ '%08d'|format(visits) }}</strong></li>
         </ul>
       </div>
+    </div>
+
+    {# signed in, the four columns are more footer than the page needs #}
+    <div class="foot-lean">
+      {% for slug, p in policies.items() %}
+        <a class="small" href="{{ url_for('policy', slug=slug) }}">{{ p[0] }}</a>
+      {% endfor %}
+      <span class="small">{{ t("Last updated on") }} {{ last_updated.strftime('%d-%m-%Y') }}</span>
+      <span class="small">{{ t("Visitors") }} <span class="counter">{{ '%08d'|format(visits) }}</span></span>
     </div>
 
     <div class="photo-credit">

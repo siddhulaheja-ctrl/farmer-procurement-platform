@@ -52,6 +52,8 @@
 html {
     -webkit-text-size-adjust: 100%;
     font-size: var(--fs, 14px);
+    /* body alone left bare white under the footer on short pages */
+    background: var(--bg);
 }
 
 body {
@@ -61,7 +63,14 @@ body {
     line-height: 1.45;
     color: var(--text);
     background: var(--bg);
+    /* short pages left the footer floating halfway up the screen. push it to
+       the bottom instead */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
+main.wrap { flex: 1 0 auto; }
+footer.site { flex-shrink: 0; }
 
 a { color: var(--leaf-mid); }
 a:hover { color: var(--leaf); }
@@ -175,6 +184,10 @@ main.wrap { padding: 12px 20px 20px; }
 .stat.bad .n { color: var(--red); }
 .stat.good { border-left-color: var(--green); }
 .stat.good .n { color: var(--green); }
+/* nothing there yet, so say nothing. a green zero is noise and it teaches
+   people to stop reading the colour */
+.stat.zero { border-left-color: var(--border); }
+.stat.zero .n { color: var(--muted); }
 
 /* ----------------------------------------------------------------- table */
 
@@ -414,6 +427,18 @@ footer.site a:hover { color: #fff; text-decoration: underline; }
     font-family: var(--mono); letter-spacing: .12em; background: #071a0f;
     border: 1px solid #2c5c42; padding: 1px 5px; color: #cfe0d3 !important;
     font-variant-numeric: tabular-nums;
+}
+
+/* signed in, the four columns outweigh the page content */
+footer.site .foot-lean { display: none; }
+footer.site.lean .foot-lean { display: flex; }
+footer.site.lean .foot-cols,
+footer.site.lean .photo-credit { display: none; }
+footer.site.lean { padding: 11px 16px; }
+footer.site.lean .demo-note { border-top: none; margin-top: 0; padding-top: 0; }
+.foot-lean {
+    display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline;
+    margin-bottom: 8px;
 }
 
 footer.site .demo-note {

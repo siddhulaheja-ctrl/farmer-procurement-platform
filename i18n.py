@@ -41,6 +41,24 @@ HINDI = {
     "Last updated on": "अंतिम अद्यतन",
     "Visitors": "आगंतुक",
 
+    # weather lookup on the home page
+    "Weather where you farm": "आपके क्षेत्र का मौसम",
+    "Live forecast": "लाइव पूर्वानुमान",
+    "Simulated forecast": "अनुमानित पूर्वानुमान",
+    "Rain while your harvest waits at home is what gets it downgraded at the gate. "
+    "Check the next five days before you pick a slot.":
+        "घर पर रखी उपज पर बारिश ही उसे गेट पर कम ग्रेड दिलाती है। स्लॉट चुनने से पहले "
+        "अगले पांच दिन का मौसम देख लें।",
+    "Your district": "आपका जिला",
+    "Select a district": "जिला चुनें",
+    "Show forecast": "मौसम देखें",
+    "humidity": "नमी",
+    "Reading taken at": "यह जानकारी है",
+    "That is the nearest station the weather service knows.":
+        "मौसम विभाग को ज्ञात निकटतम केंद्र यही है।",
+    "No forecast available for that district right now.":
+        "इस जिले के लिए अभी कोई पूर्वानुमान उपलब्ध नहीं है।",
+
     # queue position on the booking page
     "Your place in the queue": "कतार में आपका स्थान",
     "You are number": "आप क्रमांक",

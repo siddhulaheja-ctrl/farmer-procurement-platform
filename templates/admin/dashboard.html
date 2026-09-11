@@ -10,10 +10,14 @@
 </p>
 
 <div class="stat-row">
-  <div class="stat"><div class="n">{{ summary.get('booked', 0) }}</div><div class="l">Booked</div></div>
-  <div class="stat warn"><div class="n">{{ summary.get('arrived', 0) }}</div><div class="l">Arrived, not closed</div></div>
-  <div class="stat good"><div class="n">{{ summary.get('completed', 0) }}</div><div class="l">Completed</div></div>
-  <div class="stat bad"><div class="n">{{ summary.flags }}</div><div class="l">Unresolved data flags</div></div>
+  <div class="stat {{ 'zero' if not summary.get('booked') }}">
+    <div class="n">{{ summary.get('booked', 0) }}</div><div class="l">Booked</div></div>
+  <div class="stat {{ 'warn' if summary.get('arrived') else 'zero' }}">
+    <div class="n">{{ summary.get('arrived', 0) }}</div><div class="l">Arrived, not closed</div></div>
+  <div class="stat {{ 'good' if summary.get('completed') else 'zero' }}">
+    <div class="n">{{ summary.get('completed', 0) }}</div><div class="l">Completed</div></div>
+  <div class="stat {{ 'bad' if summary.flags else 'zero' }}">
+    <div class="n">{{ summary.flags }}</div><div class="l">Unresolved data flags</div></div>
 </div>
 
 {% if summary.risk %}
@@ -79,7 +83,7 @@
           <td class="num nowrap">{{ '%.1f'|format(b.estimated_quantity) }}</td>
           <td>{{ status_badge(b.status) }}</td>
           <td>{{ payment_badge(b.payment_status) }}</td>
-          <td>{{ risk_badge(b.storage_risk) }}</td>
+          <td>{% if b.storage_risk != 'none' %}{{ risk_badge(b.storage_risk) }}{% endif %}</td>
           <td class="nowrap">
             <a class="btn small {{ '' if b.status == 'booked' else 'secondary' }}"
                href="{{ url_for('admin_booking', booking_id=b.id) }}">

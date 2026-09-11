@@ -4,16 +4,65 @@
 {% block content %}
 <div class="hero">
   <img src="{{ url_for('static', filename='img/hero-field.jpg') }}"
-       alt="Farmer preparing a field for a wheat crop in Punjab">
+       width="1100" height="729" alt="Farmer preparing a field for a wheat crop in Punjab">
   <div class="hero-text">
     <h2>{{ t("Book your procurement slot before you harvest") }}</h2>
     <p>{{ t("Reserve a weighing slot at your nearest government procurement centre, verify your payment details in advance, and track your payment — without standing in a queue at the mandi gate.") }}</p>
   </div>
 </div>
 
+<div class="card" id="weather">
+  <div class="card-head">
+    <span>{{ t("Weather where you farm") }}</span>
+    {% if source %}
+      <span class="badge {{ 'blue' if source == 'live' else 'grey' }}">
+        {{ t("Live forecast") if source == 'live' else t("Simulated forecast") }}
+      </span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <p class="small muted" style="margin-top:0">
+      {{ t("Rain while your harvest waits at home is what gets it downgraded at the gate. Check the next five days before you pick a slot.") }}
+    </p>
+
+    <form method="get" action="{{ url_for('home') }}#weather" class="filter-bar">
+      <div class="field">
+        <label for="district">{{ t("Your district") }}</label>
+        <select id="district" name="district">
+          <option value="">{{ t("Select a district") }}</option>
+          {% for d in districts %}
+            <option value="{{ d }}" {{ 'selected' if picked == d }}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="actions"><button class="btn" type="submit">{{ t("Show forecast") }}</button></div>
+    </form>
+
+    {% if forecast %}
+      <div class="forecast">
+        {% for d in forecast %}
+        <div class="fc-day {{ 'wet' if d.rain_mm > 0.5 }}">
+          <div class="d">{{ d.date|nicedate }}</div>
+          <div class="r">{{ d.rain_mm }}<span class="small"> mm</span></div>
+          <div class="d">{{ d.humidity }}% {{ t("humidity") }}</div>
+          <div class="d">{{ d.description }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="small muted" style="margin:10px 0 0">
+        {{ t("Reading taken at") }} {{ place }}.
+        {% if picked != place %}{{ t("That is the nearest station the weather service knows.") }}{% endif %}
+      </p>
+    {% elif picked %}
+      <div class="empty">{{ t("No forecast available for that district right now.") }}</div>
+    {% endif %}
+  </div>
+</div>
+
 <div class="login-split">
   <div class="card">
     <img class="card-photo" src="{{ url_for('static', filename='img/harvest.jpg') }}"
+         width="760" height="506" loading="lazy"
          alt="Farmer harvesting rice by hand in Raichur, Karnataka">
     <h2>{{ t("For farmers") }}</h2>
     <div class="card-body">
@@ -34,6 +83,7 @@
 
   <div class="card">
     <img class="card-photo" src="{{ url_for('static', filename='img/planting.jpg') }}"
+         width="760" height="409" loading="lazy"
          alt="Women planting paddy seedlings in Assam">
     <h2>{{ t("For centre staff") }}</h2>
     <div class="card-body">
