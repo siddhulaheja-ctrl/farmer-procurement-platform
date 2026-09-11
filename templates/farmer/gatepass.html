@@ -8,9 +8,13 @@
 
 <div class="gatepass">
   <div class="gp-head">
-    <div class="s">{{ t("GOVERNMENT PROCUREMENT CENTRE") }}</div>
-    <h2>{{ t("Electronic Gate Pass") }}</h2>
-    <div class="s">{{ b.centre_name }}</div>
+    <img class="gp-crest" src="{{ url_for('static', filename='img/logo-mark-96.png') }}"
+         width="44" height="44" alt="">
+    <div>
+      <div class="s">{{ t("GOVERNMENT PROCUREMENT CENTRE") }}</div>
+      <h2>{{ t("Electronic Gate Pass") }}</h2>
+      <div class="s">{{ b.centre_name }}</div>
+    </div>
   </div>
 
   <div class="token">
