@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gov.css') }}">
 <script src="{{ url_for('static', filename='js/a11y.js') }}"></script>
 </head>
-<body>
+{# a clerk wants density, a farmer wants air. see .roomy in gov.css #}
+<body class="{{ '' if request.path.startswith('/admin') else 'roomy' }}">
 <a class="skip-link" href="#main">{{ t("Skip to main content") }}</a>
 
 <div class="utility-strip">

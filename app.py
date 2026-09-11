@@ -383,9 +383,12 @@ def register_routes(app):
     def farmer_centres():
         district = request.args.get("district", "")
         crop = request.args.get("crop", "")
+        # "311 open slots" answers a question nobody asked. What a farmer wants
+        # to know is when they can next turn up.
         sql = ("SELECT c.*, "
-               " (SELECT COALESCE(SUM(s.max_capacity - s.booked_count),0) FROM slots s"
-               "   WHERE s.centre_id = c.id AND s.date >= ?) AS open_slots"
+               " (SELECT MIN(s.date || ' ' || s.time_window) FROM slots s"
+               "   WHERE s.centre_id = c.id AND s.date >= ?"
+               "     AND s.booked_count < s.max_capacity) AS next_free"
                " FROM procurement_centres c WHERE 1=1")
         args = [date.today().isoformat()]
         if district:

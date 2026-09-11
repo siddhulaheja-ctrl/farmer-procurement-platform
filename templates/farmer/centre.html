@@ -34,18 +34,19 @@
             {% for s in slots %}
               {% set free = s.max_capacity - s.booked_count %}
               {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 100 %}
+              {# capacity only when it is running out. When every card says
+                 "6 / 6 places free" the one saying 2 stops standing out. #}
               <label class="slot {{ 'full' if free <= 0 }}">
-                <div class="tw">{{ s.time_window }}</div>
-                <div class="capbar">
-                  <span class="{{ 'hi' if pct >= 90 else ('mid' if pct >= 60 else '') }}"
-                        style="width: {{ pct }}%"></span>
-                </div>
-                <div class="cap">{{ free }} / {{ s.max_capacity }} {{ t("places free") }}</div>
-                {% if free > 0 %}
-                  <input type="radio" name="slot_id" value="{{ s.id }}" required>
-                  {{ t("Select") }}
-                {% else %}
-                  <span class="badge red">{{ t("Full") }}</span>
+                <input type="radio" name="slot_id" value="{{ s.id }}" required
+                       {{ 'disabled' if free <= 0 }}>
+                <span class="tw">{{ s.time_window }}</span>
+                {% if free <= 0 %}
+                  <span class="cap">{{ t("Fully booked") }}</span>
+                {% elif pct >= 60 %}
+                  <span class="capbar">
+                    <span class="{{ 'hi' if pct >= 90 else 'mid' }}" style="width: {{ pct }}%"></span>
+                  </span>
+                  <span class="cap tight">{{ t("Only") }} {{ free }} {{ t("left") }}</span>
                 {% endif %}
               </label>
             {% endfor %}

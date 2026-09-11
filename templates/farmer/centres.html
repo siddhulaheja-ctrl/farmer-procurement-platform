@@ -36,7 +36,7 @@
     <table class="data">
       <thead>
         <tr><th>{{ t("Centre") }}</th><th>{{ t("District") }}</th><th>{{ t("Crops accepted") }}</th>
-            <th class="num">{{ t("Daily capacity") }}</th><th class="num">{{ t("Open slots") }}</th><th></th></tr>
+            <th class="num">{{ t("Daily capacity") }}</th><th>{{ t("Next free slot") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for c in centres %}
@@ -47,7 +47,7 @@
           </td>
           <td class="nowrap">
             {{ c.district }}
-            {% if c.district == g.farmer.district %}<span class="badge green">{{ t("Your district") }}</span>{% endif %}
+            {% if c.district == g.farmer.district %}<span class="badge mine">{{ t("Your district") }}</span>{% endif %}
           </td>
           <td>
             <div class="tag-list">
@@ -57,11 +57,13 @@
             </div>
           </td>
           <td class="num">{{ c.daily_capacity }}</td>
-          <td class="num">
-            {% if c.open_slots > 0 %}
-              <span class="badge green">{{ c.open_slots }}</span>
+          <td class="nowrap">
+            {% if c.next_free %}
+              {% set parts = c.next_free.split(' ', 1) %}
+              <strong>{{ parts[0]|dayname }}</strong>
+              <div class="small muted">{{ parts[0]|nicedate }} &middot; {{ parts[1] }}</div>
             {% else %}
-              <span class="badge red">{{ t("Full") }}</span>
+              <span class="badge red">{{ t("Fully booked") }}</span>
             {% endif %}
           </td>
           <td class="nowrap">
@@ -73,7 +75,12 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">No centres match that filter.</div>
+    <div class="empty">{{ t("No centres match that filter.") }}</div>
   {% endif %}
 </div>
+
+{# short page, so close it with something rather than leaving a void #}
+<p class="page-foot small muted">
+  {{ t("Your own district is listed first, but you can book at any centre that procures your crop. Bring your Aadhaar card and bank passbook on the day.") }}
+</p>
 {% endblock %}

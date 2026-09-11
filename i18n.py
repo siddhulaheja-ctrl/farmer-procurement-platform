@@ -40,6 +40,15 @@ HINDI = {
     "Problem statement": "समस्या विवरण",
     "Last updated on": "अंतिम अद्यतन",
     "Visitors": "आगंतुक",
+    "Next free slot": "अगला खाली स्लॉट",
+    "No centres match that filter.": "इस फ़िल्टर से कोई केंद्र नहीं मिला।",
+    "Fully booked": "पूरा भरा है",
+    "Only": "केवल",
+    "left": "बचे हैं",
+    "Your own district is listed first, but you can book at any centre that procures your crop. "
+    "Bring your Aadhaar card and bank passbook on the day.":
+        "आपका अपना जिला पहले दिखाया गया है, लेकिन आप किसी भी ऐसे केंद्र पर बुक कर सकते हैं जो "
+        "आपकी फसल खरीदता हो। स्लॉट वाले दिन आधार कार्ड और बैंक पासबुक साथ लाएं।",
 
     # weather lookup on the home page
     "Weather where you farm": "आपके क्षेत्र का मौसम",
