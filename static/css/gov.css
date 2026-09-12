@@ -147,6 +147,35 @@ main.wrap { padding: 12px 20px 20px; }
 .page-sub { color: var(--muted); font-size: 0.8929rem; margin: 0 0 12px;
     padding-bottom: 10px; border-bottom: 1px solid var(--border-soft); }
 
+/* Scanned gate pass. Says plainly where you are and that this is one
+   farmer's screen, because it is the one page staff reach without having
+   navigated to it. */
+.scanbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--leaf-pale);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--leaf);
+    border-radius: 3px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    font-size: 0.9286rem;
+}
+.scan-tag {
+    background: var(--leaf);
+    color: #fff;
+    border-radius: 2px;
+    padding: 2px 8px;
+    font-size: 0.7857rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.scanbar .mono { font-size: 1rem; }
+.scan-note { color: var(--muted); font-size: 0.8571rem; }
+
 .breadcrumb { font-size: 0.8929rem; color: var(--muted); margin-bottom: 10px; }
 .breadcrumb a { color: var(--muted); }
 

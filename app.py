@@ -167,6 +167,21 @@ def register_filters(app):
             whole = ",".join(parts) + "," + tail
         return ("-" if neg else "") + "₹" + whole + "." + dec
 
+    @app.template_filter("mask")
+    def mask(value, keep=4):
+        """Hide all but the last few characters of an id number.
+
+        A gate clerk needs to check the number against the card in the
+        farmer's hand, which the last four digits do. The whole number on a
+        screen at a busy gate is a copy of someone's aadhaar waiting to be
+        photographed."""
+        digits = "".join(str(value or "").split())
+        if not digits:
+            return "—"
+        if len(digits) <= keep:
+            return digits
+        return "•" * (len(digits) - keep) + digits[-keep:]
+
     @app.template_filter("stamp")
     def stamp(value):
         try:
@@ -259,19 +274,35 @@ def register_routes(app):
 
     @app.route("/t/<token>")
     def token_lookup(token):
-        """Where a scanned gate pass lands.
+        """Where a scanned gate pass lands. One token, one farmer.
 
-        Staff get the counter screen, the farmer it belongs to gets their own
-        copy, anyone else gets the login. Nothing is shown before that.
+        Staff used to be dropped on the full admin booking screen, which
+        carries the whole nav and prints the farmer's aadhaar and account
+        number in full. A scan is a different job: check the person at the
+        gate against the pass they are holding. So it gets its own screen,
+        built from this token alone, with the id numbers masked to the last
+        four digits and no link that leads to anybody else.
+
+        The farmer it belongs to gets their own copy. Anyone else is sent to
+        sign in having been shown nothing, so a photographed pass is worth
+        nothing to whoever took the photo.
         """
-        b = query("SELECT id, farmer_id FROM bookings WHERE token_no = ?", (token,), one=True)
+        b = query(_BOOKING_SELECT + " WHERE b.token_no = ?", (token,), one=True)
         if b is None:
             flash("No booking found for token %s." % token, "error")
             return redirect(url_for("admin_login"))
         if g.staff:
-            return redirect(url_for("admin_booking", booking_id=b["id"]))
+            return render_template(
+                "scan.html", b=b, scan_only=True,
+                farmer=query("SELECT * FROM farmers WHERE id = ?", (b["farmer_id"],), one=True),
+                txn=query("SELECT * FROM transactions WHERE booking_id = ?", (b["id"],), one=True),
+                flags=unresolved_flags(b["farmer_id"]),
+                queue=core.queue_position(b["id"]),
+                grades=core.GRADES, msp=core.MSP)
         if g.farmer and g.farmer["id"] == b["farmer_id"]:
             return redirect(url_for("farmer_booking", booking_id=b["id"]))
+        # deliberately the same message whoever you are - a farmer scanning
+        # someone else's pass learns nothing they didn't already hold
         flash("Sign in to open token %s." % token, "info")
         return redirect(url_for("admin_login"))
 
@@ -656,7 +687,7 @@ def register_routes(app):
             "Provisional value %.2f. Awaiting transaction completion."
             % (actual, b["crop_type"], grade, total), booking_id=booking_id)
         flash("Recorded: %.1f quintals, grade %s." % (actual, grade), "success")
-        return redirect(url_for("admin_booking", booking_id=booking_id))
+        return _after_write(booking_id)
 
     @app.route("/admin/booking/<int:booking_id>/call", methods=["POST"])
     @staff_required
@@ -729,7 +760,7 @@ def register_routes(app):
                 booking_id=booking_id)
             flash("Transaction closed, but payment marked FAILED - farmer has %d unresolved "
                   "blocking flag(s)." % len(blocking), "warning")
-            return redirect(url_for("admin_booking", booking_id=booking_id))
+            return _after_write(booking_id)
 
         execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
         execute("UPDATE transactions SET payment_status='processing' WHERE booking_id=?",
@@ -744,7 +775,7 @@ def register_routes(app):
             "और दो से तीन दिन में आपके बैंक खाते में जमा हो जाएगा। धन्यवाद।"
             % int(txn["total_amount"] or 0), booking_id=booking_id)
         flash("Transaction completed. Payment moved to 'processing'.", "success")
-        return redirect(url_for("admin_booking", booking_id=booking_id))
+        return _after_write(booking_id)
 
     @app.route("/admin/transactions")
     @staff_required
@@ -1022,6 +1053,20 @@ _BOOKING_SELECT = (
 def _districts():
     return [r["district"] for r in
             query("SELECT DISTINCT district FROM procurement_centres ORDER BY district")]
+
+
+def _after_write(booking_id):
+    """Where to go after recording something.
+
+    A scanned pass posts its own token back, so staff stay on the gate check
+    screen instead of being thrown onto the full admin booking page halfway
+    through serving someone. The token only ever becomes a path segment of
+    our own /t/ route, so it can't be used to redirect anywhere else.
+    """
+    token = (request.form.get("scan_token") or "").strip()
+    if token:
+        return redirect(url_for("token_lookup", token=token))
+    return redirect(url_for("admin_booking", booking_id=booking_id))
 
 
 def _owned_booking(booking_id):

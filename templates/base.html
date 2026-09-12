@@ -62,6 +62,9 @@
   </div>
 </header>
 
+{# a scanned gate pass is one farmer's screen. no nav on it, so the scan
+   can't be a doorway into anybody else's record #}
+{% if not scan_only %}
 <nav class="navbar">
   <div class="wrap">
     {% if g.staff %}
@@ -87,6 +90,7 @@
     {% endif %}
   </div>
 </nav>
+{% endif %}
 
 <main class="wrap" id="main">
   {% with messages = get_flashed_messages(with_categories=true) %}
