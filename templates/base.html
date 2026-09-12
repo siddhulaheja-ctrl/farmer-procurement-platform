@@ -69,6 +69,7 @@
   <div class="wrap">
     {% if g.staff %}
       <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">Bookings</a>
+      <a href="{{ url_for('admin_scan') }}" class="{{ 'active' if request.endpoint == 'admin_scan' }}">Scan Pass</a>
       <a href="{{ url_for('admin_slots') }}" class="{{ 'active' if request.endpoint == 'admin_slots' }}">Slots</a>
       <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if request.endpoint == 'admin_transactions' }}">Transactions</a>
       <a href="{{ url_for('admin_flags') }}" class="{{ 'active' if request.endpoint == 'admin_flags' }}">Data Flags</a>
@@ -161,5 +162,7 @@
     </div>
   </div>
 </footer>
+{# per-page scripts go last, so nothing waits on them #}
+{% block scripts %}{% endblock %}
 </body>
 </html>

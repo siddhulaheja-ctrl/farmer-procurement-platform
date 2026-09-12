@@ -970,6 +970,45 @@ def register_routes(app):
               "success")
         return redirect(request.referrer or url_for("admin_slots"))
 
+    @app.route("/admin/scan", methods=["GET", "POST"])
+    @staff_required
+    def admin_scan():
+        """Open a gate pass from the counter.
+
+        Two ways in, because a gate is not a desk. The camera, where the
+        browser has a barcode reader and the page is on https - phones only
+        hand over a camera on a secure page. And the token typed in, which
+        needs no camera, no javascript and no permission prompt, and still
+        works on a pass that has been folded into a pocket and back.
+
+        The typed box is the one that always works, so it is not hidden
+        behind the camera.
+        """
+        if request.method == "POST":
+            token = _clean_token(request.form.get("token"))
+            if not token:
+                flash("Enter the token number printed on the pass.", "error")
+                return redirect(url_for("admin_scan"))
+            if query("SELECT id FROM bookings WHERE token_no = ?", (token,), one=True) is None:
+                flash("No booking found for token %s. Check the number on the pass." % token,
+                      "error")
+                return redirect(url_for("admin_scan"))
+            return redirect(url_for("token_lookup", token=token))
+
+        # something to scan during a demo, and a way through when the pass
+        # is too creased to read
+        today = query(
+            "SELECT b.token_no, b.status, f.name AS farmer_name, s.time_window"
+            "  FROM bookings b"
+            "  JOIN slots s ON s.id = b.slot_id"
+            "  JOIN farmers f ON f.id = b.farmer_id"
+            " WHERE s.date = ? AND b.status IN ('booked','arrived')"
+            + (" AND s.centre_id = ?" if g.staff["centre_id"] else "") +
+            " ORDER BY s.time_window, b.id LIMIT 12",
+            (date.today().isoformat(), g.staff["centre_id"]) if g.staff["centre_id"]
+            else (date.today().isoformat(),))
+        return render_template("admin/scan.html", today=today)
+
     @app.route("/admin/storage-risk")
     @staff_required
     def admin_storage_risk():
@@ -1048,6 +1087,20 @@ _BOOKING_SELECT = (
     " JOIN procurement_centres c ON c.id = s.centre_id"
     " JOIN farmers f ON f.id = b.farmer_id"
     " LEFT JOIN transactions t ON t.booking_id = b.id")
+
+
+def _clean_token(raw):
+    """The token out of whatever staff gave us.
+
+    Typed in it looks like PC01-S025-001. Scanned or pasted it is the whole
+    gate pass url, so take what follows /t/. Anything else is dropped, which
+    also means a hostile qr code can't steer us somewhere off this site.
+    """
+    text = (raw or "").strip()
+    if "/t/" in text:
+        text = text.rsplit("/t/", 1)[1]
+    text = text.split("?")[0].split("#")[0]
+    return "".join(ch for ch in text.upper() if ch.isalnum() or ch == "-")[:32]
 
 
 def _districts():

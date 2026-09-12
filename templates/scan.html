@@ -147,10 +147,8 @@
     <div class="card">
       <h2>Finished with this pass?</h2>
       <div class="card-body">
-        <p class="small muted" style="margin-top:0">
-          Scan the next one, or go back to the bookings list.
-        </p>
-        <a class="btn secondary block" href="{{ url_for('admin_dashboard') }}">Back to bookings</a>
+        <a class="btn block" href="{{ url_for('admin_scan') }}">Scan the next pass</a>
+        <a class="btn secondary block mt" href="{{ url_for('admin_dashboard') }}">Back to bookings</a>
       </div>
     </div>
   </div>

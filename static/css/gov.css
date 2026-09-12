@@ -147,6 +147,47 @@ main.wrap { padding: 12px 20px 20px; }
 .page-sub { color: var(--muted); font-size: 0.8929rem; margin: 0 0 12px;
     padding-bottom: 10px; border-bottom: 1px solid var(--border-soft); }
 
+/* Camera scanner on the staff screen. The stage keeps its shape before the
+   camera starts, so the page doesn't jump when the picture arrives. */
+.scan-stage {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: #11170f;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.scan-stage video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+/* corner marks, so there is something to aim at */
+.scan-frame {
+    position: absolute;
+    inset: 14%;
+    border: 2px solid rgba(255, 255, 255, .55);
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity .2s;
+}
+#scan-panel.live .scan-frame { opacity: 1; }
+
+.tokenlist { list-style: none; margin: 0; padding: 0; }
+.tokenlist li {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 0.9286rem;
+}
+.tokenlist li:last-child { border-bottom: 0; }
+.tokenlist .tl-who { flex: 1 1 auto; }
+.tokenlist .tl-when { color: var(--muted); font-size: 0.8571rem; }
+
 /* Scanned gate pass. Says plainly where you are and that this is one
    farmer's screen, because it is the one page staff reach without having
    navigated to it. */
