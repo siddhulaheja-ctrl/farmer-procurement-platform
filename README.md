@@ -39,7 +39,7 @@ moves to 5001 by itself. If you run it manually use `PORT=5001 python app.py`.
 
 ## Logins
 
-Staff: `ADMIN` / `demo123`.
+Members: `RUD01` at a centre counter, `ADMIN` as the district supervisor, both with `demo123`.
 
 Farmers sign in with their own mobile number. Nothing is actually sent, so any
 six digits work as the OTP.
@@ -89,7 +89,7 @@ anyone. Data is all fake so it doesn't matter, just re-run the seed after.
 ## Phone calls
 
 We ring the farmer. There is a **Call farmer** button on each booking in the
-staff screens, and a **Call** button on the high risk rows of the Storage Risk
+member screens, and a **Call** button on the high risk rows of the Storage Risk
 page. What gets said depends on the booking - a storage risk warning, a held
 payment, or a plain slot reminder.
 
@@ -161,10 +161,10 @@ the counter marking each farmer served the moment it happens, and they are busy
 weighing grain and arguing about moisture. The logging goes patchy, the
 estimate drifts, and a farmer who trusted "35 minutes" and went for chai comes
 back to find he has been passed. Positions cannot drift. The "already weighed
-in" count comes from the arrival staff record anyway when they take delivery,
+in" count comes from the arrival record members make anyway when they take delivery,
 so it costs nobody an extra tap.
 
-Alongside it, staff can set how far behind a centre is running from the Slots
+Alongside it, members can set how far behind a centre is running from the Slots
 screen. One number, maintained by a human, shown to farmers with its own age
 attached so a four hour old number can be judged for what it is. A stale "40
 minutes behind" is still roughly true; a stale per-farmer ETA is a lie with a
@@ -172,7 +172,7 @@ decimal point.
 
 The gate pass carries a QR next to the token. It holds a URL, so it opens in
 whatever camera app the clerk already has - no scanner app to install at every
-gate. It is a lookup shortcut for staff, not the thing that identifies the
+gate. It is a lookup shortcut for members, not the thing that identifies the
 farmer: the token number stays primary because it works on a feature phone, a
 printout, or a number written on a scrap of paper, and a QR does not.
 

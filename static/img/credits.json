@@ -1,32 +1,57 @@
 [
   {
-    "file": "fields-uttarakhand.jpg",
-    "size": "1100x696",
-    "title": "Farming in uttarakhand india.jpg",
-    "author": "Digvijaysjanoti",
+    "file": "harvest-paddy.jpg",
+    "size": "1500x1000",
+    "title": "Farmer manually harvesting rice in Raichur, Karnataka.jpg",
+    "caption": "Harvesting paddy by hand, Raichur, Karnataka",
+    "author": "Nanditha Gogate, WELL Labs",
     "licence": "CC BY-SA 4.0",
     "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Farming_in_uttarakhand_india.jpg",
-    "changes": "resized"
+    "source": "https://commons.wikimedia.org/wiki/File:Farmer_manually_harvesting_rice_in_Raichur,_Karnataka.jpg",
+    "changes": "cropped and resized"
   },
   {
-    "file": "nursery-uttarakhand.jpg",
-    "size": "760x449",
-    "title": "Organic farming uttarakhand.jpg",
-    "author": "Digvijaysjanoti",
+    "file": "farmer-grain-market.jpg",
+    "size": "1200x700",
+    "title": "An Indian Farmer in Grain Markeet.jpg",
+    "caption": "A farmer at a grain market, with procured bags stacked under the shed",
+    "author": "Geet Arts",
     "licence": "CC BY-SA 4.0",
     "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Organic_farming_uttarakhand.jpg",
-    "changes": "resized"
+    "source": "https://commons.wikimedia.org/wiki/File:An_Indian_Farmer_in_Grain_Markeet.jpg",
+    "changes": "cropped and resized"
   },
   {
-    "file": "mandi-rudrapur.jpg",
-    "size": "760x365",
-    "title": "Rudrapur mandi, bagwara.jpg",
-    "author": "RaviVerma2018",
+    "file": "mandi-yard.jpg",
+    "size": "1200x700",
+    "title": "Labourers working in a grain market.jpg",
+    "caption": "Wheat being cleaned and bagged at a grain market yard",
+    "author": "Raman Deep",
     "licence": "CC BY-SA 4.0",
     "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
-    "source": "https://commons.wikimedia.org/wiki/File:Rudrapur_mandi,_bagwara.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Labourers_working_in_a_grain_market.jpg",
+    "changes": "cropped and resized"
+  },
+  {
+    "file": "winnowing-uttarakhand.jpg",
+    "size": "1000x1000",
+    "title": "Rice winnowing, Uttarakhand, India.jpg",
+    "caption": "Winnowing rice, Uttarakhand",
+    "author": "Yann (talk)",
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Rice_winnowing,_Uttarakhand,_India.jpg",
+    "changes": "cropped and resized"
+  },
+  {
+    "file": "warehouse-depot.jpg",
+    "size": "1200x675",
+    "title": "View of CWC Base Depot, Bamanheri, Muzaffarnagar.jpg",
+    "caption": "Central Warehousing Corporation depot, Bamanheri, Muzaffarnagar",
+    "author": "Prabhat1729",
+    "licence": "CC BY-SA 4.0",
+    "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:View_of_CWC_Base_Depot,_Bamanheri,_Muzaffarnagar.jpg",
     "changes": "cropped and resized"
   }
 ]

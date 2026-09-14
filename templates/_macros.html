@@ -59,10 +59,11 @@
 {# a forecast day's picture. words beat numbers when the api gives us words #}
 {% macro wx_glyph(day) -%}
   {%- set desc = (day.description or '')|lower -%}
-  {%- if day.rain_mm > 0.5 or 'rain' in desc or 'drizzle' in desc or 'storm' in desc -%}{{ icon('cloud-rain') }}
-  {%- elif 'overcast' in desc or 'broken' in desc -%}{{ icon('cloud') }}
-  {%- elif 'cloud' in desc or day.humidity >= 70 -%}{{ icon('cloud-sun') }}
-  {%- else -%}{{ icon('sun') }}{%- endif -%}
+  {#- the sky decides the picture. humidity used to turn a clear day cloudy -#}
+  {%- if day.rain_mm > 0.5 or 'rain' in desc or 'drizzle' in desc or 'storm' in desc or 'thunder' in desc -%}{{ icon('cloud-rain') }}
+  {%- elif 'overcast' in desc or 'broken' in desc or 'mist' in desc or 'haze' in desc or 'fog' in desc or 'smoke' in desc -%}{{ icon('cloud') }}
+  {%- elif 'cloud' in desc -%}{{ icon('cloud-sun') }}
+  {%- else -%}{{ icon('sun-fill', 'wx-sun') }}{%- endif -%}
 {%- endmacro %}
 
 {# the way into booking by voice, big and plain: many farmers will never type #}

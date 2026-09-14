@@ -144,7 +144,7 @@ img { max-width: 100%; }
 .govstrip {
     background: var(--forest-900);
     color: #b9d1c2;
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
 }
 .govstrip .wrap {
     display: flex; align-items: center; justify-content: space-between;
@@ -164,7 +164,7 @@ img { max-width: 100%; }
 
 .a11y button {
     background: transparent; border: 0; color: inherit; font: inherit;
-    font-size: 0.8125rem; line-height: 1; padding: 5px 7px; cursor: pointer;
+    font-size: 0.9375rem; line-height: 1; padding: 5px 7px; cursor: pointer;
     border-radius: var(--r-sm);
 }
 .a11y button sup { font-size: 0.5625rem; }
@@ -204,8 +204,8 @@ img { max-width: 100%; }
 .brand img {
     width: 44px; height: 44px; display: block; object-fit: contain;
 }
-.brand-name { display: block; font-size: 1.3125rem; font-weight: 700; letter-spacing: 0; line-height: 1.05; color: var(--forest-800); }
-.brand-sub  { display: block; font-size: 0.75rem; color: var(--muted); margin-top: 3px; letter-spacing: .01em; }
+.brand-name { display: block; font-size: 1.4375rem; font-weight: 700; letter-spacing: 0; line-height: 1.05; color: var(--forest-800); }
+.brand-sub  { display: block; font-size: 0.875rem; color: var(--muted); margin-top: 3px; letter-spacing: .01em; }
 @media (max-width: 460px) { .brand-sub { display: none; } }
 
 /* on a phone the nav sits on its own row and scrolls sideways - a hamburger
@@ -219,18 +219,39 @@ img { max-width: 100%; }
 @media (min-width: 1000px) {
     .mainnav { order: 0; flex: 0 1 auto; margin: 0; padding: 0; overflow: visible; }
 }
-.mainnav a { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; padding: 12px 12px 9px; border-radius: 0; border-bottom: 3px solid transparent; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 0.9375rem; }
+.mainnav a { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; padding: 12px 12px 9px; border-radius: 0; border-bottom: 3px solid transparent; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 1.0625rem; }
 .mainnav a .ic { color: var(--muted); transition: color .15s; }
 .mainnav a:hover { background: none; color: var(--forest-700); border-bottom-color: var(--line); }
 .mainnav a:hover .ic { color: var(--leaf-500); }
 .mainnav a.active { background: none; color: var(--forest-800); border-bottom-color: var(--leaf-600); }
 .mainnav a.active .ic { color: var(--leaf-600); }
 
+/* phones: the menu folds behind a hamburger. only with script (.js), which
+   is what opens it - otherwise the menu row stays out on its own */
+.navtoggle { display: none; }
+@media (max-width: 759px) {
+    .js .navtoggle {
+        display: inline-grid; place-items: center; order: 2; width: 2.9rem; height: 2.9rem; padding: 0;
+        background: #fff; color: var(--forest-800); border: 1px solid var(--line); border-radius: var(--r-sm); cursor: pointer;
+    }
+    .js .navtoggle .ic { width: 1.5rem; height: 1.5rem; }
+    .js .navtoggle[aria-expanded="true"] { background: var(--forest-800); border-color: var(--forest-800); color: #fff; }
+    .js .mainnav { display: none; }
+    .js .mainnav.open {
+        display: flex; flex-direction: column; gap: 0; overflow: visible;
+        margin: 4px -16px -8px; padding: 0; border-top: 1px solid var(--line);
+    }
+    .js .mainnav.open a { padding: 15px 20px; border-bottom: 1px solid var(--line-2); border-left: 4px solid transparent; }
+    .js .mainnav.open a:hover { border-bottom-color: var(--line-2); background: var(--mint-50); }
+    .js .mainnav.open a.active { border-left-color: var(--leaf-600); border-bottom-color: var(--line-2); background: var(--mint-50); }
+    .js .mainnav.open a .pill { margin-left: auto; }
+}
+
 .pill { display: inline-grid; place-items: center; min-width: 1.3rem; height: 1.3rem; padding: 0 5px; border-radius: 2px; background: var(--bad); color: #fff; font-size: 0.6875rem; font-weight: 700; line-height: 1; }
 
 .account { display: inline-flex; align-items: center; gap: 10px; }
-.acc-name { display: none; line-height: 1.15; font-weight: 700; font-size: 0.875rem; }
-.acc-name small { display: block; font-weight: 400; color: var(--muted); font-size: 0.75rem; }
+.acc-name { display: none; line-height: 1.15; font-weight: 700; font-size: 1rem; }
+.acc-name small { display: block; font-weight: 400; color: var(--muted); font-size: 0.875rem; }
 @media (min-width: 700px) { .acc-name { display: block; } }
 
 .iconbtn {
@@ -504,6 +525,58 @@ input.mono { font-family: var(--mono); letter-spacing: .04em; }
 .toast-close:hover { color: var(--ink); }
 .toast-close .ic { width: 1.1rem; height: 1.1rem; }
 @media (max-width: 560px) { .toasts { left: 16px; right: 16px; bottom: 16px; width: auto; } }
+
+/* slot booked: a big confirmation in the middle, the way a payment app says
+   done - the disc pops, the tick draws, two ripples and a burst go out, then
+   the token rises in. stays until Done, so the token can be written down */
+dialog.celebrate {
+    position: fixed; inset: 0; z-index: 100; width: 100%; height: 100%; max-width: none; max-height: none;
+    margin: 0; padding: 16px; border: 0; background: rgba(6, 28, 20, .74);
+    display: grid; place-items: center; animation: cel-fade .25s ease-out both;
+}
+dialog.celebrate:not([open]) { display: none; }
+dialog.celebrate::backdrop { background: transparent; }
+dialog.celebrate.closing { animation: cel-out .22s ease-in forwards; }
+.cel-card {
+    width: min(24rem, 100%); max-height: calc(100vh - 32px); overflow: auto;
+    background: #fff; color: var(--ink); border-radius: 20px; padding: 34px 24px 22px; text-align: center;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, .35); animation: cel-rise .5s cubic-bezier(.2, .9, .3, 1.15) both;
+}
+.cel-mark { position: relative; width: 118px; height: 118px; margin: 0 auto 16px; }
+.cel-check { position: relative; display: block; width: 100%; height: 100%; overflow: visible; }
+.cel-disc { fill: var(--ok); transform-box: fill-box; transform-origin: center; transform: scale(0);
+    animation: cel-pop .55s cubic-bezier(.3, 1.6, .5, 1) .15s forwards; }
+.cel-tick { fill: none; stroke: #fff; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 40; stroke-dashoffset: 40; animation: cel-draw .42s ease-out .6s forwards; }
+.cel-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--ok); opacity: 0;
+    animation: cel-ripple 1.3s ease-out .45s 2; }
+.cel-ring.r2 { animation-delay: .85s; }
+.cel-spark { position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px; border-radius: 50%;
+    background: var(--wheat-500); opacity: 0; animation: cel-burst .9s ease-out .6s forwards; }
+.cel-spark:nth-of-type(even) { background: var(--leaf-400); }
+.cel-body > * { animation: cel-up .45s ease-out .8s both; }
+.cel-body h2 { margin: 0; font-size: clamp(1.625rem, 1.3rem + 1.4vw, 2rem); font-weight: 800; color: var(--forest-800); }
+.cel-label { margin: 16px 0 2px; font-size: 0.8125rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.cel-token { margin: 0; font-family: var(--mono); font-size: clamp(1.625rem, 1.2rem + 2vw, 2.125rem); font-weight: 700; letter-spacing: .04em; color: var(--forest-900); overflow-wrap: anywhere; }
+.cel-when { margin: 10px 0 18px; color: var(--ink-2); line-height: 1.45; }
+.cel-risk { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 16px; padding: 10px 12px; text-align: left;
+    background: var(--warn-bg); color: var(--warn); border-radius: var(--r); font-size: 0.9375rem; }
+.cel-risk .ic { flex: none; margin-top: 3px; }
+@keyframes cel-fade { from { opacity: 0; } }
+@keyframes cel-out { to { opacity: 0; } }
+@keyframes cel-rise { from { opacity: 0; transform: translateY(28px) scale(.92); } }
+@keyframes cel-pop { to { transform: scale(1); } }
+@keyframes cel-draw { to { stroke-dashoffset: 0; } }
+@keyframes cel-ripple { 0% { opacity: .55; transform: scale(.9); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes cel-burst { 0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
+                       100% { opacity: 0; transform: rotate(var(--a)) translateY(-92px) scale(.3); } }
+@keyframes cel-up { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) {
+    dialog.celebrate, dialog.celebrate.closing, .cel-card, .cel-body > * { animation: none; }
+    .cel-disc { transform: none; animation: none; }
+    .cel-tick { stroke-dashoffset: 0; animation: none; }
+    .cel-ring, .cel-spark { display: none; }
+}
 
 /* ------------------------------------------------------------ help chat */
 
@@ -795,6 +868,8 @@ table.wx-hours td, table.wx-hours th { padding: 8px 10px; }
 .wx-sky { display: inline-flex; align-items: center; gap: 8px; text-transform: capitalize; white-space: nowrap; }
 .wx-sky .ic { width: 1.2rem; height: 1.2rem; color: var(--wheat-500); }
 table.wx-hours tr.wet .wx-sky .ic { color: var(--info); }
+/* a clear sky is an orange sun wherever it's drawn, blue weather cards included */
+.ic.wx-sun { color: #f08a00 !important; }
 
 /* weather in blues, so it reads as its own thing on a green page: the home
    page section, and the forecast and slot weather on a centre's page */
@@ -1401,11 +1476,11 @@ hr.rule { border: 0; border-top: 1px solid var(--line-2); margin: 18px 0; }
 @media (min-width: 1000px) {
     .topbar-in { flex-wrap: nowrap; }
     .brand { min-width: 0; }
-    .mainnav a { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; padding: 12px 12px 9px; border-radius: 0; border-bottom: 3px solid transparent; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 0.9375rem; }
+    .mainnav a { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; padding: 12px 12px 9px; border-radius: 0; border-bottom: 3px solid transparent; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 1.0625rem; }
 }
 @media (min-width: 1000px) and (max-width: 1250px) {
     .brand-sub { display: none; }
-    .mainnav a { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; padding: 12px 12px 9px; border-radius: 0; border-bottom: 3px solid transparent; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 0.9375rem; }
+    .mainnav a { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; padding: 12px 12px 9px; border-radius: 0; border-bottom: 3px solid transparent; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 1.0625rem; }
 }
 
 /* slot picker: the tile keeps its own height instead of stretching down the

@@ -4,7 +4,7 @@
 
 {% block content %}
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('super_staff') }}">{{ icon('arrow-left') }}Staff accounts</a>
+  <a href="{{ url_for('super_staff') }}">{{ icon('arrow-left') }}Member accounts</a>
 </nav>
 
 <div class="pagehead">
@@ -12,7 +12,7 @@
     <p class="eyebrow">{{ person.staff_code }} &middot; {{ person.centre_name or 'Every centre' }}</p>
     <h1 class="page-title">{{ person.name }}</h1>
     <div class="meta-row">
-      <span>{% if person.role == 'superadmin' %}<span class="badge blue">Supervisor</span>{% else %}<span class="badge grey">Centre staff</span>{% endif %}</span>
+      <span>{% if person.role == 'superadmin' %}<span class="badge blue">Supervisor</span>{% else %}<span class="badge grey">Centre member</span>{% endif %}</span>
       <span>{% if person.active %}<span class="badge green">Account on</span>{% else %}<span class="badge grey">Account off</span>{% endif %}</span>
       <span>{{ icon('clock') }}Last sign-in {{ person.last_login|stamp if person.last_login else 'never' }}</span>
     </div>
@@ -77,7 +77,7 @@
           <div class="field">
             <label for="role">Role</label>
             <select id="role" name="role">
-              <option value="staff" {{ 'selected' if person.role == 'staff' }}>Centre staff</option>
+              <option value="staff" {{ 'selected' if person.role == 'staff' }}>Centre member</option>
               <option value="superadmin" {{ 'selected' if person.role == 'superadmin' }}>Supervisor</option>
             </select>
           </div>

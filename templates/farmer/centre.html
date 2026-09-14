@@ -53,7 +53,7 @@
   {% if wx_forecast %}
   <section class="card centre-weather" id="centre-weather">
     <div class="card-head">
-      <h2 class="card-title">{{ icon('cloud-sun') }}{{ t("Weather at %s")|format(t(wx_place)) }}</h2>
+      <h2 class="card-title">{{ wx_glyph(wx_forecast[0]) }}{{ t("Weather at %s")|format(t(wx_place)) }}</h2>
       {% if wx_source == 'live' %}<span class="badge green">{{ t("Live forecast") }}</span>
       {% else %}<span class="state off">{{ t("Simulated forecast") }}</span>{% endif %}
     </div>

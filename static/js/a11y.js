@@ -10,6 +10,8 @@
 (function () {
     var STEPS = [12.5, 14, 15.5, 17];   // 14 is the default, index 1
     var root = document.documentElement;
+    // lets the stylesheet fold the phone menu only when this script can open it
+    root.classList.add('js');
 
     function read(key, fallback) {
         try { var v = localStorage.getItem(key); return v === null ? fallback : v; }
@@ -55,6 +57,30 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') { closeMenus(null); }
         });
+
+        // the phone menu: the hamburger opens and closes the top navigation
+        var toggle = document.querySelector('.navtoggle');
+        var nav = document.getElementById('mainnav');
+        if (toggle && nav) {
+            var use = toggle.querySelector('use');
+            var sprite = use ? use.getAttribute('href').split('#')[0] : '';
+            var setOpen = function (open) {
+                nav.classList.toggle('open', open);
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                toggle.querySelector('.sr').textContent = toggle.getAttribute(open ? 'data-close' : 'data-open');
+                if (use) { use.setAttribute('href', sprite + (open ? '#x' : '#menu')); }
+            };
+            toggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                setOpen(!nav.classList.contains('open'));
+            });
+            document.addEventListener('click', function (e) {
+                if (nav.classList.contains('open') && !nav.contains(e.target)) { setOpen(false); }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && nav.classList.contains('open')) { setOpen(false); toggle.focus(); }
+            });
+        }
 
         applySize(step);                     // re-run, the buttons exist now
         var buttons = document.querySelectorAll('[data-fontstep]');

@@ -105,7 +105,7 @@ try {
     Write-Host "    Farmer   9000000001   (clean record)"
     Write-Host "    Farmer   9000000002   (has data mismatches)"
     Write-Host "    OTP      123456"
-    Write-Host "    Staff    ADMIN / demo123"
+    Write-Host "    Members  ADMIN / demo123"
     Write-Host ""
     Write-Rule
     Write-Host ""

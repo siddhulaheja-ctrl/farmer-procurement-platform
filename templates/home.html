@@ -15,10 +15,10 @@
   </div>
   <figure class="lead-photo">
     <picture>
-      <img src="{{ url_for("static", filename="img/fields-uttarakhand.jpg") }}" width="1100" height="696"
-           alt="Women carrying loads along the bunds between paddy nurseries in Uttarakhand" fetchpriority="high">
+      <img src="{{ url_for("static", filename="img/harvest-paddy.jpg") }}" width="1500" height="1000"
+           alt="A farmer bending to cut ripe paddy by hand, with a harvester working the field behind her" fetchpriority="high">
     </picture>
-    <figcaption>Paddy nurseries, Uttarakhand &middot; Digvijaysjanoti, CC BY-SA 4.0</figcaption>
+    <figcaption>Harvesting paddy, Raichur, Karnataka &middot; Nanditha Gogate, WELL Labs, CC BY-SA 4.0</figcaption>
   </figure>
 </section>
 
@@ -140,8 +140,8 @@
   <div class="audience">
     <div class="aud">
       <div class="aud-photo">
-        <img src="{{ url_for("static", filename="img/nursery-uttarakhand.jpg") }}" width="760" height="449" loading="lazy"
-             alt="Women working paddy nursery plots in Uttarakhand">
+        <img src="{{ url_for("static", filename="img/farmer-grain-market.jpg") }}" width="1200" height="700" loading="lazy"
+             alt="A farmer sitting at a grain market, with a loaded truck and stacked grain bags behind">
         <span class="aud-tag">{{ icon('sprout') }}{{ t("For farmers") }}</span>
       </div>
       <div class="aud-body">
@@ -163,9 +163,9 @@
 
     <div class="aud">
       <div class="aud-photo">
-        <img src="{{ url_for("static", filename="img/mandi-rudrapur.jpg") }}" width="760" height="365" loading="lazy"
-             alt="Purvi Rudrapur Kisan Seva Sahkari Samiti at Bagwara, with a paddy procurement centre notice">
-        <span class="aud-tag">{{ icon('shield') }}{{ t("For centre staff") }}</span>
+        <img src="{{ url_for("static", filename="img/mandi-yard.jpg") }}" width="1200" height="700" loading="lazy"
+             alt="Workers cleaning wheat and filling bags at a grain market yard, a truck being loaded behind">
+        <span class="aud-tag">{{ icon('shield') }}{{ t("For centre members") }}</span>
       </div>
       <div class="aud-body">
         <ul class="aud-list">
@@ -173,7 +173,7 @@
           <li>{{ icon('phone-call') }}{{ t("Ring a farmer in Hindi from any booking") }}</li>
         </ul>
         <div class="btn-row">
-          <a class="btn" href="{{ url_for('admin_login') }}">{{ icon('log-in') }}{{ t("Staff sign in") }}</a>
+          <a class="btn" href="{{ url_for('admin_login') }}">{{ icon('log-in') }}{{ t("Member sign in") }}</a>
         </div>
       </div>
     </div>

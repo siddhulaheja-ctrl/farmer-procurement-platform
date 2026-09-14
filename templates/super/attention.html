@@ -70,7 +70,7 @@
           <div class="who">
             <div class="who-text">
               <a href="{{ url_for('admin_farmer', farmer_id=it.farmer_id) }}">{{ it.farmer_name }}</a>
-              <span class="sub-line"><span class="mono">{{ reg_no(it.farmer_id) }}</span> &middot; {{ it.village }} &middot; {{ it.centres }}</span>
+              <span class="sub-line">{{ it.village }} &middot; {{ it.centres }}</span>
             </div>
           </div>
           <div class="attn-fact"><strong>{{ it.n }} rejected</strong><span>last on {{ it.last_date|nicedate }}</span></div>

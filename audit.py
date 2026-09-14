@@ -31,8 +31,8 @@ ACTIONS = {
     "slot_create":     ("Published a slot", "layers", False),
     "capacity_change": ("Changed slot capacity", "layers", True),
     "delay_set":       ("Set how late the counter is", "hourglass", False),
-    "staff_create":    ("Added a staff account", "user-plus", False),
-    "staff_update":    ("Changed a staff account", "shield", True),
+    "staff_create":    ("Added a member account", "user-plus", False),
+    "staff_update":    ("Changed a member account", "shield", True),
     "password_reset":  ("Reset a password", "lock", True),
 }
 

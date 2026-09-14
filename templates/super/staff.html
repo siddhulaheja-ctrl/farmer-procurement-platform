@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Staff accounts{% endblock %}
+{% block title %}Member accounts{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
     <p class="eyebrow">District supervisor</p>
-    <h1 class="page-title">Staff accounts</h1>
+    <h1 class="page-title">Member accounts</h1>
     <p class="page-sub">Who can sign in, which centre they're locked to, and what each person has done today.</p>
   </div>
 </div>
@@ -34,7 +34,7 @@
               </div>
             </td>
             <td>{{ s.centre_name or 'Every centre' }}</td>
-            <td>{% if s.role == 'superadmin' %}<span class="badge blue">Supervisor</span>{% else %}<span class="badge grey">Centre staff</span>{% endif %}</td>
+            <td>{% if s.role == 'superadmin' %}<span class="badge blue">Supervisor</span>{% else %}<span class="badge grey">Centre member</span>{% endif %}</td>
             <td class="num">{{ s.weighed or 0 }}</td>
             <td class="num">{{ s.closed or 0 }}</td>
             <td class="num">{{ s.flags or 0 }}</td>
@@ -57,7 +57,7 @@
           <input id="name" name="name" value="{{ form.get('name', '') }}" required>
         </div>
         <div class="field">
-          <label for="staff_code">Staff code</label>
+          <label for="staff_code">Member code</label>
           <input id="staff_code" name="staff_code" class="mono" value="{{ form.get('staff_code', '') }}"
                  maxlength="12" placeholder="RUD03" required>
           <span class="hint">What they sign in with. 3 to 12 letters and numbers.</span>
@@ -69,7 +69,7 @@
         <div class="field">
           <label for="role">Role</label>
           <select id="role" name="role">
-            <option value="staff" {{ 'selected' if form.get('role') != 'superadmin' }}>Centre staff</option>
+            <option value="staff" {{ 'selected' if form.get('role') != 'superadmin' }}>Centre member</option>
             <option value="superadmin" {{ 'selected' if form.get('role') == 'superadmin' }}>Supervisor</option>
           </select>
         </div>
@@ -81,7 +81,7 @@
               <option value="{{ c.id }}" {{ 'selected' if form.get('centre_id') == c.id|string }}>{{ c.name }}</option>
             {% endfor %}
           </select>
-          <span class="hint">Centre staff only ever see bookings at this one centre.</span>
+          <span class="hint">Centre members only ever see bookings at this one centre.</span>
         </div>
         <div class="btn-row mt">
           <button class="btn" type="submit">{{ icon('check') }}Create account</button>

@@ -60,7 +60,7 @@
     </a>
 
     {% if not g.staff %}
-    <nav class="mainnav" aria-label="{{ t('Main menu') }}">
+    <nav class="mainnav" id="mainnav" aria-label="{{ t('Main menu') }}">
       {% if g.farmer %}
         <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint in ('farmer_dashboard', 'farmer_booking', 'farmer_gatepass', 'farmer_phone_pass') }}">{{ icon('grid') }}{{ t("Dashboard") }}</a>
         <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if request.endpoint in ('farmer_centres','farmer_centre') }}">{{ icon('calendar-plus') }}{{ t("Book a Slot") }}</a>
@@ -72,7 +72,7 @@
         <a href="{{ url_for('home') }}#weather">{{ icon('cloud-sun') }}{{ t("Weather") }}</a>
         <a href="{{ url_for('register') }}" class="{{ 'active' if request.endpoint == 'register' }}">{{ icon('user-plus') }}{{ t("Register") }}</a>
         <a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint in ('login','verify_otp') }}">{{ icon('log-in') }}{{ t("Farmer Sign In") }}</a>
-        <a href="{{ url_for('admin_login') }}" class="{{ 'active' if request.endpoint == 'admin_login' }}">{{ icon('shield') }}{{ t("Centre Staff") }}</a>
+        <a href="{{ url_for('admin_login') }}" class="{{ 'active' if request.endpoint == 'admin_login' }}">{{ icon('shield') }}{{ t("Centre Members") }}</a>
       {% endif %}
     </nav>
     {% endif %}
@@ -80,22 +80,29 @@
     {% if g.farmer or g.staff %}
     <div class="account">
       {% set who = g.farmer or g.staff %}
-      <span class="acc-id">{{ reg_no(g.farmer.id) if g.farmer else g.staff.staff_code }}</span>
+      {% if g.staff %}<span class="acc-id">{{ g.staff.staff_code }}</span>{% endif %}
       <span class="acc-name">{{ who.name }}<small>{{ t("Farmer") if g.farmer else (g.staff.centre_name or 'District supervisor') }}</small></span>
       <a class="iconbtn" href="{{ url_for('logout') if g.farmer else url_for('admin_logout') }}" title="{{ t('Sign out') }}">{{ icon('log-out') }}<span class="sr">{{ t("Sign out") }}</span></a>
     </div>
+    {% endif %}
+
+    {# phones only: the menu folds behind this. a11y.js opens it; without
+       script the menu just stays open on its own row #}
+    {% if not g.staff %}
+    <button type="button" class="navtoggle" aria-controls="mainnav" aria-expanded="false"
+            data-open="{{ t('Menu') }}" data-close="{{ t('Close') }}">{{ icon('menu') }}<span class="sr">{{ t("Menu") }}</span></button>
     {% endif %}
   </div>
 </header>
 
 <div class="frame {{ 'console' if staff_layout }}">
   {% if staff_layout %}
-  <nav class="sidenav" aria-label="Staff menu">
+  <nav class="sidenav" aria-label="Members menu">
     {% if g.staff.role == 'superadmin' %}
     <span class="side-label">Supervisor</span>
     <a href="{{ url_for('super_overview') }}" class="{{ 'active' if request.endpoint == 'super_overview' }}">{{ icon('trending-up') }}Overview</a>
     <a href="{{ url_for('super_attention') }}" class="{{ 'active' if request.endpoint == 'super_attention' }}">{{ icon('alert-triangle') }}Needs attention{% if attention_count %}<span class="pill">{{ attention_count }}</span>{% endif %}</a>
-    <a href="{{ url_for('super_staff') }}" class="{{ 'active' if request.endpoint in ('super_staff', 'super_staff_detail') }}">{{ icon('users') }}Staff</a>
+    <a href="{{ url_for('super_staff') }}" class="{{ 'active' if request.endpoint in ('super_staff', 'super_staff_detail') }}">{{ icon('users') }}Members</a>
     <a href="{{ url_for('super_activity') }}" class="{{ 'active' if request.endpoint == 'super_activity' }}">{{ icon('list') }}Activity log</a>
     {% endif %}
     <span class="side-label">Today</span>
@@ -189,9 +196,15 @@
       </div>
     </div>
 
+    {# every photo, who took it and where it came from. same list in static/img/credits.json #}
     <div class="photo-credit">
-      Photographs from Wikimedia Commons, all CC BY-SA 4.0 &mdash; Digvijaysjanoti (paddy nurseries, Uttarakhand);
-      RaviVerma2018 (Purvi Rudrapur Kisan Seva Sahkari Samiti, Bagwara). Full details in static/img/credits.json.
+      Photographs from Wikimedia Commons, all
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">CC BY-SA 4.0</a>, cropped and resized &mdash;
+      <a href="https://commons.wikimedia.org/wiki/File:Farmer_manually_harvesting_rice_in_Raichur,_Karnataka.jpg" rel="noopener">Nanditha Gogate, WELL Labs</a> (harvesting paddy, Raichur);
+      <a href="https://commons.wikimedia.org/wiki/File:An_Indian_Farmer_in_Grain_Markeet.jpg" rel="noopener">Geet Arts</a> (a farmer at a grain market);
+      <a href="https://commons.wikimedia.org/wiki/File:Labourers_working_in_a_grain_market.jpg" rel="noopener">Raman Deep</a> (a grain market yard);
+      <a href="https://commons.wikimedia.org/wiki/File:Rice_winnowing,_Uttarakhand,_India.jpg" rel="noopener">Yann</a> (winnowing rice, Uttarakhand);
+      <a href="https://commons.wikimedia.org/wiki/File:View_of_CWC_Base_Depot,_Bamanheri,_Muzaffarnagar.jpg" rel="noopener">Prabhat1729</a> (CWC depot, Bamanheri).
     </div>
 
     <div class="foot-bottom">
@@ -206,6 +219,29 @@
   </div>
 </footer>
 {% if not g.staff %}{% include "_assistant.html" %}{% endif %}
+
+{# a slot just booked: a big "done" in the middle of the screen, the way a
+   payment app confirms. a real <dialog>, so Done closes it even without script #}
+{% set cel = take_celebration() %}
+{% if cel %}
+<dialog class="celebrate" open aria-labelledby="cel-title">
+  <div class="cel-card">
+    <div class="cel-mark" aria-hidden="true">
+      <span class="cel-ring"></span><span class="cel-ring r2"></span>
+      {% for a in range(0, 360, 36) %}<span class="cel-spark" style="--a: {{ a }}deg"></span>{% endfor %}
+      <svg class="cel-check" viewBox="0 0 52 52"><circle class="cel-disc" cx="26" cy="26" r="25"/><path class="cel-tick" d="M15 27.5l7.5 7.5L38 19"/></svg>
+    </div>
+    <div class="cel-body">
+      <h2 id="cel-title">{{ t("Slot booked") }}</h2>
+      <p class="cel-label">{{ t("Token number") }}</p>
+      <p class="cel-token">{{ cel.token }}</p>
+      <p class="cel-when">{{ t(cel.centre) }}<br>{{ cel.date|nicedate }} ({{ cel.date|dayname }}) &middot; {{ cel.window }}</p>
+      {% if cel.risk %}<p class="cel-risk">{{ icon('cloud-rain') }}<span>{{ t("Rain is expected before your slot. Keep your crop covered.") }}</span></p>{% endif %}
+      <form method="dialog"><button class="btn large block cel-done" type="submit">{{ t("Done") }}</button></form>
+    </div>
+  </div>
+</dialog>
+{% endif %}
 {# per-page scripts go last, so nothing waits on them #}
 <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 {% block scripts %}{% endblock %}

@@ -42,8 +42,7 @@
   <table class="gp-form">
     <caption>{{ t("Particulars") }}</caption>
     <tbody>
-      <tr><th>{{ t("Farmer") }}</th><td>{{ farmer.name }}</td>
-          <th>{{ t("Registration no.") }}</th><td class="mono">{{ reg_no(farmer.id) }}</td></tr>
+      <tr><th>{{ t("Farmer") }}</th><td colspan="3">{{ farmer.name }}</td></tr>
       <tr><th>{{ t("Mobile") }}</th><td class="mono">{{ farmer.phone_number }}</td>
           <th>{{ t("Village / district") }}</th><td>{{ t(farmer.village) }}, {{ t(farmer.district) }}</td></tr>
       <tr><th>{{ t("Land record ID") }}</th><td class="mono">{{ farmer.land_record_id or '—' }}</td>
@@ -78,7 +77,7 @@
     <table class="gp-form">
       <tbody>
         <tr><th>{{ t("Token number") }}</th><td class="mono"><b>{{ b.token_no }}</b></td>
-            <th>{{ t("Registration no.") }}</th><td class="mono">{{ reg_no(farmer.id) }}</td></tr>
+            <th>{{ t("Mobile") }}</th><td class="mono">{{ farmer.phone_number }}</td></tr>
         <tr><th>{{ t("Farmer") }}</th><td>{{ farmer.name }}</td>
             <th>{{ t("Slot") }}</th><td>{{ b.date|nicedate }}, {{ b.time_window }}</td></tr>
         <tr><th>{{ t("Crop declared") }}</th><td>{{ t(b.crop_type) }}, {{ '%.1f'|format(b.estimated_quantity) }} {{ t("quintals") }}</td>

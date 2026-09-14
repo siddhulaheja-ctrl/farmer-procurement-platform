@@ -6,7 +6,7 @@
   <div class="ph-text">
     <p class="eyebrow">District supervisor</p>
     <h1 class="page-title">Every centre, today</h1>
-    <p class="page-sub">{{ g.today.isoformat()|nicedate }} &middot; {{ totals.signed_in }} of {{ totals.staff_active }} counter staff have signed in today</p>
+    <p class="page-sub">{{ g.today.isoformat()|nicedate }} &middot; {{ totals.signed_in }} of {{ totals.staff_active }} counter members have signed in today</p>
   </div>
   <div class="ph-actions">
     <a class="btn secondary" href="{{ url_for('super_attention') }}">{{ icon('alert-triangle') }}Needs attention{% if attention_count %} ({{ attention_count }}){% endif %}</a>
@@ -24,7 +24,7 @@
     <div><div class="n">{{ totals.held_amount|rupee if totals.held_amount else "None held" }}</div><div class="l">{{ totals.held_n }} payment{{ 's' if totals.held_n != 1 }} held</div></div>
   </div>
   <div class="stat {{ 'info' if totals.signed_in else 'zero' }}">
-    <div><div class="n">{{ totals.signed_in }} / {{ totals.staff_active }}</div><div class="l">Counter staff signed in today</div></div>
+    <div><div class="n">{{ totals.signed_in }} / {{ totals.staff_active }}</div><div class="l">Counter members signed in today</div></div>
   </div>
 </div>
 
@@ -112,7 +112,7 @@
         <span class="small muted nowrap">{{ c.places_booked }} of {{ c.places_total }} places</span>
       </div>
       <div class="cc-foot">
-        <span class="small muted">{{ icon('users') }} {{ c.staff_count }} staff</span>
+        <span class="small muted">{{ icon('users') }} {{ c.staff_count }} members</span>
         <span>
           {% if c.delay_minutes %}<span class="badge amber">{{ c.delay_minutes }} min behind</span>{% endif %}
           {% if c.held %}<span class="badge red">{{ c.held }} held</span>{% endif %}

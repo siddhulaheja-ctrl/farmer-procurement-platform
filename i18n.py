@@ -55,7 +55,7 @@ HINDI = {
         "उपभोक्ता मामले, खाद्य एवं सार्वजनिक वितरण मंत्रालय",
     "Department of Consumer Affairs": "उपभोक्ता मामले विभाग",
     "Farmer sign in": "किसान लॉगिन",
-    "Centre staff": "केंद्र कर्मचारी",
+    "Centre members": "केंद्र सदस्य",
     "Sign out": "साइन आउट",
     "Skip to main content": "मुख्य सामग्री पर जाएं",
     "Display settings": "प्रदर्शन सेटिंग्स",
@@ -122,7 +122,7 @@ HINDI = {
     "depends on the load being weighed and any quality check, so treat it as a guide.":
         "यह आपका क्रम है, समय का वादा नहीं। हर किसान में कितना समय लगेगा यह तौली जा रही "
         "उपज और गुणवत्ता जांच पर निर्भर करता है, इसलिए इसे अनुमान मानें।",
-    "For centre staff": "केंद्र कर्मचारी हेतु",
+    "For centre members": "केंद्र सदस्यों हेतु",
     "Prototype for demonstration only. Aadhaar, bank and land-record details are mock data "
     "and are not verified against any live government database. Payment status is simulated.":
         "केवल प्रदर्शन हेतु प्रारूप। आधार, बैंक और भूमि रिकॉर्ड विवरण नमूना डेटा हैं और किसी भी "
@@ -150,7 +150,7 @@ HINDI = {
     "Slots booked": "बुक किए गए स्लॉट",
     "Slots still open": "उपलब्ध स्लॉट",
     "For farmers": "किसानों के लिए",
-    "For centre staff": "केंद्र कर्मचारियों के लिए",
+    "For centre members": "केंद्र सदस्यों के लिए",
     "Manage slot capacity, verify arriving produce, record quantity and quality grade, "
     "close transactions, and clear flagged farmer records before they hold up a payment.":
         "स्लॉट क्षमता प्रबंधित करें, आने वाली उपज की जांच करें, मात्रा और गुणवत्ता ग्रेड "
@@ -165,7 +165,7 @@ HINDI = {
     "the operator at your nearest Common Service Centre to register you.":
         "किसी भी फोन से खरीद हेल्पलाइन पर कॉल करके अपने स्लॉट और भुगतान की स्थिति सुनें, या "
         "अपने निकटतम कॉमन सर्विस सेंटर के ऑपरेटर से पंजीकरण करवाएं।",
-    "Staff sign in": "कर्मचारी लॉगिन",
+    "Member sign in": "सदस्य लॉगिन",
 
     # login / otp
     "Registered mobile number": "पंजीकृत मोबाइल नंबर",
@@ -333,7 +333,7 @@ HINDI = {
     "Paid": "भुगतान हुआ", "Processing": "प्रक्रिया में", "Pending": "बाकी", "Failed": "विफल",
     "High risk": "अधिक जोखिम", "Low risk": "कम जोखिम", "None": "कोई नहीं",
     "Grade A": "श्रेणी A", "Grade B": "श्रेणी B", "Rejected": "अस्वीकृत",
-    "Centre Staff": "केंद्र कर्मचारी",
+    "Centre Members": "केंद्र सदस्य",
     "Voice call": "फोन कॉल", "In app": "ऐप में", "SMS": "एसएमएस",
 
     # remaining page text
@@ -423,7 +423,7 @@ HINDI = {
     "No SMS is actually sent in this prototype - use": "इस प्रोटोटाइप में असल में SMS नहीं भेजा जाता - इस्तेमाल करें",
     "No further action is possible on this booking.": "इस बुकिंग पर अब कोई कार्रवाई नहीं हो सकती।",
     "No slots have been published for this centre yet.": "इस केंद्र के लिए अभी कोई स्लॉट जारी नहीं हुआ है।",
-    "No smartphone needed. Centre staff can ring you and read out your slot and token number.": "स्मार्टफोन की ज़रूरत नहीं। केंद्र कर्मचारी आपको फोन करके स्लॉट और टोकन नंबर बता सकते हैं।",
+    "No smartphone needed. Centre members can ring you and read out your slot and token number.": "स्मार्टफोन की ज़रूरत नहीं। केंद्र सदस्य आपको फोन करके स्लॉट और टोकन नंबर बता सकते हैं।",
     "One more step": "बस एक कदम और",
     "One slot per day, up to three active bookings.": "एक दिन में एक स्लॉट, एक साथ अधिकतम तीन बुकिंग।",
     "Page not found": "पेज नहीं मिला",
@@ -458,7 +458,7 @@ HINDI = {
     "Slot change": "स्लॉट में बदलाव",
     "Something in your details could hold up a payment.": "आपकी जानकारी में कुछ ऐसा है जो भुगतान रोक सकता है।",
     "Something went wrong": "कुछ गड़बड़ हो गई",
-    "Staff sign-in:": "कर्मचारी लॉगिन:",
+    "Member sign-in:": "सदस्य लॉगिन:",
     "Step 1 of 2": "चरण 1 / 2",
     "Step 2 of 2": "चरण 2 / 2",
     "Switch language at the top of any page, and make the text bigger if you need to.": "किसी भी पेज के ऊपर भाषा बदलें, और ज़रूरत हो तो अक्षर बड़े करें।",
@@ -791,7 +791,11 @@ HINDI = {
     "Issued by Krishi Sutra and still valid.": "कृषि सूत्र द्वारा जारी और अभी मान्य।",
     "Not genuine": "असली नहीं",
     "This code was not issued by Krishi Sutra, it was changed, or it is no longer valid.": "यह कोड कृषि सूत्र ने जारी नहीं किया, इसे बदला गया है, या यह अब मान्य नहीं है।",
-    "Details are shown only to centre staff and to the farmer it belongs to.": "विवरण केवल केंद्र कर्मचारी और संबंधित किसान को दिखता है।",
+    "Details are shown only to centre members and to the farmer it belongs to.": "विवरण केवल केंद्र सदस्यों और संबंधित किसान को दिखता है।",
+    # booking done, and the phone menu
+    "Slot booked": "स्लॉट बुक हो गया",
+    "Rain is expected before your slot. Keep your crop covered.": "आपके स्लॉट से पहले बारिश का अनुमान है। फसल ढककर रखें।",
+    "Menu": "मेनू",
 }
 
 

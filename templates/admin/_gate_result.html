@@ -16,7 +16,7 @@
 
   {% if b and v.code != 'not_genuine' %}
   <dl class="kv gc-facts">
-    <dt>Farmer</dt><dd>{{ b.farmer_name }} <span class="sub-line mono">{{ reg_no(b.farmer_id) }} &middot; {{ b.village }}</span></dd>
+    <dt>Farmer</dt><dd>{{ b.farmer_name }} <span class="sub-line">{{ b.village }}</span></dd>
     <dt>Aadhaar</dt><dd class="mono">{{ b.aadhaar_number|mask }} <span class="sub-line">match the last four with their card</span></dd>
     <dt>Slot</dt><dd>{{ b.date|nicedate }} ({{ b.date|dayname }}), {{ b.time_window }} <span class="sub-line">{{ b.centre_name }}</span></dd>
     <dt>Crop</dt><dd>{{ b.crop_type }}, about {{ '%.0f'|format(b.estimated_quantity) }} quintals <span class="sub-line token-txt">{{ b.token_no }}</span></dd>

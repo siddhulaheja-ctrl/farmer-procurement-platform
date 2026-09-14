@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, stage_badge, risk_badge, grade_badge, track, crop_name, forecast_days, risk_text %}
+{% from "_macros.html" import status_badge, stage_badge, risk_badge, grade_badge, track, crop_name, forecast_days, risk_text, wx_glyph %}
 {% block title %}{{ t("Booking") }} {{ b.token_no }}{% endblock %}
 
 {% block content %}
@@ -101,7 +101,7 @@
     {% if risk and risk.forecast %}
     <div class="card">
       <div class="card-head">
-        <h2 class="card-title">{{ icon('cloud-sun') }}{{ t(risk.place or g.farmer.district) }}</h2>
+        <h2 class="card-title">{{ wx_glyph(risk.forecast[0]) }}{{ t(risk.place or g.farmer.district) }}</h2>
         {% if risk.source == 'live' %}<span class="badge green live">{{ t("Live forecast") }}</span>
         {% else %}<span class="badge grey">{{ t("Simulated forecast") }}</span>{% endif %}
       </div>

@@ -84,7 +84,7 @@ POLICIES = {
         "running the demo.",
         "Nothing is shared with a third party. The only outbound requests the portal "
         "makes are to OpenWeatherMap for the forecast in your district, which sends a "
-        "place name and no personal data, and to Vonage when staff place a voice call, "
+        "place name and no personal data, and to Vonage when members place a voice call, "
         "which sends the number being dialled and the words to be read out.",
         "There is no analytics, no advertising and no tracking cookie. The one cookie "
         "is the session that keeps you signed in.",
@@ -123,20 +123,6 @@ def icon(name, cls=""):
                   % (escape(cls), url_for("static", filename="img/icons.svg"), escape(name)))
 
 
-DISTRICT_CODES = {"Udham Singh Nagar": "USN", "Haridwar": "HRD", "Dehradun": "DDN", "Nainital": "NTL"}
-
-
-def reg_no(farmer_id):
-    """UK/USN/00013 - state, district, serial. What a register at the counter
-    would call a farmer, in place of initials in a circle. District lookups are
-    loaded once per request."""
-    if not farmer_id:
-        return ""
-    if "farmer_districts" not in g:
-        g.farmer_districts = {r["id"]: r["district"] for r in query("SELECT id, district FROM farmers")}
-    code = DISTRICT_CODES.get(g.farmer_districts.get(farmer_id), "UK")
-    return "UK/%s/%05d" % (code, farmer_id)
-
 # App factory
 
 def create_app():
@@ -152,7 +138,8 @@ def create_app():
     app.jinja_env.globals["lang"] = get_lang
     app.jinja_env.globals["languages"] = LANGUAGES
     app.jinja_env.globals["icon"] = icon
-    app.jinja_env.globals["reg_no"] = reg_no
+    # only base.html calls this, so a fragment rendered in between can't use it up
+    app.jinja_env.globals["take_celebration"] = lambda: session.pop("celebrate", None)
     register_routes(app)
     register_filters(app)
     return app
@@ -252,7 +239,7 @@ def staff_required(fn):
         # its next click, not whenever the cookie happens to expire
         if not g.get("staff"):
             session.pop("staff_id", None)
-            flash("Staff sign-in required.", "warning")
+            flash("Member sign-in required.", "warning")
             return redirect(url_for("admin_login"))
         return fn(*a, **kw)
     return wrapper
@@ -889,7 +876,7 @@ def register_routes(app):
         alerts_mod.raise_alert(
             g.farmer["id"], "booking_confirmed", "app",
             "Slot confirmed at %s on %s, %s. Token %s. Bring this token and your "
-            "registration ID to the centre." % (b["centre_name"], b["date"], b["time_window"],
+            "Aadhaar card to the centre." % (b["centre_name"], b["date"], b["time_window"],
                                                 b["token_no"]),
             booking_id=booking_id,
             message_hi="स्लॉट पक्का: %s, %s, %s बजे। टोकन %s।"
@@ -906,11 +893,10 @@ def register_routes(app):
 
         # check storage risk now that we know the slot date
         risk = weather.evaluate_booking(booking_id)
-        if risk and risk["level"] == "high":
-            flash(t("Booking confirmed - but a storage risk was detected. See the warning on "
-                  "your booking."), "toast-warning")
-        else:
-            flash(t("Booking confirmed. Your token is %s.") % b["token_no"], "toast-success")
+        # shown once, as the big confirmation on the next full page (base.html).
+        # not a flash: the voice page renders fragments that would eat it
+        session["celebrate"] = {"token": b["token_no"], "centre": b["centre_name"], "date": b["date"],
+                                "window": b["time_window"], "risk": bool(risk and risk["level"] == "high")}
         return booking_id, b
 
     @app.route("/farmer/book", methods=["POST"])
@@ -1064,13 +1050,13 @@ def register_routes(app):
             # one message for a wrong code, a wrong password and a switched-off
             # account, so the form can't be used to find out which codes exist
             if s is None or not s["active"] or not accounts.check_password(s["password"], pwd):
-                flash("Invalid staff code or password.", "error")
+                flash("Invalid member code or password.", "error")
                 return render_template(template, code=code)
             if s["role"] != role:
                 # right password, wrong door. only said once the password is
                 # right, so it gives nothing away
                 other = (("super_login", "supervisor sign in") if s["role"] == "superadmin"
-                         else ("admin_login", "centre staff sign in"))
+                         else ("admin_login", "centre member sign in"))
                 flash(Markup('This account signs in on the <a href="%s">%s</a> page.')
                       % (url_for(other[0]), other[1]), "warning")
                 return render_template(template, code=code)
@@ -1534,7 +1520,7 @@ def register_routes(app):
         execute("UPDATE data_validation_flags SET status='resolved', resolved_at=? WHERE id=?",
                 (datetime.now().isoformat(timespec="seconds"), flag_id))
         alerts_mod.raise_alert(f["farmer_id"], "data_mismatch", "app",
-                               "Your '%s' detail has been verified and corrected by centre staff."
+                               "Your '%s' detail has been verified and corrected by centre members."
                                % f["field_flagged"],
                                message_hi="आपकी %s की जानकारी केंद्र ने जांचकर सही कर दी है।"
                                % {"aadhaar": "आधार", "bank": "बैंक", "land": "भूमि रिकॉर्ड",
@@ -1705,7 +1691,7 @@ def register_routes(app):
         # offering an earlier slot is done at the centre, by the people who
         # know which slots they can open. the supervisor does not work this list
         if g.staff["role"] == "superadmin":
-            flash("Storage risk is handled by centre staff.", "info")
+            flash("Storage risk is handled by centre members.", "info")
             return redirect(url_for("super_overview"))
         rows = query(
             "SELECT b.*, s.date, s.time_window, s.centre_id, s.max_capacity, s.booked_count,"
@@ -1790,7 +1776,7 @@ def register_routes(app):
                            "active": 1 if request.form.get("active") else 0}
                     names = {r["id"]: r["name"] for r in query("SELECT id, name FROM procurement_centres")}
                     shown = {"centre_id": lambda v: names.get(v, "No centre"),
-                             "role": lambda v: "Supervisor" if v == "superadmin" else "Centre staff",
+                             "role": lambda v: "Supervisor" if v == "superadmin" else "Centre member",
                              "active": lambda v: "On" if v else "Off"}
                     labels = {"centre_id": "Centre", "role": "Role", "active": "Account"}
                     before = {labels[k]: shown[k](person[k]) for k in new if person[k] != new[k]}
@@ -1831,7 +1817,7 @@ def register_routes(app):
         # back to the page they signed in on
         supervisor = bool(g.get("staff")) and g.staff["role"] == "superadmin"
         session.pop("staff_id", None)
-        flash("Staff signed out.", "success")
+        flash("Member signed out.", "success")
         return redirect(url_for("super_login" if supervisor else "admin_login"))
 
     # The IVR runs as its own service (see farmer-ivr/). It has no database,
@@ -1963,14 +1949,14 @@ def _staff_form_error(form, new, person=None):
     if role not in accounts.ROLES:
         return "Choose a role."
     if role == "staff" and not form.get("centre_id"):
-        return "Centre staff need a centre."
+        return "Centre members need a centre."
     if new:
         name = (form.get("name") or "").strip()
         code = (form.get("staff_code") or "").strip().upper()
         if len(name) < 3:
             return "Enter the person's name."
         if not (3 <= len(code) <= 12 and code.isalnum()):
-            return "A staff code is 3 to 12 letters and numbers."
+            return "A member code is 3 to 12 letters and numbers."
         if query("SELECT 1 FROM staff WHERE staff_code = ?", (code,), one=True):
             return "%s is already taken." % code
         if len(form.get("password") or "") < 6:

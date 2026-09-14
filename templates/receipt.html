@@ -38,8 +38,7 @@
   <table class="gp-form">
     <caption>{{ t("Seller") }}</caption>
     <tbody>
-      <tr><th>{{ t("Farmer") }}</th><td>{{ x.farmer_name }}</td>
-          <th>{{ t("Registration no.") }}</th><td class="mono">{{ reg_no(x.farmer_id) }}</td></tr>
+      <tr><th>{{ t("Farmer") }}</th><td colspan="3">{{ x.farmer_name }}</td></tr>
       <tr><th>{{ t("Village / district") }}</th><td>{{ t(x.village) }}, {{ t(x.district) }}</td>
           <th>{{ t("Slot") }}</th><td>{{ x.date|nicedate }}, {{ x.time_window }}</td></tr>
     </tbody>

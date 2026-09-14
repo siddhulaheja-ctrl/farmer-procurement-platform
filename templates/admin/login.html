@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Centre Staff Sign In{% endblock %}
+{% block title %}Centre Member Sign In{% endblock %}
 
 {% block content %}
 <div class="auth">
   <div class="auth-art staff">
-    <img src="{{ url_for('static', filename='img/mandi-rudrapur.jpg') }}" width="760" height="365" alt="">
+    <img src="{{ url_for('static', filename='img/mandi-yard.jpg') }}" width="1200" height="700" alt="">
     <h2>Procurement centre counter</h2>
   </div>
 
   <div class="auth-form">
-    <p class="eyebrow">Staff only</p>
-    <h1>Centre staff sign in</h1>
+    <p class="eyebrow">Members only</p>
+    <h1>Centre member sign in</h1>
     <form method="post">
       <div class="field">
-        <label for="staff_code">Staff code <span class="req">*</span></label>
+        <label for="staff_code">Member code <span class="req">*</span></label>
         <input type="text" id="staff_code" name="staff_code" value="{{ code }}"
                style="text-transform:uppercase" autocomplete="username" required autofocus>
       </div>

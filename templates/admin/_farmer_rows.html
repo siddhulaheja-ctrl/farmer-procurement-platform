@@ -15,7 +15,7 @@
             <div class="who">
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=f.id) }}">{{ f.name }}</a>
-                <span class="sub-line"><span class="mono">{{ reg_no(f.id) }}</span> &middot; {{ f.phone_number }}</span>
+                <span class="sub-line">{{ f.phone_number }}</span>
               </div>
             </div>
           </td>

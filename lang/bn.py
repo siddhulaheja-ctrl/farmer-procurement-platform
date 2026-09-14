@@ -46,7 +46,7 @@ BENGALI = {
     "Ministry of Consumer Affairs, Food & Public Distribution": "ভোক্তা বিষয়ক, খাদ্য ও গণবণ্টন মন্ত্রক",
     "Department of Consumer Affairs": "ভোক্তা বিষয়ক বিভাগ",
     "Farmer sign in": "কৃষক লগইন",
-    "Centre staff": "কেন্দ্রের কর্মী",
+    "Centre members": "কেন্দ্রের সদস্য",
     "Sign out": "সাইন আউট",
     "Skip to main content": "মূল বিষয়ে যান",
     "Display settings": "প্রদর্শন সেটিংস",
@@ -100,7 +100,7 @@ BENGALI = {
     "just now": "এইমাত্র",
     "hours ago": "ঘণ্টা আগে",
     "This is your position, not a promise about the clock. How long each farmer takes depends on the load being weighed and any quality check, so treat it as a guide.": "এটি আপনার ক্রম, সময়ের প্রতিশ্রুতি নয়। প্রত্যেক কৃষকের কত সময় লাগবে তা ওজন করা ফসল আর মান যাচাইয়ের উপর নির্ভর করে, তাই এটিকে আনুমানিক ধরুন।",
-    "For centre staff": "কেন্দ্রের কর্মীদের জন্য",
+    "For centre members": "কেন্দ্রের সদস্যদের জন্য",
     "Prototype for demonstration only. Aadhaar, bank and land-record details are mock data and are not verified against any live government database. Payment status is simulated.": "শুধুমাত্র প্রদর্শনের জন্য প্রোটোটাইপ। আধার, ব্যাংক ও জমির রেকর্ডের তথ্য নমুনা, কোনো সরকারি ডেটাবেসের সঙ্গে যাচাই করা হয়নি। পেমেন্টের অবস্থা কৃত্রিম।",
     "Home": "হোম",
     "Register": "নিবন্ধন",
@@ -124,7 +124,7 @@ BENGALI = {
     "Sign in": "লগইন",
     "No smartphone?": "স্মার্টফোন নেই?",
     "Call the procurement helpline from any phone to hear your slot and payment status, or ask the operator at your nearest Common Service Centre to register you.": "যেকোনো ফোন থেকে ক্রয় হেল্পলাইনে কল করে স্লট ও পেমেন্টের অবস্থা শুনুন, অথবা কাছের কমন সার্ভিস সেন্টারের অপারেটরকে দিয়ে নিবন্ধন করান।",
-    "Staff sign in": "কর্মী লগইন",
+    "Member sign in": "সদস্য লগইন",
 
     # login / otp
     "Registered mobile number": "নিবন্ধিত মোবাইল নম্বর",
@@ -276,7 +276,7 @@ BENGALI = {
     "Paid": "পরিশোধিত", "Processing": "প্রক্রিয়াধীন", "Pending": "বাকি", "Failed": "ব্যর্থ",
     "High risk": "বেশি ঝুঁকি", "Low risk": "কম ঝুঁকি", "None": "নেই",
     "Grade A": "গ্রেড A", "Grade B": "গ্রেড B", "Rejected": "বাতিল করা হয়েছে",
-    "Centre Staff": "কেন্দ্রের কর্মী",
+    "Centre Members": "কেন্দ্রের সদস্য",
     "Voice call": "ফোন কল", "In app": "অ্যাপে", "SMS": "SMS",
 
     # remaining page text
@@ -353,7 +353,7 @@ BENGALI = {
     "No SMS is actually sent in this prototype - use": "এই প্রোটোটাইপে আসলে কোনো SMS পাঠানো হয় না - ব্যবহার করুন",
     "No further action is possible on this booking.": "এই বুকিংয়ে আর কোনো পদক্ষেপ সম্ভব নয়।",
     "No slots have been published for this centre yet.": "এই কেন্দ্রের জন্য এখনও কোনো স্লট প্রকাশ হয়নি।",
-    "No smartphone needed. Centre staff can ring you and read out your slot and token number.": "স্মার্টফোন লাগবে না। কেন্দ্রের কর্মী ফোন করে আপনার স্লট ও টোকেন নম্বর জানিয়ে দিতে পারেন।",
+    "No smartphone needed. Centre members can ring you and read out your slot and token number.": "স্মার্টফোন লাগবে না। কেন্দ্রের সদস্য ফোন করে আপনার স্লট ও টোকেন নম্বর জানিয়ে দিতে পারেন।",
     "One more step": "আর একটি ধাপ",
     "One slot per day, up to three active bookings.": "দিনে একটি স্লট, একসঙ্গে সর্বোচ্চ তিনটি বুকিং।",
     "Page not found": "পাতা পাওয়া যায়নি",
@@ -388,7 +388,7 @@ BENGALI = {
     "Slot change": "স্লট বদল",
     "Something in your details could hold up a payment.": "আপনার তথ্যে এমন কিছু আছে যা পেমেন্ট আটকাতে পারে।",
     "Something went wrong": "কিছু ভুল হয়েছে",
-    "Staff sign-in:": "কর্মী লগইন:",
+    "Member sign-in:": "সদস্য লগইন:",
     "Step 1 of 2": "ধাপ ১ / ২",
     "Step 2 of 2": "ধাপ ২ / ২",
     "Switch language at the top of any page, and make the text bigger if you need to.": "যেকোনো পাতার উপরে ভাষা বদলান, আর দরকার হলে লেখা বড় করুন।",
@@ -721,5 +721,9 @@ BENGALI = {
     "Issued by Krishi Sutra and still valid.": "কৃষি সূত্র জারি করেছে এবং এখনও বৈধ।",
     "Not genuine": "আসল নয়",
     "This code was not issued by Krishi Sutra, it was changed, or it is no longer valid.": "এই কোড কৃষি সূত্র জারি করেনি, বদলানো হয়েছে, বা আর বৈধ নয়।",
-    "Details are shown only to centre staff and to the farmer it belongs to.": "বিস্তারিত শুধু কেন্দ্রের কর্মী ও সংশ্লিষ্ট কৃষক দেখতে পান।",
+    "Details are shown only to centre members and to the farmer it belongs to.": "বিস্তারিত শুধু কেন্দ্রের সদস্য ও সংশ্লিষ্ট কৃষক দেখতে পান।",
+    # booking done, and the phone menu
+    "Slot booked": "স্লট বুক হয়েছে",
+    "Rain is expected before your slot. Keep your crop covered.": "আপনার স্লটের আগে বৃষ্টির সম্ভাবনা। ফসল ঢেকে রাখুন।",
+    "Menu": "মেনু",
 }
