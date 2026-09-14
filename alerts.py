@@ -8,27 +8,39 @@ TODO: hook up Fast2SMS
 from datetime import datetime
 
 from db import execute, query
+from i18n import HINDI
+
+# ivr rows that aren't a call log are the words a phone call reads out. they
+# belong to the helpline, and on the farmer's screen they just repeat the
+# in-app alert next to them
+FARMER_VISIBLE = "NOT (channel = 'ivr' AND alert_type != 'voice_call')"
 
 
-def raise_alert(farmer_id, alert_type, channel, message, booking_id=None):
+def hi(text):
+    """Hindi name of a centre, crop or place, for building hindi messages."""
+    return HINDI.get(text, text)
+
+
+def raise_alert(farmer_id, alert_type, channel, message, booking_id=None, message_hi=None):
     return execute(
-        "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message, sent_at)"
-        " VALUES (?,?,?,?,?,?)",
-        (farmer_id, booking_id, alert_type, channel, message,
+        "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message,"
+        " message_hi, sent_at) VALUES (?,?,?,?,?,?,?)",
+        (farmer_id, booking_id, alert_type, channel, message, message_hi,
          datetime.now().isoformat(timespec="seconds")),
     )
 
 
 def farmer_alerts(farmer_id, limit=50):
     return query(
-        "SELECT * FROM alerts_log WHERE farmer_id = ? ORDER BY id DESC LIMIT ?",
+        "SELECT * FROM alerts_log WHERE farmer_id = ? AND " + FARMER_VISIBLE +
+        " ORDER BY id DESC LIMIT ?",
         (farmer_id, limit),
     )
 
 
 def unread_count(farmer_id):
-    row = query("SELECT COUNT(*) AS c FROM alerts_log WHERE farmer_id = ? AND read_flag = 0",
-                (farmer_id,), one=True)
+    row = query("SELECT COUNT(*) AS c FROM alerts_log WHERE farmer_id = ? AND read_flag = 0"
+                " AND " + FARMER_VISIBLE, (farmer_id,), one=True)
     return row["c"] if row else 0
 
 

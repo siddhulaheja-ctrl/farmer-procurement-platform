@@ -2,27 +2,28 @@
 {% block title %}Centre Staff Sign In{% endblock %}
 
 {% block content %}
-<div class="auth-card">
-  <div class="card">
-    <h2>Centre staff sign in</h2>
-    <div class="card-body">
-      <form method="post">
-        <div class="field">
-          <label for="staff_code">Staff code <span class="req">*</span></label>
-          <input type="text" id="staff_code" name="staff_code" value="{{ code }}"
-                 style="text-transform:uppercase" required autofocus>
-        </div>
-        <div class="field">
-          <label for="password">Password <span class="req">*</span></label>
-          <input type="password" id="password" name="password" required>
-        </div>
-        <button class="btn block" type="submit">Sign in</button>
-      </form>
-    </div>
+<div class="auth">
+  <div class="auth-art staff">
+    <img src="{{ url_for('static', filename='img/planting.jpg') }}" width="760" height="409" alt="">
+    <h2>Procurement centre counter</h2>
   </div>
 
-  <div class="notice info small">
-    Demo credentials: <strong>ADMIN</strong> / <strong>demo123</strong>, which sees every centre.
+  <div class="auth-form">
+    <p class="eyebrow">{{ icon('lock') }}Staff only</p>
+    <h1>Centre staff sign in</h1>
+    <form method="post">
+      <div class="field">
+        <label for="staff_code">Staff code <span class="req">*</span></label>
+        <input type="text" id="staff_code" name="staff_code" value="{{ code }}"
+               style="text-transform:uppercase" autocomplete="username" required autofocus>
+      </div>
+      <div class="field">
+        <label for="password">Password <span class="req">*</span></label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn block large" type="submit">{{ icon('log-in') }}Sign in</button>
+    </form>
+    <div class="notice warning small">Demo: supervisor <strong>ADMIN</strong>, Rudrapur counter <strong>RUD01</strong>. Password <strong>demo123</strong></div>
   </div>
 </div>
 {% endblock %}

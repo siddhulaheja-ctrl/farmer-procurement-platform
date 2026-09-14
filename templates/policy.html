@@ -1,15 +1,37 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} - {{ t("Krishi Sutra") }}{% endblock %}
+{% block title %}{{ t(title) }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<div class="breadcrumb"><a href="{{ url_for('home') }}">{{ t("Home") }}</a> &rsaquo; {{ title }}</div>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('home') }}">{{ icon('home') }}{{ t("Home") }}</a>{{ icon('chevron-right') }}<span>{{ t(title) }}</span>
+</nav>
 
-<h2 class="page-title">{{ title }}</h2>
-<p class="page-sub">{{ t("Last updated on") }} {{ last_updated.strftime('%d-%m-%Y') }}</p>
+<div class="pagehead">
+  <div class="ph-text">
+    <h1 class="page-title">{{ t(title) }}</h1>
+    <p class="page-sub">{{ t("Last updated on") }} {{ last_updated.strftime('%d-%m-%Y') }}</p>
+  </div>
+</div>
 
-<div class="card">
-  <div class="card-body prose">
-    {% for para in paragraphs %}<p>{{ para }}</p>{% endfor %}
+<div class="grid side">
+  <div class="card">
+    <div class="card-body prose">
+      {% for para in paragraphs %}<p>{{ para }}</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">{{ icon('list') }}{{ t("Policies") }}</h2></div>
+    <div class="card-body">
+      <ul class="checklist">
+        {% for slug, p in policies.items() %}
+        <li>{{ icon('check-circle' if p[0] == title else 'file-text') }}
+          {% if p[0] == title %}<strong>{{ t(p[0]) }}</strong>
+          {% else %}<a href="{{ url_for('policy', slug=slug) }}">{{ t(p[0]) }}</a>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
   </div>
 </div>
 {% endblock %}

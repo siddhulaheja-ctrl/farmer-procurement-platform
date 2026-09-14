@@ -226,7 +226,11 @@ def evaluate_booking(booking_id: int):
         msg = ("STORAGE RISK: Your slot at %s is %d days away and %s. "
                "Consider requesting an earlier slot, or store your produce on a raised, "
                "covered platform." % (row["centre_name"], result["lead_days"], result["reason"]))
-        raise_alert(row["farmer_id"], "storage_risk", "app", msg, booking_id=booking_id)
+        from alerts import hi
+        raise_alert(row["farmer_id"], "storage_risk", "app", msg, booking_id=booking_id,
+                    message_hi="भंडारण जोखिम: %s पर आपका स्लॉट %d दिन दूर है और बारिश का "
+                               "अनुमान है। उपज ढककर ऊंची जगह रखें।"
+                               % (hi(row["centre_name"]), result["lead_days"]))
         # this gets read out on the call, so write it to the farmer, not
         # as a note to ourselves
         raise_alert(row["farmer_id"], "storage_risk", "ivr",

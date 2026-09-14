@@ -1,107 +1,141 @@
 {% extends "base.html" %}
+{% from "_macros.html" import forecast_days, crop_name %}
 {% block title %}{{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<div class="hero">
-  <img src="{{ url_for('static', filename='img/hero-field.jpg') }}"
-       width="1100" height="729" alt="Farmer preparing a field for a wheat crop in Punjab">
-  <div class="hero-text">
-    <h2>{{ t("Book your procurement slot before you harvest") }}</h2>
-    <p>{{ t("Reserve a weighing slot at your nearest government procurement centre, verify your payment details in advance, and track your payment — without standing in a queue at the mandi gate.") }}</p>
+<section class="lead">
+  <div class="lead-text">
+    <h1>{{ t("Book a weighing slot at your procurement centre") }}</h1>
+    <p class="lead-sub">{{ t("Choose a day and time, get a token, and bring your crop when it is your turn. Your Aadhaar and bank details are checked when you register, so your payment is not held up later.") }}</p>
+    <div class="btn-row">
+      <a class="btn large" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register as a farmer") }}</a>
+      <a class="btn secondary large" href="{{ url_for('login') }}">{{ icon('log-in') }}{{ t("Farmer sign in") }}</a>
+    </div>
+    <p class="lead-note">{{ icon('smartphone') }}{{ t("No smartphone? Any CSC centre can register you.") }}</p>
   </div>
-</div>
+  <figure class="lead-photo">
+    <picture>
+      <source srcset="{{ url_for('static', filename='img/hero-field.webp') }}" type="image/webp">
+      <img src="{{ url_for('static', filename='img/hero-field.jpg') }}" width="1280" height="848"
+           alt="Farmer preparing a field for a wheat crop in Punjab" fetchpriority="high">
+    </picture>
+  </figure>
+</section>
 
-<div class="card" id="weather">
-  <div class="card-head">
-    <span>{{ t("Weather where you farm") }}</span>
-    {% if source %}
-      <span class="badge {{ 'blue' if source == 'live' else 'grey' }}">
-        {{ t("Live forecast") if source == 'live' else t("Simulated forecast") }}
-      </span>
-    {% endif %}
-  </div>
-  <div class="card-body">
-    <p class="small muted" style="margin-top:0">
-      {{ t("Rain while your harvest waits at home is what gets it downgraded at the gate. Check the next five days before you pick a slot.") }}
-    </p>
-
-    <form method="get" action="{{ url_for('home') }}#weather" class="filter-bar">
-      <div class="field">
-        <label for="district">{{ t("Your district") }}</label>
-        <select id="district" name="district">
-          <option value="">{{ t("Select a district") }}</option>
-          {% for d in districts %}
-            <option value="{{ d }}" {{ 'selected' if picked == d }}>{{ d }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="actions"><button class="btn" type="submit">{{ t("Show forecast") }}</button></div>
-    </form>
-
-    {% if forecast %}
-      <div class="forecast">
-        {% for d in forecast %}
-        <div class="fc-day {{ 'wet' if d.rain_mm > 0.5 }}">
-          <div class="d">{{ d.date|nicedate }}</div>
-          <div class="r">{{ d.rain_mm }}<span class="small"> mm</span></div>
-          <div class="d">{{ d.humidity }}% {{ t("humidity") }}</div>
-          <div class="d">{{ d.description }}</div>
-        </div>
+{# a notice board, the way a mandi has one by the gate: the rates and what to bring #}
+<section class="board">
+  <div class="board-col">
+    <h2 class="board-title">{{ t("Minimum Support Price") }}</h2>
+    <p class="board-sub">{{ t("RMS 2025-26, indicative rates per quintal") }}</p>
+    <table class="data msp">
+      <tbody>
+        {% for name, rate in msp.items() %}
+        <tr><td>{{ crop_name(name) }}</td><td class="num"><strong>&#8377;{{ "{:,}".format(rate|int) }}</strong></td></tr>
         {% endfor %}
-      </div>
-      <p class="small muted" style="margin:10px 0 0">
-        {{ t("Reading taken at") }} {{ place }}.
-        {% if picked != place %}{{ t("That is the nearest station the weather service knows.") }}{% endif %}
-      </p>
-    {% elif picked %}
-      <div class="empty">{{ t("No forecast available for that district right now.") }}</div>
-    {% endif %}
+      </tbody>
+    </table>
   </div>
-</div>
+  <div class="board-col">
+    <h2 class="board-title">{{ t("Before you come") }}</h2>
+    <ul class="board-list">
+      <li>{{ icon('id-card') }}{{ t("Aadhaar card") }}</li>
+      <li>{{ icon('landmark') }}{{ t("Bank passbook") }}</li>
+      <li>{{ icon('ticket') }}{{ t("Gate pass or token number") }}</li>
+    </ul>
+    <dl class="board-facts">
+      <dt>{{ t("Procurement centres") }}</dt>
+      <dd>{% for d in districts %}{{ t(d) }}{{ ", " if not loop.last }}{% endfor %}</dd>
+      <dt>{{ t("Kisan Call Centre") }}</dt>
+      <dd><strong>1800-180-1551</strong></dd>
+    </dl>
+  </div>
+</section>
 
-<div class="login-split">
-  <div class="card">
-    <img class="card-photo" src="{{ url_for('static', filename='img/harvest.jpg') }}"
-         width="760" height="506" loading="lazy"
-         alt="Farmer harvesting rice by hand in Raichur, Karnataka">
-    <h2>{{ t("For farmers") }}</h2>
-    <div class="card-body">
-      <p class="small muted">
-  {{ t("Register once with your mobile number. You can then book, reschedule or cancel a slot, and check your payment status at any time.") }}
-</p>
-      <div class="btn-row">
-        <a class="btn" href="{{ url_for('register') }}">{{ t("Register") }}</a>
-        <a class="btn secondary" href="{{ url_for('login') }}">{{ t("Sign in") }}</a>
-      </div>
-      <hr class="rule">
-      <p class="small muted" style="margin-bottom:6px"><strong>{{ t("No smartphone?") }}</strong></p>
-      <p class="small muted">
-  {{ t("Call the procurement helpline from any phone to hear your slot and payment status, or ask the operator at your nearest Common Service Centre to register you.") }}
-</p>
+<section class="section" id="weather">
+  <div class="card weather-card">
+    <div class="weather-side">
+      <span class="wx-ic">{{ icon('cloud-sun') }}</span>
+      <h2>{{ t("Weather where you farm") }}</h2>
+      {# a plain GET form, so the chosen district ends up in the address and
+         the forecast can be bookmarked or shared #}
+      <form method="get" action="{{ url_for('home') }}#weather">
+        <div class="field">
+          <label for="district">{{ t("Your district") }}</label>
+          <select id="district" name="district">
+            <option value="">{{ t("Select a district") }}</option>
+            {% for d in districts %}
+              <option value="{{ d }}" {{ 'selected' if picked == d }}>{{ t(d) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn wheat block" type="submit">{{ icon('search') }}{{ t("Show forecast") }}</button>
+      </form>
+    </div>
+
+    <div class="weather-main">
+      {% if forecast %}
+        <div class="wx-head">
+          <h3 class="card-title">{{ icon('map-pin') }}{{ t(place) }}</h3>
+          {% if source == 'live' %}
+            <span class="badge green live">{{ t("Live forecast") }}</span>
+          {% else %}
+            <span class="badge grey">{{ t("Simulated forecast") }}</span>
+          {% endif %}
+        </div>
+        {{ forecast_days(forecast) }}
+      {% elif picked %}
+        <div class="empty">{{ t("No forecast available for that district right now.") }}</div>
+      {% else %}
+        <div class="wx-empty">
+          <div class="row">{{ icon('cloud') }}{{ icon('sun') }}{{ icon('cloud-rain') }}</div>
+          <strong>{{ t("Choose your district") }}</strong>
+        </div>
+      {% endif %}
     </div>
   </div>
+</section>
 
-  <div class="card">
-    <img class="card-photo" src="{{ url_for('static', filename='img/planting.jpg') }}"
-         width="760" height="409" loading="lazy"
-         alt="Women planting paddy seedlings in Assam">
-    <h2>{{ t("For centre staff") }}</h2>
-    <div class="card-body">
-      <p class="small muted">
-        {{ t("Manage slot capacity, verify arriving produce, record quantity and quality grade, close transactions, and clear flagged farmer records before they hold up a payment.") }}
-      </p>
-      <div class="btn-row">
-        <a class="btn" href="{{ url_for('admin_login') }}">{{ t("Staff sign in") }}</a>
+<section class="section">
+  <div class="audience">
+    <div class="aud">
+      <div class="aud-photo">
+        <img src="{{ url_for('static', filename='img/harvest.jpg') }}" width="760" height="506" loading="lazy"
+             alt="Farmer harvesting rice by hand in Raichur, Karnataka">
+        <span class="aud-tag">{{ icon('sprout') }}{{ t("For farmers") }}</span>
+      </div>
+      <div class="aud-body">
+        <ul class="aud-list">
+          <li>{{ icon('check-circle') }}{{ t("Book, move or cancel a slot") }}</li>
+          <li>{{ icon('check-circle') }}{{ t("See your place in the queue") }}</li>
+          <li>{{ icon('check-circle') }}{{ t("Follow your payment to the bank") }}</li>
+        </ul>
+        <div class="aside-note">
+          {{ icon('smartphone') }}
+          <div>{{ t("No smartphone? Any CSC centre can register you.") }}</div>
+        </div>
+        <div class="btn-row">
+          <a class="btn" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register") }}</a>
+          <a class="btn secondary" href="{{ url_for('login') }}">{{ t("Sign in") }}</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="aud">
+      <div class="aud-photo">
+        <img src="{{ url_for('static', filename='img/planting.jpg') }}" width="760" height="409" loading="lazy"
+             alt="Women planting paddy seedlings in Assam">
+        <span class="aud-tag">{{ icon('shield') }}{{ t("For centre staff") }}</span>
+      </div>
+      <div class="aud-body">
+        <ul class="aud-list">
+          <li>{{ icon('scale') }}{{ t("Record weight and grade, then close the transaction") }}</li>
+          <li>{{ icon('phone-call') }}{{ t("Ring a farmer in Hindi from any booking") }}</li>
+        </ul>
+        <div class="btn-row">
+          <a class="btn" href="{{ url_for('admin_login') }}">{{ icon('log-in') }}{{ t("Staff sign in") }}</a>
+        </div>
       </div>
     </div>
   </div>
-</div>
-
-<div class="notice info">
-  <h3>Demonstration prototype</h3>
-  <p>
-    Farmers sign in with the mobile number they registered &mdash; any OTP works, try
-    <strong>123456</strong>. Staff sign-in: <strong>ADMIN</strong> / <strong>demo123</strong>.
-  </p>
-</div>
+</section>
 {% endblock %}

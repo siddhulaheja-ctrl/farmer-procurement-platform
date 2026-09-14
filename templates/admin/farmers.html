@@ -1,49 +1,59 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Registered Farmers{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Registered farmers</h2>
-<p class="page-sub">Records with open data issues are listed first.</p>
+<div class="pagehead">
+  <div class="ph-text">
+    <h1 class="page-title">Registered farmers</h1>
+  </div>
+  <div class="ph-actions">
+    <a class="btn wheat" href="{{ url_for('admin_register_farmer') }}">{{ icon('user-plus') }}Register new farmer</a>
+  </div>
+</div>
 
 <form method="get" class="filter-bar">
-  <div class="field" style="flex:3 1 240px">
-    <label for="q">Search by name, mobile or village</label>
+  <div class="field grow">
+    <label for="q">{{ icon('search') }} Search by name, mobile or village</label>
     <input type="text" id="q" name="q" value="{{ q }}">
   </div>
   <div class="actions">
-    <button class="btn" type="submit">Search</button>
+    <button class="btn" type="submit">{{ icon('search') }}Search</button>
     <a class="btn secondary" href="{{ url_for('admin_farmers') }}">Reset</a>
-    <a class="btn go" href="{{ url_for('admin_register_farmer') }}">Register new farmer</a>
   </div>
 </form>
 
 <div class="card">
-  <div class="card-head"><span>{{ farmers|length }} record{{ 's' if farmers|length != 1 }}</span></div>
+  <div class="card-head"><h2 class="card-title">{{ icon('users') }}Records <span class="count">{{ farmers|length }}</span></h2></div>
   {% if farmers %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Name</th><th>Mobile</th><th>Village / district</th><th>Aadhaar</th>
+        <tr><th>Farmer</th><th>Village / district</th><th>Aadhaar</th>
             <th>Registered via</th><th class="num">Bookings</th><th>Data issues</th><th></th></tr>
       </thead>
       <tbody>
         {% for f in farmers %}
         <tr>
-          <td><strong>{{ f.name }}</strong></td>
-          <td class="mono nowrap">{{ f.phone_number }}</td>
-          <td class="small">{{ f.village }}, {{ f.district }}</td>
+          <td>
+            <div class="who">
+              {{ avatar(f.name, 'sm') }}
+              <div class="who-text">
+                <a href="{{ url_for('admin_farmer', farmer_id=f.id) }}">{{ f.name }}</a>
+                <span class="sub-line mono">{{ f.phone_number }}</span>
+              </div>
+            </div>
+          </td>
+          <td class="small"><span class="icon-text">{{ icon('map-pin') }}{{ f.village }}, {{ f.district }}</span></td>
           <td class="mono nowrap">{{ f.aadhaar_number or '—' }}</td>
-          <td><span class="badge grey">{{ f.registered_via|upper }}</span></td>
+          <td><span class="badge grey plain">{{ f.registered_via|upper }}</span></td>
           <td class="num">{{ f.booking_count }}</td>
           <td>
-            {% if f.flag_count %}
-              <span class="badge red">{{ f.flag_count }} open</span>
-            {% else %}
-              <span class="badge green">Clear</span>
-            {% endif %}
+            {% if f.flag_count %}<span class="badge red">{{ f.flag_count }} open</span>
+            {% else %}<span class="badge green">Clear</span>{% endif %}
           </td>
-          <td class="nowrap">
-            <a class="btn small secondary" href="{{ url_for('admin_farmer', farmer_id=f.id) }}">Open</a>
+          <td class="nowrap right">
+            <a class="btn small secondary" href="{{ url_for('admin_farmer', farmer_id=f.id) }}">Open{{ icon('arrow-right') }}</a>
           </td>
         </tr>
         {% endfor %}

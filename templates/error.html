@@ -2,13 +2,10 @@
 {% block title %}Error {{ code }}{% endblock %}
 
 {% block content %}
-<div class="auth-card center">
-  <div class="card">
-    <h2>Error {{ code }}</h2>
-    <div class="card-body">
-      <p class="muted">{{ message }}</p>
-      <a class="btn" href="{{ url_for('home') }}">Return to home</a>
-    </div>
-  </div>
+<div class="error-page">
+  <div class="error-code">{{ code }}</div>
+  <h1 class="page-title">{{ t("Page not found") if code == 404 else (t("Not allowed") if code == 403 else t("Something went wrong")) }}</h1>
+  <p class="page-sub" style="margin: 8px auto 22px">{{ message }}</p>
+  <a class="btn large" href="{{ url_for('home') }}">{{ icon('home') }}{{ t("Return to home") }}</a>
 </div>
 {% endblock %}

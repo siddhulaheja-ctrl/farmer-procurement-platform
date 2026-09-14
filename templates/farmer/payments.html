@@ -1,17 +1,41 @@
 {% extends "base.html" %}
-{% from "_macros.html" import payment_badge, grade_badge %}
+{% from "_macros.html" import payment_badge, grade_badge, crop %}
 {% block title %}{{ t("Payments") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">{{ t("Payments") }}</h2>
-<p class="page-sub">{{ t("Every completed procurement and the current state of its payment.") }}</p>
+<div class="pagehead">
+  <div class="ph-text"><h1 class="page-title">{{ t("Payments") }}</h1></div>
+</div>
+
+{% set received = rows|selectattr('payment_status', 'equalto', 'completed')|map(attribute='total_amount')|select|sum %}
+{% set waiting = rows|selectattr('payment_status', 'in', ['pending', 'processing'])|map(attribute='total_amount')|select|sum %}
+{% set held = rows|selectattr('payment_status', 'equalto', 'failed')|list|length %}
+
+<div class="stat-row">
+  <div class="stat {{ 'good' if received else 'zero' }}">
+    <span class="stat-ic">{{ icon('banknote') }}</span>
+    <div><div class="n">{{ received|rupee }}</div><div class="l">{{ t("Received") }}</div></div>
+  </div>
+  <div class="stat {{ 'warn' if waiting else 'zero' }}">
+    <span class="stat-ic">{{ icon('hourglass') }}</span>
+    <div><div class="n">{{ waiting|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
+  </div>
+  <div class="stat {{ 'bad' if held else 'zero' }}">
+    <span class="stat-ic">{{ icon('alert-triangle') }}</span>
+    <div><div class="n">{{ held }}</div><div class="l">{{ t("Payments held") }}</div></div>
+  </div>
+  <div class="stat {{ 'info' if rows else 'zero' }}">
+    <span class="stat-ic">{{ icon('receipt') }}</span>
+    <div><div class="n">{{ rows|length }}</div><div class="l">{{ t("Transactions") }}</div></div>
+  </div>
+</div>
 
 <div class="card">
   {% if rows %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>{{ t("Date") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Token") }}</th><th>{{ t("Crop") }}</th><th class="num">{{ t("Quantity") }}</th>
+        <tr><th>{{ t("Date") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Crop") }}</th><th class="num">{{ t("Quantity") }}</th>
             <th>{{ t("Grade") }}</th><th class="num">{{ t("Rate") }}</th><th class="num">{{ t("Amount") }}</th>
             <th>{{ t("Status") }}</th><th>{{ t("Credited") }}</th></tr>
       </thead>
@@ -19,13 +43,12 @@
         {% for r in rows %}
         <tr>
           <td class="nowrap">{{ r.date|nicedate }}</td>
-          <td>{{ r.centre_name }}</td>
-          <td class="mono nowrap">{{ r.token_no }}</td>
-          <td>{{ r.crop_type }}</td>
-          <td class="num nowrap">{{ '%.1f'|format(r.actual_quantity or 0) }} qtl</td>
+          <td><strong>{{ t(r.centre_name) }}</strong><span class="sub-line mono">{{ r.token_no }}</span></td>
+          <td>{{ crop(r.crop_type) }}</td>
+          <td class="num nowrap">{{ '%.1f'|format(r.actual_quantity or 0) }} {{ t("qtl") }}</td>
           <td>{{ grade_badge(r.quality_grade) }}</td>
           <td class="num nowrap">{{ r.price_per_unit|rupee }}</td>
-          <td class="num nowrap"><strong>{{ r.total_amount|rupee }}</strong></td>
+          <td class="num nowrap money">{{ r.total_amount|rupee }}</td>
           <td>{{ payment_badge(r.payment_status) }}</td>
           <td class="small muted nowrap">{{ r.payment_date|stamp if r.payment_date else '—' }}</td>
         </tr>
@@ -36,11 +59,5 @@
   {% else %}
     <div class="empty">{{ t("No procurement transactions recorded yet.") }}</div>
   {% endif %}
-</div>
-
-<div class="notice info small">
-  Payments are credited by direct benefit transfer to the bank account registered against your
-  Aadhaar. If a payment shows as <strong>failed</strong>, the cause is almost always a detail
-  mismatch &mdash; check <a href="{{ url_for('farmer_profile') }}">{{ t("My Details") }}</a>.
 </div>
 {% endblock %}

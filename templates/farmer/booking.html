@@ -1,113 +1,94 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge %}
-{% block title %}Booking {{ b.token_no }}{% endblock %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge, track, crop_name, forecast_days, risk_text %}
+{% block title %}{{ t("Booking") }} {{ b.token_no }}{% endblock %}
 
 {% block content %}
-<div class="breadcrumb">
-  <a href="{{ url_for('farmer_dashboard') }}">{{ t("Dashboard") }}</a> &rsaquo; Booking {{ b.token_no }}
-</div>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('farmer_dashboard') }}">{{ icon('grid') }}{{ t("Dashboard") }}</a>{{ icon('chevron-right') }}<span>{{ b.token_no }}</span>
+</nav>
 
-<h2 class="page-title">Booking {{ b.token_no }}</h2>
-<p class="page-sub">{{ status_badge(b.status) }} &middot; created {{ b.created_at|stamp }}</p>
-
-{% if risk and risk.level == 'high' %}
-<div class="notice error">
-  <h3>{{ t("Storage risk warning") }}</h3>
-  <p>{{ risk.reason }}</p>
-  <p style="margin-bottom:0">
-  {{ t("Move to an earlier slot if one is free, or store the produce on a raised platform under a waterproof cover until your slot date.") }}
-</p>
-</div>
-{% elif risk and risk.level == 'low' %}
-<div class="notice warning">
-  <h3>{{ t("Keep your produce covered") }}</h3>
-  <p style="margin-bottom:0">{{ risk.reason }}</p>
-</div>
-{% endif %}
-
-{% if queue %}
-<div class="card queue-card">
-  <h2>{{ t("Your place in the queue") }}</h2>
-  <div class="card-body">
-    <div class="queue-line">
-      <div class="q-num">{{ queue.position }}<span class="of">/ {{ queue.total }}</span></div>
-      <div class="q-text">
-        <strong>{{ t("You are number") }} {{ queue.position }} {{ t("of") }} {{ queue.total }}
-          {{ t("booked in this time window") }}.</strong>
-        {% if queue.done_ahead %}
-          <div class="small muted">{{ queue.done_ahead }}
-            {{ t("of those ahead of you have already been weighed in") }}.</div>
-        {% elif queue.waiting_ahead %}
-          <div class="small muted">{{ queue.waiting_ahead }}
-            {{ t("ahead of you have not arrived yet") }}.</div>
-        {% else %}
-          <div class="small muted">{{ t("Nobody is ahead of you in this window") }}.</div>
-        {% endif %}
+<section class="ticket">
+  <div class="ticket-head">
+    <div class="th-main">
+      <small>{{ t("Token number") }}</small>
+      <div class="ticket-token">{{ b.token_no }}</div>
+      <div class="meta-row" style="color:#cfe3d6">
+        <span>{{ icon('building') }}{{ t(b.centre_name) }}</span>
+        <span>{{ icon('calendar') }}{{ b.date|nicedate }} ({{ b.date|dayname }})</span>
+        <span>{{ icon('clock') }}{{ b.time_window }}</span>
       </div>
     </div>
-
-    {% if delay %}
-    <div class="notice warning small" style="margin:10px 0 0">
-      <strong>{{ b.centre_name }} {{ t("is running about") }} {{ delay.minutes }}
-        {{ t("minutes behind") }}.</strong>
-      {% if delay.stale_mins is not none %}
-        <span class="muted">({{ t("centre last updated this") }}
-          {%- if delay.stale_mins < 1 %} {{ t("just now") }}
-          {%- elif delay.stale_mins < 60 %} {{ delay.stale_mins }} {{ t("minutes ago") }}
-          {%- else %} {{ (delay.stale_mins / 60)|round(0, 'floor')|int }} {{ t("hours ago") }}
-          {%- endif %})</span>
+    <div class="btn-row">
+      {{ status_badge(b.status) }}
+      {% if b.status == 'booked' %}
+        <a class="btn wheat" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ icon('printer') }}{{ t("Gate pass") }}</a>
       {% endif %}
     </div>
-    {% endif %}
-
-    <p class="small muted" style="margin:10px 0 0">
-      {{ t("This is your position, not a promise about the clock. How long each farmer takes depends on the load being weighed and any quality check, so treat it as a guide.") }}
-    </p>
   </div>
+  <div class="ticket-body">
+    {% if b.status != 'cancelled' %}{{ track(b) }}{% endif %}
+    <div class="facts four">
+      <div class="fact"><div class="k">{{ t("Crop") }}</div><div class="v">{{ crop_name(b.crop_type) }}</div></div>
+      <div class="fact"><div class="k">{{ icon('package') }}{{ t("Estimated quantity") }}</div><div class="v">{{ '%.1f'|format(b.estimated_quantity) }} <small>{{ t("quintals") }}</small></div></div>
+      <div class="fact"><div class="k">{{ icon('scale') }}{{ t("Weighed quantity") }}</div>
+        <div class="v">{% if b.actual_quantity %}{{ '%.1f'|format(b.actual_quantity) }} <small>{{ t("quintals") }}</small>{% else %}&mdash;{% endif %}</div></div>
+      <div class="fact"><div class="k">{{ icon('cloud-rain') }}{{ t("Storage risk") }}</div><div class="v">{{ risk_badge(b.storage_risk) }}</div></div>
+    </div>
+  </div>
+</section>
+
+{% if risk and risk.level in ('high', 'low') %}
+<div class="notice {{ 'error' if risk.level == 'high' else 'warning' }}">
+  <h3>{{ t("Storage risk warning") if risk.level == 'high' else t("Keep your produce covered") }}</h3>
+  <p>{{ risk_text(risk) }}</p>
 </div>
 {% endif %}
 
 <div class="grid side">
-  <div>
+  <div class="stack">
+    {% if queue %}
     <div class="card">
-      <h2>{{ t("Slot details") }}</h2>
+      <div class="card-head"><h2 class="card-title">{{ icon('hourglass') }}{{ t("Your place in the queue") }}</h2></div>
       <div class="card-body">
-        <dl class="kv">
-          <dt>{{ t("Token number") }}</dt><dd class="mono"><strong>{{ b.token_no }}</strong></dd>
-          <dt>{{ t("Procurement centre") }}</dt><dd>{{ b.centre_name }}<div class="small muted">{{ b.location }}, {{ b.centre_district }}</div></dd>
-          <dt>{{ t("Date") }}</dt><dd>{{ b.date|nicedate }} <span class="muted small">({{ b.date|dayname }})</span></dd>
-          <dt>{{ t("Reporting time") }}</dt><dd>{{ b.time_window }}</dd>
-          <dt>{{ t("Crop") }}</dt><dd>{{ b.crop_type }}</dd>
-          <dt>{{ t("Estimated quantity") }}</dt><dd>{{ '%.1f'|format(b.estimated_quantity) }} quintals</dd>
-          {% if b.actual_quantity %}
-            <dt>{{ t("Weighed quantity") }}</dt><dd>{{ '%.1f'|format(b.actual_quantity) }} quintals</dd>
-            <dt>{{ t("Quality grade") }}</dt><dd>{{ grade_badge(b.quality_grade) }}</dd>
-          {% endif %}
-          <dt>{{ t("Storage risk") }}</dt><dd>{{ risk_badge(b.storage_risk) }}</dd>
-        </dl>
+        <div class="queue">
+          <div class="ring" style="--p: {{ (queue.position * 100 // queue.total) if queue.total else 0 }}">
+            <div class="ring-in"><strong>{{ queue.position }}</strong><span>{{ t("of") }} {{ queue.total }}</span></div>
+          </div>
+          <div class="queue-text">
+            {% if queue.done_ahead %}
+              <h3>{{ queue.done_ahead }} {{ t("of those ahead of you have already been weighed in") }}</h3>
+            {% elif queue.waiting_ahead %}
+              <h3>{{ queue.waiting_ahead }} {{ t("ahead of you have not arrived yet") }}</h3>
+            {% else %}
+              <h3>{{ t("Nobody is ahead of you in this window") }}</h3>
+            {% endif %}
+          </div>
+        </div>
+        {% if delay %}
+        <div class="notice warning small mt mb0">
+          <strong>{{ t(b.centre_name) }} {{ t("is running about") }} {{ delay.minutes }} {{ t("minutes behind") }}</strong>
+        </div>
+        {% endif %}
       </div>
     </div>
+    {% endif %}
 
     {% if txn %}
     <div class="card">
-      <h2>{{ t("Transaction") }}</h2>
+      <div class="card-head">
+        <h2 class="card-title">{{ icon('receipt') }}{{ t("Transaction") }}</h2>
+        {{ payment_badge(txn.payment_status) }}
+      </div>
       <div class="card-body">
         <dl class="kv">
-          <dt>{{ t("Weighed quantity") }}</dt><dd>{{ '%.1f'|format(txn.actual_quantity or 0) }} quintals</dd>
-          <dt>{{ t("Quality grade") }}</dt><dd>{{ grade_badge(txn.quality_grade) }}</dd>
-          <dt>{{ t("Rate applied") }}</dt><dd>{{ txn.price_per_unit|rupee }} per quintal</dd>
-          <dt>{{ t("Total value") }}</dt><dd><strong>{{ txn.total_amount|rupee }}</strong></dd>
-          <dt>{{ t("Payment status") }}</dt><dd>{{ payment_badge(txn.payment_status) }}</dd>
-          {% if txn.payment_date %}<dt>Credited on</dt><dd>{{ txn.payment_date|stamp }}</dd>{% endif %}
+          <dt>{{ icon('scale') }}{{ t("Weighed quantity") }}</dt><dd>{{ '%.1f'|format(txn.actual_quantity or 0) }} {{ t("quintals") }}</dd>
+          <dt>{{ icon('award') }}{{ t("Quality grade") }}</dt><dd>{{ grade_badge(txn.quality_grade) }}</dd>
+          <dt>{{ icon('rupee') }}{{ t("Rate applied") }}</dt><dd>{{ txn.price_per_unit|rupee }} {{ t("per quintal") }}</dd>
+          <dt>{{ icon('banknote') }}{{ t("Total value") }}</dt><dd class="money" style="font-size:1.25rem">{{ txn.total_amount|rupee }}</dd>
+          {% if txn.payment_date %}<dt>{{ icon('calendar-check') }}{{ t("Credited on") }}</dt><dd>{{ txn.payment_date|stamp }}</dd>{% endif %}
         </dl>
         {% if txn.payment_status == 'failed' %}
-        <div class="notice error mt" style="margin-bottom:0">
-          <p style="margin:0">
-            This payment could not be credited. Check
-            <a href="{{ url_for('farmer_profile') }}">{{ t("My Details") }}</a> for unresolved issues, or
-            visit your procurement centre.
-          </p>
-        </div>
+        <a class="btn danger block mt" href="{{ url_for('farmer_profile') }}">{{ icon('id-card') }}{{ t("Correct my details") }}</a>
         {% endif %}
       </div>
     </div>
@@ -116,59 +97,41 @@
     {% if risk and risk.forecast %}
     <div class="card">
       <div class="card-head">
-        <span>Weather in {{ g.farmer.district }} before your slot</span>
-        <span class="badge {{ 'blue' if risk.source == 'live' else 'grey' }}">
-          {{ 'Live forecast' if risk.source == 'live' else 'Simulated forecast' }}
-        </span>
+        <h2 class="card-title">{{ icon('cloud-sun') }}{{ t(risk.place or g.farmer.district) }}</h2>
+        {% if risk.source == 'live' %}<span class="badge green live">{{ t("Live forecast") }}</span>
+        {% else %}<span class="badge grey">{{ t("Simulated forecast") }}</span>{% endif %}
       </div>
-      <div class="card-body">
-        <div class="forecast">
-          {% for d in risk.forecast %}
-          <div class="fc-day {{ 'wet' if d.rain_mm > 0.5 }}">
-            <div class="d">{{ d.date|nicedate }}</div>
-            <div class="r">{{ d.rain_mm }}<span class="small"> mm</span></div>
-            <div class="d">{{ d.humidity }}% humidity</div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
+      <div class="card-body">{{ forecast_days(risk.forecast) }}</div>
     </div>
     {% endif %}
   </div>
 
-  <div>
+  <div class="stack">
+    {% if b.status in ('booked', 'arrived') %}
     <div class="card">
-      <h2>{{ t("Actions") }}</h2>
-      <div class="card-body">
+      <div class="card-body btn-stack">
         {% if b.status == 'booked' %}
-          <a class="btn block" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ t("View / print gate pass") }}</a>
-          <a class="btn secondary block mt"
-             href="{{ url_for('farmer_centre', centre_id=b.centre_id, reschedule=b.id) }}">{{ t("Reschedule this slot") }}</a>
-          <form method="post" action="{{ url_for('farmer_cancel', booking_id=b.id) }}" class="mt"
-                onsubmit="return confirm('Cancel this booking? The slot will be released to other farmers.')">
-            <button class="btn danger block" type="submit">{{ t("Cancel booking") }}</button>
+          <a class="btn block" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ icon('printer') }}{{ t("View / print gate pass") }}</a>
+          <a class="btn secondary block" href="{{ url_for('farmer_centre', centre_id=b.centre_id, reschedule=b.id) }}">{{ icon('refresh') }}{{ t("Reschedule this slot") }}</a>
+          <form method="post" action="{{ url_for('farmer_cancel', booking_id=b.id) }}"
+                onsubmit="return confirm('{{ t('Cancel booking') }}?')">
+            <button class="btn danger block" type="submit">{{ icon('x-circle') }}{{ t("Cancel booking") }}</button>
           </form>
-        {% elif b.status == 'arrived' %}
-          <p class="small muted" style="margin-top:0">
-            Your produce has been weighed at the centre. The transaction will be closed shortly.
-          </p>
-          <a class="btn secondary block" href="{{ url_for('farmer_payments') }}">{{ t("Track payment") }}</a>
         {% else %}
-          <p class="small muted" style="margin:0">
-            This booking is {{ b.status }}. No further action is possible.
-          </p>
+          <a class="btn secondary block" href="{{ url_for('farmer_payments') }}">{{ icon('wallet') }}{{ t("Track payment") }}</a>
         {% endif %}
       </div>
     </div>
+    {% endif %}
 
     <div class="card">
-      <h2>{{ t("Bring with you") }}</h2>
-      <div class="card-body small muted">
-        <ul style="margin:0;padding-left:18px">
-          <li>This token number: <strong class="mono">{{ b.token_no }}</strong></li>
-          <li>{{ t("Aadhaar card") }}</li>
-          <li>{{ t("Bank passbook") }}</li>
-          <li>{{ t("Land record extract") }}</li>
+      <div class="card-head"><h2 class="card-title">{{ icon('clipboard-check') }}{{ t("Bring with you") }}</h2></div>
+      <div class="card-body">
+        <ul class="checklist">
+          <li>{{ icon('ticket') }}{{ t("Token number") }}<span class="token-txt">{{ b.token_no }}</span></li>
+          <li>{{ icon('id-card') }}{{ t("Aadhaar card") }}</li>
+          <li>{{ icon('landmark') }}{{ t("Bank passbook") }}</li>
+          <li>{{ icon('map-pin') }}{{ t("Land record extract") }}</li>
         </ul>
       </div>
     </div>

@@ -1,47 +1,45 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge, avatar, track, crop, flag_list %}
 {% block title %}Verify {{ b.token_no }}{% endblock %}
 
 {% block content %}
-<div class="breadcrumb">
-  <a href="{{ url_for('admin_dashboard') }}">Bookings</a> &rsaquo; {{ b.token_no }}
-</div>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_dashboard') }}">{{ icon('grid') }}Bookings</a>{{ icon('chevron-right') }}<span>{{ b.token_no }}</span>
+</nav>
 
-<h2 class="page-title">{{ b.token_no }} &mdash; {{ b.farmer_name }}</h2>
-<p class="page-sub">
-  {{ b.centre_name }} &middot; {{ b.date|nicedate }}, {{ b.time_window }}
-  &middot; {{ status_badge(b.status) }} {{ risk_badge(b.storage_risk) }}
-</p>
+<div class="pagehead">
+  {{ avatar(b.farmer_name, 'lg') }}
+  <div class="ph-text">
+    <p class="eyebrow">{{ icon('ticket') }}{{ b.token_no }}</p>
+    <h1 class="page-title">{{ b.farmer_name }}</h1>
+    <div class="meta-row">
+      <span>{{ icon('building') }}{{ b.centre_name }}</span>
+      <span>{{ icon('calendar') }}{{ b.date|nicedate }}, {{ b.time_window }}</span>
+      <span>{{ status_badge(b.status) }}</span>
+      {% if b.storage_risk != 'none' %}<span>{{ risk_badge(b.storage_risk) }}</span>{% endif %}
+    </div>
+  </div>
+</div>
 
 {% if flags %}
 <div class="notice {{ 'error' if flags|selectattr('severity','equalto','blocking')|list else 'warning' }}">
   <h3>This farmer has {{ flags|length }} unresolved detail issue{{ 's' if flags|length != 1 }}</h3>
-  <ul>
-    {% for fl in flags %}
-      <li>
-        <span class="badge {{ 'red' if fl.severity == 'blocking' else 'amber' }}">{{ fl.severity }}</span>
-        <strong>{{ fl.field_flagged|replace('_',' ')|title }}:</strong> {{ fl.detail }}
-      </li>
-    {% endfor %}
-  </ul>
-  <p style="margin-bottom:0">
-    Fix these now while the farmer is standing in front of you &mdash;
-    <a href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">correct the record</a>.
-    Closing a transaction with a blocking flag open will mark the payment as failed.
-  </p>
+  {{ flag_list(flags) }}
+</div>
+{% endif %}
+
+{% if b.status != 'cancelled' %}
+<div class="card">
+  <div class="card-body">{{ track(b) }}</div>
 </div>
 {% endif %}
 
 <div class="grid side">
-  <div>
-    <div class="card">
-      <h2>1. Record arriving produce</h2>
+  <div class="stack">
+    <div class="card stepcard">
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">1</span>Record arriving produce</h2>{{ crop(b.crop_type) }}</div>
       <div class="card-body">
         {% if b.status == 'booked' %}
-        <p class="small muted" style="margin-top:0">
-          Declared: {{ b.crop_type }}, {{ '%.1f'|format(b.estimated_quantity) }} quintals.
-          Enter what was actually weighed at the gate.
-        </p>
         <form method="post" action="{{ url_for('admin_arrive', booking_id=b.id) }}">
           <div class="field-row two">
             <div class="field">
@@ -58,31 +56,31 @@
                 Grade B is paid at 94%, rejected produce at nil.</div>
             </div>
           </div>
-          <button class="btn" type="submit">Mark as arrived and record</button>
+          <button class="btn" type="submit">{{ icon('scale') }}Mark as arrived and record</button>
         </form>
         {% else %}
-          <p class="small muted" style="margin:0">
-            Recorded: {{ '%.1f'|format(txn.actual_quantity or 0) }} quintals,
+          <p class="small muted mb0">
+            Recorded: {{ '%.1f'|format(txn.actual_quantity or 0) if txn else '—' }} quintals,
             {{ grade_badge(txn.quality_grade) if txn else '—' }}.
           </p>
         {% endif %}
       </div>
     </div>
 
-    <div class="card">
-      <h2>2. Close the transaction</h2>
+    <div class="card stepcard">
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">2</span>Close the transaction</h2>
+        {% if txn %}{{ payment_badge(txn.payment_status) }}{% endif %}</div>
       <div class="card-body">
         {% if txn %}
-          <dl class="kv">
-            <dt>Weighed quantity</dt><dd>{{ '%.1f'|format(txn.actual_quantity or 0) }} quintals</dd>
-            <dt>Quality grade</dt><dd>{{ grade_badge(txn.quality_grade) }}</dd>
-            <dt>Rate applied</dt><dd>{{ txn.price_per_unit|rupee }} per quintal</dd>
-            <dt>Total payable</dt><dd><strong>{{ txn.total_amount|rupee }}</strong></dd>
-            <dt>Payment status</dt><dd>{{ payment_badge(txn.payment_status) }}</dd>
-          </dl>
+          <div class="facts four">
+            <div class="fact"><div class="k">{{ icon('scale') }}Weighed</div><div class="v">{{ '%.1f'|format(txn.actual_quantity or 0) }} <small>quintals</small></div></div>
+            <div class="fact"><div class="k">{{ icon('award') }}Grade</div><div class="v">{{ grade_badge(txn.quality_grade) }}</div></div>
+            <div class="fact"><div class="k">{{ icon('rupee') }}Rate</div><div class="v">{{ txn.price_per_unit|rupee }} <small>per quintal</small></div></div>
+            <div class="fact"><div class="k">{{ icon('banknote') }}Total payable</div><div class="v money">{{ txn.total_amount|rupee }}</div></div>
+          </div>
           {% if b.status == 'arrived' %}
           <form method="post" action="{{ url_for('admin_complete', booking_id=b.id) }}" class="mt">
-            <button class="btn go" type="submit">Complete transaction and release payment</button>
+            <button class="btn go large" type="submit">{{ icon('check-circle') }}Complete transaction and release payment</button>
           </form>
           {% elif b.status == 'completed' %}
           <form method="post" action="{{ url_for('admin_payment', txn_id=txn.id) }}" class="mt">
@@ -93,46 +91,34 @@
                   <option value="{{ s }}" {{ 'selected' if txn.payment_status == s }}>{{ s|title }}</option>
                 {% endfor %}
               </select>
-              <div class="hint">
-                Simulated DBT. In production this status is returned by the payment gateway.
-              </div>
             </div>
-            <button class="btn secondary" type="submit">Update</button>
+            <button class="btn secondary" type="submit">{{ icon('refresh') }}Update</button>
           </form>
           {% endif %}
         {% else %}
-          <p class="small muted" style="margin:0">Record the weighed quantity first.</p>
+          <p class="small muted mb0">Record the weighed quantity first.</p>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <div>
-    <div class="card">
-      <h2>Farmer record</h2>
-      <div class="card-body">
-        <dl class="kv">
-          <dt>Name</dt><dd>{{ farmer.name }}</dd>
-          <dt>Mobile</dt><dd>{{ farmer.phone_number }}</dd>
-          <dt>Village</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
-          <dt>Aadhaar</dt><dd class="mono">{{ farmer.aadhaar_number or '—' }}</dd>
-          <dt>Bank account</dt><dd class="mono">{{ farmer.bank_account or '—' }}</dd>
-          <dt>IFSC</dt><dd class="mono">{{ farmer.ifsc_code or '—' }}</dd>
-          <dt>Name on account</dt><dd>{{ farmer.bank_name_on_account or '—' }}</dd>
-          <dt>Land record</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
-          <dt>Registered via</dt><dd>{{ farmer.registered_via|upper }}</dd>
-        </dl>
-        <form method="post" action="{{ url_for('admin_call', booking_id=b.id) }}" class="mt">
-          <button class="btn block" type="submit">Call farmer about this booking</button>
-        </form>
-        <div class="hint">
-          Rings {{ b.farmer_name }} on {{ b.phone_number }}. What it says depends on where the
-          booking has got to &mdash; a held payment, a rain warning, or the slot and token.
-        </div>
-        <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">
-          Open full record
-        </a>
-      </div>
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">{{ icon('user') }}Farmer record</h2>
+      <span class="badge grey plain">{{ farmer.registered_via|upper }}</span></div>
+    <div class="card-body">
+      <dl class="kv">
+        <dt>{{ icon('phone') }}Mobile</dt><dd>{{ farmer.phone_number }}</dd>
+        <dt>{{ icon('map-pin') }}Village</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
+        <dt>{{ icon('id-card') }}Aadhaar</dt><dd class="mono">{{ farmer.aadhaar_number or '—' }}</dd>
+        <dt>{{ icon('landmark') }}Bank account</dt><dd class="mono">{{ farmer.bank_account or '—' }}</dd>
+        <dt>{{ icon('landmark') }}IFSC</dt><dd class="mono">{{ farmer.ifsc_code or '—' }}</dd>
+        <dt>{{ icon('user') }}Name on account</dt><dd>{{ farmer.bank_name_on_account or '—' }}</dd>
+        <dt>{{ icon('file-text') }}Land record</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
+      </dl>
+      <form method="post" action="{{ url_for('admin_call', booking_id=b.id) }}" class="mt">
+        <button class="btn block" type="submit">{{ icon('phone-call') }}Call farmer about this booking</button>
+      </form>
+      <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">{{ icon('eye') }}Open full record</a>
     </div>
   </div>
 </div>

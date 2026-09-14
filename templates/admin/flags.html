@@ -1,53 +1,78 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar, field_icon %}
 {% block title %}Data Validation Flags{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Data mismatch queue</h2>
-<p class="page-sub">
-  Farmers whose Aadhaar, bank or land-record details failed validation. Clearing these before the
-  slot date is what stops the payment failing after procurement.
-</p>
+<div class="pagehead">
+  <div class="ph-text">
+    <h1 class="page-title">Data mismatch queue</h1>
+  </div>
+</div>
+
+{% set blocking = flags|selectattr('severity', 'equalto', 'blocking')|list|length %}
+{% set warnings = flags|selectattr('severity', 'equalto', 'warning')|list|length %}
+<div class="stat-row">
+  <div class="stat {{ 'bad' if blocking else 'zero' }}">
+    <span class="stat-ic">{{ icon('x-circle') }}</span>
+    <div><div class="n">{{ blocking }}</div><div class="l">Blocking a payment</div></div>
+  </div>
+  <div class="stat {{ 'warn' if warnings else 'zero' }}">
+    <span class="stat-ic">{{ icon('alert-triangle') }}</span>
+    <div><div class="n">{{ warnings }}</div><div class="l">Warnings</div></div>
+  </div>
+  <div class="stat {{ 'info' if flags else 'zero' }}">
+    <span class="stat-ic">{{ icon('users') }}</span>
+    <div><div class="n">{{ flags|map(attribute='farmer_id')|unique|list|length }}</div><div class="l">Farmers affected</div></div>
+  </div>
+  <div class="stat {{ 'info' if flags else 'zero' }}">
+    <span class="stat-ic">{{ icon('list') }}</span>
+    <div><div class="n">{{ flags|length }}</div><div class="l">Shown</div></div>
+  </div>
+</div>
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="status">Show</label>
+    <label for="status">{{ icon('list') }} Show</label>
     <select id="status" name="status">
       <option value="unresolved" {{ 'selected' if sel_status == 'unresolved' }}>Unresolved</option>
       <option value="resolved" {{ 'selected' if sel_status == 'resolved' }}>Resolved</option>
       <option value="all" {{ 'selected' if sel_status == 'all' }}>All</option>
     </select>
   </div>
-  <div class="actions"><button class="btn" type="submit">Apply</button></div>
+  <div class="actions"><button class="btn" type="submit">{{ icon('sliders') }}Apply</button></div>
 </form>
 
 <div class="card">
-  <div class="card-head"><span>{{ flags|length }} flag{{ 's' if flags|length != 1 }}</span></div>
+  <div class="card-head"><h2 class="card-title">{{ icon('flag') }}Flags <span class="count">{{ flags|length }}</span></h2></div>
   {% if flags %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Severity</th><th>Farmer</th><th>District</th><th>Field</th><th>Detail</th>
-            <th>Flagged</th><th></th></tr>
+        <tr><th>Severity</th><th>Farmer</th><th>Field</th><th>Detail</th><th>Flagged</th><th></th></tr>
       </thead>
       <tbody>
         {% for f in flags %}
         <tr>
-          <td><span class="badge {{ 'red' if f.severity == 'blocking' else 'amber' }}">{{ f.severity }}</span></td>
+          <td><span class="sev {{ f.severity }}">{{ icon('x-circle' if f.severity == 'blocking' else 'alert-triangle') }}{{ f.severity }}</span></td>
           <td>
-            <a href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ f.farmer_name }}</a>
-            <div class="small muted">{{ f.phone_number }}</div>
+            <div class="who">
+              {{ avatar(f.farmer_name, 'sm') }}
+              <div class="who-text">
+                <a href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ f.farmer_name }}</a>
+                <span class="sub-line">{{ f.phone_number }} &middot; {{ f.district }}</span>
+              </div>
+            </div>
           </td>
-          <td class="nowrap">{{ f.district }}</td>
-          <td class="nowrap">{{ f.field_flagged|replace('_',' ')|title }}</td>
-          <td class="small">{{ f.detail }}</td>
+          <td class="nowrap"><span class="icon-text">{{ field_icon(f.field_flagged) }}{{ f.field_flagged|replace('_',' ')|title }}</span></td>
+          <td class="small" style="min-width: 260px">{{ f.detail }}</td>
           <td class="small muted nowrap">{{ f.flagged_at|nicedate }}</td>
           <td class="nowrap">
             {% if f.status == 'unresolved' %}
               <div class="btn-row">
-                <a class="btn small" href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">Correct</a>
+                <a class="btn small" href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ icon('sliders') }}Correct</a>
                 <form method="post" action="{{ url_for('admin_resolve_flag', flag_id=f.id) }}">
                   <button class="btn small secondary" type="submit"
-                          title="Mark as verified against physical documents">Verified</button>
+                          title="Mark as verified against physical documents">{{ icon('check') }}Verified</button>
                 </form>
               </div>
             {% else %}
@@ -60,13 +85,8 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">Nothing in the queue.</div>
+    <div class="empty"><strong>Nothing in the queue.</strong>Every record passes its checks.</div>
   {% endif %}
 </div>
 
-<div class="notice info small">
-  <strong>Verified</strong> marks a flag cleared after checking the farmer's physical documents,
-  without changing the stored value. <strong>Correct</strong> opens the record so the wrong value
-  can be fixed &mdash; which re-runs every check for that farmer.
-</div>
 {% endblock %}

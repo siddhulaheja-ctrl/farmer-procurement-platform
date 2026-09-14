@@ -3,6 +3,7 @@
 -- inspected with any sqlite browser during the presentation.
 -- TODO: migrate to PostgreSQL for production (see spec section 2).
 
+DROP TABLE IF EXISTS audit_log;
 DROP TABLE IF EXISTS site_counters;
 DROP TABLE IF EXISTS alerts_log;
 DROP TABLE IF EXISTS data_validation_flags;
@@ -32,9 +33,11 @@ CREATE TABLE staff (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     name         TEXT NOT NULL,
     staff_code   TEXT NOT NULL UNIQUE,
-    password     TEXT NOT NULL,   -- plaintext by design for the hackathon demo.
-                                  -- TODO: bcrypt/argon2 hashing in production
-    centre_id    INTEGER,
+    password     TEXT NOT NULL,   -- werkzeug hash, never the password itself
+    centre_id    INTEGER,         -- centre staff are locked to this; NULL for a supervisor
+    role         TEXT NOT NULL DEFAULT 'staff',   -- staff | superadmin
+    active       INTEGER NOT NULL DEFAULT 1,      -- 0 = switched off, can't sign in
+    last_login   TEXT,
     FOREIGN KEY (centre_id) REFERENCES procurement_centres(id)
 );
 
@@ -111,11 +114,30 @@ CREATE TABLE alerts_log (
     alert_type TEXT NOT NULL,     -- storage_risk|slot_reminder|payment_update|data_mismatch|booking_confirmed
     channel    TEXT NOT NULL,     -- app|ivr|sms
     message    TEXT NOT NULL,
+    message_hi TEXT,              -- same alert in hindi, shown when the farmer picks hindi
     sent_at    TEXT NOT NULL,
     read_flag  INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (farmer_id) REFERENCES farmers(id)
 );
 CREATE INDEX idx_alerts_farmer ON alerts_log(farmer_id);
+
+-- Who did what. Rows are only ever added.
+CREATE TABLE IF NOT EXISTS audit_log (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    staff_id     INTEGER NOT NULL,
+    centre_id    INTEGER,          -- where the action happened
+    action       TEXT NOT NULL,    -- see ACTIONS in audit.py
+    farmer_id    INTEGER,
+    booking_id   INTEGER,
+    ref_id       INTEGER,          -- a slot, flag, transaction, centre or staff id
+    detail       TEXT,
+    before_value TEXT,             -- json
+    after_value  TEXT,             -- json
+    at           TEXT NOT NULL,
+    FOREIGN KEY (staff_id) REFERENCES staff(id)
+);
+CREATE INDEX IF NOT EXISTS idx_audit_staff ON audit_log(staff_id, at);
+CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at);
 
 -- Footer visitor count. Gov portals have had these forever. One row, bumped
 -- on each home page view.

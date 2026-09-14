@@ -1,60 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Gate Pass {{ b.token_no }}{% endblock %}
+{% from "_macros.html" import crop_name %}
+{% block title %}{{ t("Gate pass") }} {{ b.token_no }}{% endblock %}
 
 {% block content %}
-<div class="breadcrumb no-print">
-  <a href="{{ url_for('farmer_booking', booking_id=b.id) }}">Booking {{ b.token_no }}</a> &rsaquo; Gate pass
-</div>
+<nav class="breadcrumb no-print" aria-label="Breadcrumb">
+  <a href="{{ url_for('farmer_dashboard') }}">{{ icon('grid') }}{{ t("Dashboard") }}</a>{{ icon('chevron-right') }}
+  <a href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ b.token_no }}</a>{{ icon('chevron-right') }}<span>{{ t("Gate pass") }}</span>
+</nav>
 
 <div class="gatepass">
   <div class="gp-head">
-    <img class="gp-crest" src="{{ url_for('static', filename='img/logo-mark-96.png') }}"
-         width="44" height="44" alt="">
+    <img class="gp-crest" src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="52" height="52" alt="">
     <div>
       <div class="s">{{ t("GOVERNMENT PROCUREMENT CENTRE") }}</div>
       <h2>{{ t("Electronic Gate Pass") }}</h2>
-      <div class="s">{{ b.centre_name }}</div>
+      <div class="s">{{ t(b.centre_name) }}</div>
     </div>
   </div>
 
-  <div class="token">
-    <div class="token-main">
-      <div>
-        <div class="c">{{ t("Token number") }}</div>
-        <div class="t">{{ b.token_no }}</div>
-        <div class="c">{{ b.date|nicedate }} &middot; {{ b.time_window }}</div>
-      </div>
-      {# clerk scans this to pull the record up. the token above is still
-         what identifies you, so read it out if the scan won't work #}
-      <div class="qr-box">
-        {{ qr_svg|safe }}
-        <div class="c">{{ t("For centre staff") }}</div>
-      </div>
+  <div class="gp-token">
+    <div>
+      <div class="c">{{ t("Token number") }}</div>
+      <div class="t">{{ b.token_no }}</div>
+      <div class="gp-when">{{ icon('calendar') }}{{ b.date|nicedate }} &middot; {{ b.time_window }}</div>
+    </div>
+    {# the clerk scans this to open the record. the token beside it is still
+       what identifies you, so read it out if the scan won't work #}
+    <div class="qr-box">
+      {{ qr_svg|safe }}
+      <div class="c tiny">{{ t("For centre staff") }}</div>
     </div>
   </div>
 
   <div class="gp-body">
     <dl class="kv">
-      <dt>{{ t("Farmer") }}</dt><dd>{{ farmer.name }}</dd>
-      <dt>{{ t("Mobile") }}</dt><dd>{{ farmer.phone_number }}</dd>
-      <dt>{{ t("Village / district") }}</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
-      <dt>{{ t("Land record ID") }}</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
-      <dt>{{ t("Crop declared") }}</dt><dd>{{ b.crop_type }}</dd>
-      <dt>{{ t("Estimated quantity") }}</dt><dd>{{ '%.1f'|format(b.estimated_quantity) }} quintals</dd>
-      <dt>{{ t("Centre address") }}</dt><dd>{{ b.location }}, {{ b.centre_district }}</dd>
+      <dt>{{ icon('user') }}{{ t("Farmer") }}</dt><dd>{{ farmer.name }}</dd>
+      <dt>{{ icon('phone') }}{{ t("Mobile") }}</dt><dd>{{ farmer.phone_number }}</dd>
+      <dt>{{ icon('map-pin') }}{{ t("Village / district") }}</dt><dd>{{ t(farmer.village) }}, {{ t(farmer.district) }}</dd>
+      <dt>{{ icon('file-text') }}{{ t("Land record ID") }}</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
+      <dt>{{ t("Crop declared") }}</dt><dd>{{ crop_name(b.crop_type) }}</dd>
+      <dt>{{ icon('package') }}{{ t("Estimated quantity") }}</dt><dd>{{ '%.1f'|format(b.estimated_quantity) }} {{ t("quintals") }}</dd>
+      <dt>{{ icon('building') }}{{ t("Centre address") }}</dt><dd>{{ t(b.location) }}, {{ t(b.centre_district) }}</dd>
     </dl>
   </div>
 
   <div class="gp-foot">
-    Issued {{ issued.strftime('%d %b %Y, %H:%M') }}. Present this pass with your Aadhaar card and
-    bank passbook at the centre gate. Valid only for the date and time window shown above.
-    <br><br>
-    <em>Demonstration document &mdash; not a government-issued instrument.</em>
+    {{ t("Show this pass with your Aadhaar card and bank passbook.") }}
+    {{ t("Issued") }} {{ issued.strftime('%d %b %Y, %H:%M') }}.
   </div>
 </div>
 
-<div class="btn-row no-print mt" style="justify-content:center">
-  <button class="btn" type="button" onclick="window.print()">{{ t("Print gate pass") }}</button>
-  <a class="btn secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ t("Back to booking") }}</a>
+<div class="btn-row center no-print mt">
+  <button class="btn large" type="button" onclick="window.print()">{{ icon('printer') }}{{ t("Print gate pass") }}</button>
+  <a class="btn secondary large" href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ icon('arrow-left') }}{{ t("Back to booking") }}</a>
 </div>
 {% endblock %}

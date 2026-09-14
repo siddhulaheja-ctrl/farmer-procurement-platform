@@ -1,33 +1,29 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge %}
+{% from "_macros.html" import status_badge, payment_badge, avatar, flag_list, crop %}
 {% block title %}{{ farmer.name }}{% endblock %}
 
 {% block content %}
-<div class="breadcrumb">
-  <a href="{{ url_for('admin_farmers') }}">Farmers</a> &rsaquo; {{ farmer.name }}
-</div>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_farmers') }}">{{ icon('users') }}Farmers</a>{{ icon('chevron-right') }}<span>{{ farmer.name }}</span>
+</nav>
 
-<h2 class="page-title">{{ farmer.name }}</h2>
-<p class="page-sub">
-  {{ farmer.phone_number }} &middot; {{ farmer.village }}, {{ farmer.district }}
-  &middot; registered via {{ farmer.registered_via|upper }} on {{ farmer.created_at|nicedate }}
-</p>
+<div class="pagehead">
+  {{ avatar(farmer.name, 'lg') }}
+  <div class="ph-text">
+    <p class="eyebrow">Farmer record</p>
+    <h1 class="page-title">{{ farmer.name }}</h1>
+    <div class="meta-row">
+      <span>{{ icon('phone') }}{{ farmer.phone_number }}</span>
+      <span>{{ icon('map-pin') }}{{ farmer.village }}, {{ farmer.district }}</span>
+      <span>{{ icon('user-plus') }}Registered via {{ farmer.registered_via|upper }} on {{ farmer.created_at|nicedate }}</span>
+    </div>
+  </div>
+</div>
 
 {% if flags %}
 <div class="notice error">
   <h3>{{ flags|length }} unresolved issue{{ 's' if flags|length != 1 }}</h3>
-  <ul>
-    {% for fl in flags %}
-      <li>
-        <span class="badge {{ 'red' if fl.severity == 'blocking' else 'amber' }}">{{ fl.severity }}</span>
-        <strong>{{ fl.field_flagged|replace('_',' ')|title }}:</strong> {{ fl.detail }}
-        <form method="post" action="{{ url_for('admin_resolve_flag', flag_id=fl.id) }}"
-              style="display:inline">
-          <button class="btn small secondary" type="submit">Mark verified</button>
-        </form>
-      </li>
-    {% endfor %}
-  </ul>
+  {{ flag_list(flags, resolve=True) }}
 </div>
 {% else %}
 <div class="notice success">All validation checks pass for this record.</div>
@@ -35,14 +31,14 @@
 
 <div class="grid side">
   <div class="card">
-    <h2>Correct record</h2>
+    <div class="card-head"><h2 class="card-title">{{ icon('sliders') }}Correct record</h2></div>
     <div class="card-body">
       <form method="post">
         {% with f = farmer, show_phone = false %}
           {% include "_farmer_fields.html" %}
         {% endwith %}
         <div class="btn-row mt">
-          <button class="btn" type="submit">Save and re-validate</button>
+          <button class="btn" type="submit">{{ icon('refresh') }}Save and re-validate</button>
           <a class="btn secondary" href="{{ url_for('admin_farmers') }}">Back</a>
         </div>
       </form>
@@ -50,17 +46,17 @@
   </div>
 
   <div class="card">
-    <div class="card-head"><span>Booking history</span></div>
+    <div class="card-head"><h2 class="card-title">{{ icon('ticket') }}Booking history <span class="count">{{ bookings|length }}</span></h2></div>
     {% if bookings %}
     <div class="table-scroll">
       <table class="data">
-        <thead><tr><th>Date</th><th>Token</th><th>Crop</th><th>Status</th><th>Payment</th></tr></thead>
+        <thead><tr><th>Token</th><th>Date</th><th>Status</th><th>Payment</th></tr></thead>
         <tbody>
           {% for b in bookings %}
           <tr>
+            <td><a class="token-txt" href="{{ url_for('admin_booking', booking_id=b.id) }}">{{ b.token_no }}</a>
+              <span class="sub-line">{{ b.crop_type }}</span></td>
             <td class="nowrap small">{{ b.date|nicedate }}</td>
-            <td class="mono nowrap"><a href="{{ url_for('admin_booking', booking_id=b.id) }}">{{ b.token_no }}</a></td>
-            <td class="small">{{ b.crop_type }}</td>
             <td>{{ status_badge(b.status) }}</td>
             <td>{{ payment_badge(b.payment_status) }}</td>
           </tr>

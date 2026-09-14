@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_macros.html" import audit_changes, audit_target %}
+{% block title %}{{ person.name }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('super_staff') }}">{{ icon('arrow-left') }}Staff accounts</a>
+</nav>
+
+<div class="pagehead">
+  <div class="ph-text">
+    <p class="eyebrow">{{ person.staff_code }} &middot; {{ person.centre_name or 'Every centre' }}</p>
+    <h1 class="page-title">{{ person.name }}</h1>
+    <div class="meta-row">
+      <span>{% if person.role == 'superadmin' %}<span class="badge blue">Supervisor</span>{% else %}<span class="badge grey">Centre staff</span>{% endif %}</span>
+      <span>{% if person.active %}<span class="badge green">Account on</span>{% else %}<span class="badge grey">Account off</span>{% endif %}</span>
+      <span>{{ icon('clock') }}Last sign-in {{ person.last_login|stamp if person.last_login else 'never' }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat {{ 'good' if stats.weighed else 'zero' }}">
+    <span class="stat-ic">{{ icon('scale') }}</span>
+    <div><div class="n">{{ stats.weighed }}</div><div class="l">Loads weighed, 30 days</div></div>
+  </div>
+  <div class="stat {{ 'good' if stats.closed else 'zero' }}">
+    <span class="stat-ic">{{ icon('check-circle') }}</span>
+    <div><div class="n">{{ stats.closed }}</div><div class="l">Transactions closed</div></div>
+  </div>
+  <div class="stat {{ 'info' if stats.calls else 'zero' }}">
+    <span class="stat-ic">{{ icon('phone-call') }}</span>
+    <div><div class="n">{{ stats.calls }}</div><div class="l">Farmers called</div></div>
+  </div>
+  <div class="stat {{ 'warn' if stats.sensitive else 'zero' }}">
+    <span class="stat-ic">{{ icon('shield') }}</span>
+    <div><div class="n">{{ stats.sensitive }}</div><div class="l">Money or ID changed by hand</div></div>
+  </div>
+</div>
+
+<div class="grid side">
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">{{ icon('list') }}What they did <span class="count">{{ entries|length }}</span></h2>
+      {% if stats.sensitive %}
+      <a class="btn small secondary" href="{{ url_for('super_activity', staff_id=person.id, sensitive=1) }}">Only the sensitive ones</a>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if entries %}
+      <ol class="timeline">
+        {% for e in entries %}
+        <li class="{{ 'is-sensitive' if e.sensitive }}">
+          <span class="tl-ic {{ 'amber' if e.sensitive }}">{{ icon(e.icon) }}</span>
+          <div class="tl-body">
+            <div class="tl-meta">
+              <strong>{{ e.label }}</strong>
+              <span>{{ e.at|stamp }}</span>
+              {% if e.centre_name %}<span>{{ e.centre_name }}</span>{% endif %}
+              {% if e.sensitive %}<span class="badge amber">Sensitive</span>{% endif %}
+            </div>
+            <div class="tl-msg">
+              {{ audit_target(e) }}{% if e.detail %} {{ e.detail }}{% endif %}
+              {% if e.changes %}<div>{{ audit_changes(e) }}</div>{% endif %}
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+        <div class="empty"><strong>Nothing recorded yet.</strong>Every action this person takes will show up here.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">{{ icon('sliders') }}Account</h2></div>
+      <div class="card-body">
+        <form method="post">
+          <div class="field">
+            <label for="role">Role</label>
+            <select id="role" name="role">
+              <option value="staff" {{ 'selected' if person.role == 'staff' }}>Centre staff</option>
+              <option value="superadmin" {{ 'selected' if person.role == 'superadmin' }}>Supervisor</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="centre_id">Centre</label>
+            <select id="centre_id" name="centre_id">
+              <option value="">None &ndash; every centre</option>
+              {% for c in centres %}
+                <option value="{{ c.id }}" {{ 'selected' if person.centre_id == c.id }}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <label class="check-row">
+            <input type="checkbox" name="active" value="1" {{ 'checked' if person.active }}>
+            <span>Account is on<span class="hint">Switched off, they can't sign in. Their history stays.</span></span>
+          </label>
+          <div class="btn-row mt">
+            <button class="btn" type="submit">{{ icon('check') }}Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">{{ icon('lock') }}Reset password</h2></div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="do" value="password">
+          <div class="field">
+            <label for="password">New password</label>
+            <input id="password" name="password" type="password" minlength="6" required>
+            <span class="hint">Tell them in person. It's written to the activity log that you reset it, never the password.</span>
+          </div>
+          <div class="btn-row mt">
+            <button class="btn secondary" type="submit">{{ icon('refresh') }}Reset</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

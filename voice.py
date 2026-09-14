@@ -256,9 +256,10 @@ def log_call(farmer_id, message, ok, detail, booking_id=None):
     """Keep a record on the alerts page of what we rang about."""
     from alerts import raise_alert
     prefix = "Call placed" if ok else "Call failed"
-    raise_alert(farmer_id, "voice_call", "ivr",
-                "%s at %s. %s" % (prefix, datetime.now().strftime("%H:%M"), detail),
-                booking_id=booking_id)
+    at = datetime.now().strftime("%H:%M")
+    raise_alert(farmer_id, "voice_call", "ivr", "%s at %s. %s" % (prefix, at, detail),
+                booking_id=booking_id,
+                message_hi=("%s पर आपको कॉल किया गया।" if ok else "%s पर कॉल नहीं लग पाया।") % at)
 
 
 if __name__ == "__main__":

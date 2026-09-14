@@ -1,52 +1,56 @@
 {% extends "base.html" %}
-{% block title %}{{ centre.name }}{% endblock %}
+{% from "_macros.html" import crop, datetile %}
+{% block title %}{{ t(centre.name) }}{% endblock %}
 
 {% block content %}
-<div class="breadcrumb">
-  <a href="{{ url_for('farmer_centres') }}">{{ t("Procurement centres") }}</a> &rsaquo; {{ centre.name }}
-</div>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('farmer_centres') }}">{{ icon('building') }}{{ t("Procurement centres") }}</a>{{ icon('chevron-right') }}<span>{{ t(centre.name) }}</span>
+</nav>
 
-<h2 class="page-title">{{ centre.name }}</h2>
-<p class="page-sub">
-  {{ centre.location }}, {{ centre.district }} &middot; Daily capacity {{ centre.daily_capacity }} quintals
-  &middot; Accepts {{ centre.crop_types_accepted.replace(',', ', ') }}
-</p>
+<div class="pagehead">
+  <div class="ph-text">
+    <h1 class="page-title">{{ t(centre.name) }}</h1>
+    <div class="meta-row">
+      <span>{{ icon('map-pin') }}{{ t(centre.location) }}, {{ t(centre.district) }}</span>
+    </div>
+    <div class="tag-list mt-s">{% for c in accepted %}{{ crop(c) }}{% endfor %}</div>
+  </div>
+</div>
 
 {% if reschedule_id %}
-<div class="notice warning">
-  <h3>Rescheduling booking #{{ reschedule_id }}</h3>
-  <p style="margin-bottom:0">Pick a new slot below. Your token number will be reissued.</p>
-</div>
+<div class="notice warning"><h3>{{ t("Pick a new slot below. Your token number will be reissued.") }}</h3></div>
 {% endif %}
 
 <form method="post"
       action="{{ url_for('farmer_reschedule', booking_id=reschedule_id) if reschedule_id else url_for('farmer_book') }}">
   <input type="hidden" name="back" value="{{ request.full_path }}">
 
-  <div class="card">
-    <h2>{{ t("1. Choose a slot") }}</h2>
+  <div class="card stepcard">
+    <div class="card-head">
+      <h2 class="card-title"><span class="stepnum">1</span>{{ t("Choose a slot") }}</h2>
+    </div>
     <div class="card-body">
       {% if by_date %}
         {% for d, slots in by_date.items() %}
-        <div class="slot-day">
-          <h3>{{ d|nicedate }} <span class="dow">&middot; {{ d|dayname }}</span></h3>
-          <div class="slot-list">
+        <div class="day">
+          {{ datetile(d) }}
+          <div class="day-slots" role="radiogroup" aria-label="{{ d|nicedate }}">
             {% for s in slots %}
               {% set free = s.max_capacity - s.booked_count %}
               {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 100 %}
-              {# capacity only when it is running out. When every card says
-                 "6 / 6 places free" the one saying 2 stops standing out. #}
+              {# capacity only shouts when it is running out #}
               <label class="slot {{ 'full' if free <= 0 }}">
-                <input type="radio" name="slot_id" value="{{ s.id }}" required
-                       {{ 'disabled' if free <= 0 }}>
-                <span class="tw">{{ s.time_window }}</span>
-                {% if free <= 0 %}
-                  <span class="cap">{{ t("Fully booked") }}</span>
-                {% elif pct >= 60 %}
-                  <span class="capbar">
-                    <span class="{{ 'hi' if pct >= 90 else 'mid' }}" style="width: {{ pct }}%"></span>
-                  </span>
-                  <span class="cap tight">{{ t("Only") }} {{ free }} {{ t("left") }}</span>
+                <input type="radio" name="slot_id" value="{{ s.id }}" required {{ 'disabled' if free <= 0 }}>
+                <span class="slot-text">
+                  <span class="tw">{{ s.time_window }}</span>
+                  {% if free <= 0 %}
+                    <span class="cap">{{ t("Fully booked") }}</span>
+                  {% elif pct >= 60 %}
+                    <span class="cap tight">{{ t("Only") }} {{ free }} {{ t("left") }}</span>
+                  {% endif %}
+                </span>
+                {% if free > 0 and pct >= 60 %}
+                  <span class="capbar"><span class="{{ 'hi' if pct >= 90 else 'mid' }}" style="width: {{ pct }}%"></span></span>
                 {% endif %}
               </label>
             {% endfor %}
@@ -54,42 +58,40 @@
         </div>
         {% endfor %}
       {% else %}
-        <div class="empty">No slots have been published for this centre yet.</div>
+        <div class="empty">{{ t("No slots have been published for this centre yet.") }}</div>
       {% endif %}
     </div>
   </div>
 
   {% if not reschedule_id %}
-  <div class="card">
-    <h2>{{ t("2. What are you bringing?") }}</h2>
+  <div class="card stepcard">
+    <div class="card-head">
+      <h2 class="card-title"><span class="stepnum">2</span>{{ t("What are you bringing?") }}</h2>
+    </div>
     <div class="card-body">
       <div class="field-row two">
         <div class="field">
           <label for="crop_type">{{ t("Crop") }} <span class="req">*</span></label>
           <select id="crop_type" name="crop_type" required>
-            {% for c in accepted %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+            {% for c in accepted %}<option value="{{ c }}">{{ t(c) }}</option>{% endfor %}
           </select>
         </div>
         <div class="field">
           <label for="estimated_quantity">{{ t("Estimated quantity (quintals)") }} <span class="req">*</span></label>
           <input type="number" id="estimated_quantity" name="estimated_quantity"
                  min="0.1" max="500" step="0.1" value="20" required>
-          <div class="hint">{{ t("An estimate is fine. The centre will weigh the actual quantity on arrival.") }}</div>
         </div>
       </div>
     </div>
   </div>
   {% endif %}
 
-  <div class="btn-row">
-    <button class="btn go" type="submit">
-      {{ t("Move to this slot") if reschedule_id else t("Confirm booking") }}
-    </button>
-    <a class="btn secondary" href="{{ url_for('farmer_centres') }}">{{ t("Back to centres") }}</a>
+  <div class="actionbar">
+    <span class="ab-text">{{ icon('info') }}{{ t("One slot per day, up to three active bookings.") }}</span>
+    <div class="btn-row">
+      <a class="btn secondary" href="{{ url_for('farmer_centres') }}">{{ t("Back to centres") }}</a>
+      <button class="btn wheat" type="submit">{{ icon('check') }}{{ t("Move to this slot") if reschedule_id else t("Confirm booking") }}</button>
+    </div>
   </div>
 </form>
-
-<div class="notice info mt small">
-  {{ t("One slot per farmer per day, and at most three active bookings at a time, so that every farmer in the district gets a turn.") }}
-</div>
 {% endblock %}

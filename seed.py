@@ -10,6 +10,7 @@ Everyone is in Uttarakhand.
 Phone numbers come from .env so they stay out of the repo.
 """
 
+import json
 import os
 import sqlite3
 from datetime import date, datetime, timedelta
@@ -18,6 +19,8 @@ import core
 import db
 import env
 import weather
+from accounts import DEMO_PASSWORD, DEMO_STAFF, hash_password
+from alerts import hi
 from validation import run_checks
 
 env.load()
@@ -95,6 +98,7 @@ class Seeder:
         self.cur = cur
         self.centres = {}
         self.farmers = {}
+        self.staff = {}
 
     def slot(self, centre, day, window):
         row = self.cur.execute(
@@ -131,11 +135,11 @@ class Seeder:
                 " VALUES (?,?,?,?,?,?,?)", (bid, actual, grade, rate, total, payment, paid))
         return bid
 
-    def alert(self, who, kind, channel, message, booking_id=None, days_ago=0):
+    def alert(self, who, kind, channel, message, booking_id=None, days_ago=0, hi=None):
         self.cur.execute(
-            "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message, sent_at,"
-            " read_flag) VALUES (?,?,?,?,?,?,?)",
-            (self.farmers[who], booking_id, kind, channel, message,
+            "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message,"
+            " message_hi, sent_at, read_flag) VALUES (?,?,?,?,?,?,?,?)",
+            (self.farmers[who], booking_id, kind, channel, message, hi,
              (datetime.now() - timedelta(days=days_ago)).isoformat(timespec="seconds"),
              1 if days_ago > 2 else 0))
 
@@ -146,8 +150,12 @@ def build_centres_and_slots(cur, s):
                     " crop_types_accepted) VALUES (?,?,?,?,?)", c)
         s.centres[c[0]] = cur.lastrowid
 
-    cur.execute("INSERT INTO staff (name, staff_code, password, centre_id) VALUES (?,?,?,NULL)",
-                ("District Supervisor", "ADMIN", "demo123"))
+    # one supervisor who sees every centre, and the people at each counter
+    for code, name, centre, role in DEMO_STAFF:
+        cur.execute("INSERT INTO staff (name, staff_code, password, centre_id, role)"
+                    " VALUES (?,?,?,?,?)",
+                    (name, code, hash_password(DEMO_PASSWORD), s.centres.get(centre), role))
+        s.staff[code] = cur.lastrowid
 
     today = date.today()
     for name, cid in s.centres.items():
@@ -198,7 +206,9 @@ def flag_everyone(cur, s, now):
                     "%d issue(s) found in your registration details (%d critical). Please visit "
                     "your procurement centre or update your profile before your slot date, "
                     "otherwise your payment may be delayed." % (len(problems), blocking),
-                    days_ago=5)
+                    days_ago=5,
+                    hi="आपकी जानकारी में %d गड़बड़ी मिली (%d गंभीर)। भुगतान न रुके, इसलिए "
+                       "स्लॉट से पहले इन्हें ठीक करें।" % (len(problems), blocking))
 
 
 def build_bookings(s):
@@ -207,21 +217,23 @@ def build_bookings(s):
     b = s.booking("Chandra Bhushan Kumar", "Rudrapur Mandi Samiti", 3, "Wheat", 42)
     s.alert("Chandra Bhushan Kumar", "booking_confirmed", "app",
             "Slot confirmed at Rudrapur Mandi Samiti. Bring your gate pass and Aadhaar card.",
-            booking_id=b, days_ago=1)
+            booking_id=b, days_ago=1,
+            hi="स्लॉट पक्का: रुद्रपुर मंडी समिति। गेट पास और आधार कार्ड साथ लाएं।")
     s.booking("Chandra Bhushan Kumar", "Rudrapur Mandi Samiti", -3, "Paddy", 18, window=2,
               status="completed", grade="Rejected", actual=17.4, payment="failed")
 
     # 2. ravi - far enough out for the weather check to matter
     b = s.booking("Ravi Kumar", "Kichha Kharid Kendra", 9, "Paddy", 60, window=1)
     s.alert("Ravi Kumar", "booking_confirmed", "app",
-            "Slot confirmed at Kichha Kharid Kendra.", booking_id=b, days_ago=2)
+            "Slot confirmed at Kichha Kharid Kendra.", booking_id=b, days_ago=2,
+            hi="स्लॉट पक्का: किच्छा खरीद केंद्र।")
 
     # 3. mayank - warnings only, money still went out
     b = s.booking("Mayank Verma", "Haridwar Kharid Kendra", -2, "Wheat", 35,
                   status="completed", grade="FAQ", actual=34.2, payment="completed")
     s.alert("Mayank Verma", "payment_update", "app",
             "Payment of 82935.00 has been credited to your bank account.",
-            booking_id=b, days_ago=1)
+            booking_id=b, days_ago=1, hi="₹82935 आपके बैंक खाते में जमा हो गए।")
     s.booking("Mayank Verma", "Haridwar Kharid Kendra", 7, "Wheat", 30, window=1)
 
     # 4. vivek - blocking flags, so the payment got held
@@ -230,21 +242,25 @@ def build_bookings(s):
     s.alert("Vivek Kumar", "payment_update", "app",
             "Procurement completed but PAYMENT HELD: 2 unresolved detail(s) - aadhaar, bank. "
             "Visit the centre with correct documents to release the payment.",
-            booking_id=b, days_ago=2)
+            booking_id=b, days_ago=2,
+            hi="खरीद पूरी हुई, पर भुगतान रुका है। 2 जानकारी ठीक करनी है। "
+               "सही दस्तावेज़ लेकर अपने केंद्र जाएं।")
 
     # 5. aayush - booked at a csc counter, weighed in this morning
     b = s.booking("Aayush Raj", "Rudrapur Mandi Samiti", 0, "Wheat", 28, window=1,
                   status="arrived", grade="B", actual=26.8, payment="pending")
     s.alert("Aayush Raj", "payment_update", "app",
             "Produce weighed at the centre: 26.8 quintals of Wheat, grade B. "
-            "Provisional value 61090.60. Awaiting transaction completion.", booking_id=b)
+            "Provisional value 61090.60. Awaiting transaction completion.", booking_id=b,
+            hi="आपकी उपज तौली गई: 26.8 क्विंटल गेहूं, ग्रेड B। अनुमानित राशि ₹61090।")
 
     # 6. siddharth - some history
     b = s.booking("Siddharth Laheja", "Vikasnagar Grain Market", -4, "Wheat", 25,
                   status="completed", grade="A", actual=25.6, payment="processing")
     s.alert("Siddharth Laheja", "payment_update", "app",
             "Transaction complete. 62080.00 is being credited to your registered bank account. "
-            "Expect credit within 48-72 hours.", booking_id=b, days_ago=3)
+            "Expect credit within 48-72 hours.", booking_id=b, days_ago=3,
+            hi="लेनदेन पूरा। ₹62080 आपके बैंक खाते में 2-3 दिन में जमा होगा।")
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", -1, "Gram", 12, status="cancelled")
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", 6, "Gram", 20, window=2)
 
@@ -256,6 +272,98 @@ def build_bookings(s):
               status="arrived", grade="FAQ", actual=31.5, payment="pending")
     s.booking("Mayank Verma", shared[0], shared[1], "Wheat", 22, window=shared[2])
     s.booking("Chandra Bhushan Kumar", shared[0], shared[1], "Wheat", 26, window=shared[2])
+
+
+def build_history(cur, s):
+    """A few days of staff activity, so the supervisor screens have a story.
+
+    Arjun at Haridwar clears three flags without fixing anything and changes a
+    payment by hand; Rudrapur is running late; Vivek's payment has been held
+    for three days. Everything lines up with the bookings built above.
+    """
+    def booking(who, centre, status):
+        row = s.cur.execute(
+            "SELECT b.id, t.id AS txn FROM bookings b JOIN slots sl ON sl.id = b.slot_id"
+            " LEFT JOIN transactions t ON t.booking_id = b.id"
+            " WHERE b.farmer_id = ? AND sl.centre_id = ? AND b.status = ? ORDER BY sl.date LIMIT 1",
+            (s.farmers[who], s.centres[centre], status)).fetchone()
+        return (row["id"], row["txn"]) if row else (None, None)
+
+    def at(days_ago, hhmm):
+        h, m = (int(x) for x in hhmm.split(":"))
+        return (datetime.now() - timedelta(days=days_ago)).replace(
+            hour=h, minute=m, second=0, microsecond=0).isoformat(timespec="seconds")
+
+    def log(code, action, days_ago, hhmm, farmer=None, booking_id=None, ref=None,
+            detail=None, before=None, after=None, centre=None):
+        sid = s.staff[code]
+        home = cur.execute("SELECT centre_id FROM staff WHERE id = ?", (sid,)).fetchone()[0]
+        cur.execute(
+            "INSERT INTO audit_log (staff_id, centre_id, action, farmer_id, booking_id, ref_id,"
+            " detail, before_value, after_value, at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (sid, s.centres[centre] if centre else home, action,
+             s.farmers[farmer] if farmer else None, booking_id, ref, detail,
+             None if before is None else json.dumps(before, ensure_ascii=False),
+             None if after is None else json.dumps(after, ensure_ascii=False),
+             at(days_ago, hhmm)))
+
+    def resolved_flag(who, field, detail, severity, days_ago, hhmm):
+        cur.execute(
+            "INSERT INTO data_validation_flags (farmer_id, field_flagged, detail, severity, status,"
+            " flagged_at, resolved_at) VALUES (?,?,?,?,'resolved',?,?)",
+            (s.farmers[who], field, detail, severity, at(days_ago + 2, "09:00"), at(days_ago, hhmm)))
+        return cur.lastrowid
+
+    # who was in this morning
+    for code, hhmm in (("RUD01", "08:05"), ("RUD02", "08:12"), ("KIC01", "08:40"),
+                       ("HAR01", "08:31"), ("VIK01", "09:02")):
+        log(code, "sign_in", 0, hhmm)
+        cur.execute("UPDATE staff SET last_login = ? WHERE id = ?", (at(0, hhmm), s.staff[code]))
+    log("ADMIN", "sign_in", 1, "10:15")
+    cur.execute("UPDATE staff SET last_login = ? WHERE id = ?", (at(1, "10:15"), s.staff["ADMIN"]))
+
+    # rudrapur - today's window, and last week's rejected load
+    b, _ = booking("Aayush Raj", "Rudrapur Mandi Samiti", "arrived")
+    log("RUD01", "weigh", 0, "10:22", "Aayush Raj", b, detail="26.8 quintals of Wheat, grade B")
+    b, _ = booking("Vivek Kumar", "Rudrapur Mandi Samiti", "arrived")
+    log("RUD01", "weigh", 0, "10:41", "Vivek Kumar", b, detail="31.5 quintals of Paddy, grade FAQ")
+    b, _ = booking("Chandra Bhushan Kumar", "Rudrapur Mandi Samiti", "completed")
+    log("RUD01", "weigh", 3, "12:34", "Chandra Bhushan Kumar", b, detail="17.4 quintals of Paddy, grade Rejected")
+    log("RUD01", "close", 3, "12:40", "Chandra Bhushan Kumar", b, detail="Rejected, nothing payable")
+    rudrapur = s.centres["Rudrapur Mandi Samiti"]
+    log("RUD02", "delay_set", 0, "11:05", ref=rudrapur, before=0, after=35)
+    slot = s.slot("Rudrapur Mandi Samiti", 1, 0)
+    log("RUD02", "capacity_change", 1, "17:32", ref=slot, detail="Tomorrow, 08:00 - 10:00", before=8, after=6)
+    f = resolved_flag("Chandra Bhushan Kumar", "land", "Land record ID was missing.", "warning", 9, "15:10")
+    log("RUD01", "flag_verified", 9, "15:10", "Chandra Bhushan Kumar", ref=f, detail="land: Land record ID was missing.")
+
+    # haridwar - the one a supervisor should look at
+    b, _ = booking("Vivek Kumar", "Haridwar Kharid Kendra", "completed")
+    log("HAR01", "weigh", 3, "14:08", "Vivek Kumar", b, detail="47.1 quintals of Paddy, grade A")
+    log("HAR01", "payment_held", 3, "14:26", "Vivek Kumar", b, detail="2 blocking flag(s) open")
+    b, txn = booking("Mayank Verma", "Haridwar Kharid Kendra", "completed")
+    log("HAR01", "weigh", 2, "08:42", "Mayank Verma", b, detail="34.2 quintals of Wheat, grade FAQ")
+    log("HAR01", "close", 2, "08:57", "Mayank Verma", b, detail="Rs 82,935 to be paid")
+    log("HAR01", "payment_manual", 1, "16:05", "Mayank Verma", b, ref=txn, detail="Rs 82,935",
+        before="processing", after="completed")
+    for days_ago, hhmm, who, field, detail, sev in (
+            (6, "11:20", "Mayank Verma", "land", "Land record ID 'UK/1102' does not match the state format.", "warning"),
+            (4, "13:45", "Vivek Kumar", "name_match", "Registered name does not match bank account holder (61% match).", "warning"),
+            (1, "15:50", "Mayank Verma", "bank", "IFSC 'BARB0HRDWR' is malformed.", "blocking")):
+        f = resolved_flag(who, field, detail, sev, days_ago, hhmm)
+        log("HAR01", "flag_verified", days_ago, hhmm, who, ref=f, detail="%s: %s" % (field, detail))
+
+    # vikasnagar and kichha - ordinary days
+    b, _ = booking("Siddharth Laheja", "Vikasnagar Grain Market", "completed")
+    log("VIK01", "weigh", 4, "11:14", "Siddharth Laheja", b, detail="25.6 quintals of Wheat, grade A")
+    log("VIK01", "close", 4, "11:31", "Siddharth Laheja", b, detail="Rs 62,080 to be paid")
+    log("VIK01", "call", 1, "17:02", "Siddharth Laheja", b, detail="Payment update")
+    log("KIC01", "register_farmer", 8, "12:00", "Ravi Kumar", detail="At the counter")
+    b, _ = booking("Ravi Kumar", "Kichha Kharid Kendra", "booked")
+    log("KIC01", "call", 1, "15:20", "Ravi Kumar", b, detail="Rain warning")
+
+    log("ADMIN", "staff_create", 10, "10:30", ref=s.staff["HLD01"],
+        detail="Pooja Rana (HLD01)", centre="Haldwani Mandi Centre")
 
 
 def mark_a_centre_late(cur, now):
@@ -282,12 +390,14 @@ def score_storage_risk(cur, now):
         if r["level"] != "high":
             continue
         cur.execute(
-            "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message, sent_at)"
-            " VALUES (?,?,'storage_risk','app',?,?)",
+            "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message,"
+            " message_hi, sent_at) VALUES (?,?,'storage_risk','app',?,?,?)",
             (row["farmer_id"], row["id"],
              "STORAGE RISK: Your slot at %s is %d days away and %s Consider requesting an earlier "
              "slot, or store your produce on a raised, covered platform."
-             % (row["centre"], r["lead_days"], r["reason"]), now))
+             % (row["centre"], r["lead_days"], r["reason"]),
+             "भंडारण जोखिम: %s पर आपका स्लॉट %d दिन दूर है और बारिश का अनुमान है। "
+             "उपज ढककर ऊंची जगह रखें।" % (hi(row["centre"]), r["lead_days"]), now))
         # this gets read out if staff ring them, so write it to the farmer
         cur.execute(
             "INSERT INTO alerts_log (farmer_id, booking_id, alert_type, channel, message, sent_at)"
@@ -323,6 +433,7 @@ def main():
     flag_everyone(cur, s, now)
     build_bookings(s)
     mark_a_centre_late(cur, now)
+    build_history(cur, s)
     conn.commit()
 
     risks = score_storage_risk(cur, now)     # last, so every booking exists
@@ -334,7 +445,9 @@ def main():
     print("Database rebuilt.")
     for t in TABLES:
         print("  %-22s %d" % (t, counts[t]))
-    print("\n  Staff login: ADMIN / demo123")
+    print("\n  Staff logins, all with password %s:" % DEMO_PASSWORD)
+    for code, name, centre, role in DEMO_STAFF:
+        print("    %-6s %-20s %s" % (code, name, "supervisor, every centre" if role == "superadmin" else centre))
     print(CASES)
     print("  Storage risk, from the forecast just now:")
     for name, village, r in risks:

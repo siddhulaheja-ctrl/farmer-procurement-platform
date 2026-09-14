@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avatar %}
+{% block title %}Staff accounts{% endblock %}
+
+{% block content %}
+<div class="pagehead">
+  <div class="ph-text">
+    <p class="eyebrow">District supervisor</p>
+    <h1 class="page-title">Staff accounts</h1>
+    <p class="page-sub">Who can sign in, which centre they're locked to, and what each person has done today.</p>
+  </div>
+</div>
+
+<div class="grid side wide-main">
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">{{ icon('shield') }}Accounts <span class="count">{{ staff|length }}</span></h2>
+    </div>
+    <div class="table-scroll">
+      <table class="data">
+        <thead>
+          <tr><th>Person</th><th>Centre</th><th>Role</th>
+              <th class="num">Weighed</th><th class="num">Closed</th><th class="num">Flags cleared</th><th class="num">Calls</th>
+              <th>Last sign-in</th><th>Account</th></tr>
+        </thead>
+        <tbody>
+          {% for s in staff %}
+          <tr class="{{ 'row-off' if not s.active }}">
+            <td>
+              <div class="who">
+                {{ avatar(s.name, 'sm') }}
+                <div class="who-text">
+                  <a href="{{ url_for('super_staff_detail', staff_id=s.id) }}">{{ s.name }}</a>
+                  <span class="sub-line mono">{{ s.staff_code }}</span>
+                </div>
+              </div>
+            </td>
+            <td>{{ s.centre_name or 'Every centre' }}</td>
+            <td>{% if s.role == 'superadmin' %}<span class="badge blue">Supervisor</span>{% else %}<span class="badge grey">Centre staff</span>{% endif %}</td>
+            <td class="num">{{ s.weighed or 0 }}</td>
+            <td class="num">{{ s.closed or 0 }}</td>
+            <td class="num">{{ s.flags or 0 }}</td>
+            <td class="num">{{ s.calls or 0 }}</td>
+            <td class="nowrap">{{ s.last_login|stamp if s.last_login else 'Never' }}</td>
+            <td>{% if s.active %}<span class="badge green">On</span>{% else %}<span class="badge grey">Off</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">{{ icon('user-plus') }}Add an account</h2></div>
+    <div class="card-body">
+      <form method="post">
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" name="name" value="{{ form.get('name', '') }}" required>
+        </div>
+        <div class="field">
+          <label for="staff_code">Staff code</label>
+          <input id="staff_code" name="staff_code" class="mono" value="{{ form.get('staff_code', '') }}"
+                 maxlength="12" placeholder="RUD03" required>
+          <span class="hint">What they sign in with. 3 to 12 letters and numbers.</span>
+        </div>
+        <div class="field">
+          <label for="password">Starting password</label>
+          <input id="password" name="password" type="password" minlength="6" required>
+        </div>
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            <option value="staff" {{ 'selected' if form.get('role') != 'superadmin' }}>Centre staff</option>
+            <option value="superadmin" {{ 'selected' if form.get('role') == 'superadmin' }}>Supervisor</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="centre_id">Centre</label>
+          <select id="centre_id" name="centre_id">
+            <option value="">None &ndash; supervisors see every centre</option>
+            {% for c in centres %}
+              <option value="{{ c.id }}" {{ 'selected' if form.get('centre_id') == c.id|string }}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="hint">Centre staff only ever see bookings at this one centre.</span>
+        </div>
+        <div class="btn-row mt">
+          <button class="btn" type="submit">{{ icon('check') }}Create account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

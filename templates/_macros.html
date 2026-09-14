@@ -11,7 +11,7 @@
   {% elif s == 'processing' %}<span class="badge blue">{{ t("Processing") }}</span>
   {% elif s == 'pending' %}<span class="badge amber">{{ t("Pending") }}</span>
   {% elif s == 'failed' %}<span class="badge red">{{ t("Failed") }}</span>
-  {% else %}<span class="badge grey">&mdash;</span>{% endif %}
+  {% else %}<span class="badge grey plain">&mdash;</span>{% endif %}
 {%- endmacro %}
 
 {% macro risk_badge(r) -%}
@@ -25,5 +25,177 @@
   {% elif g == 'FAQ' %}<span class="badge green">{{ t("FAQ") }}</span>
   {% elif g == 'B' %}<span class="badge amber">{{ t("Grade B") }}</span>
   {% elif g == 'Rejected' %}<span class="badge red">{{ t("Rejected") }}</span>
-  {% else %}<span class="badge grey">&mdash;</span>{% endif %}
+  {% else %}<span class="badge grey plain">&mdash;</span>{% endif %}
+{%- endmacro %}
+
+{# initials in a circle. two letters is enough to tell six farmers apart #}
+{% macro avatar(name, cls='') -%}
+  {%- set parts = (name or '?').split() -%}
+  <span class="avatar {{ cls }}" aria-hidden="true">{{ (parts[0][:1] ~ (parts[-1][:1] if parts|length > 1 else ''))|upper }}</span>
+{%- endmacro %}
+
+{# a crop's own little drawing, so wheat can be told from paddy without reading #}
+{% macro crop_icon(name) -%}
+  {%- set key = (name or '')|lower -%}
+  {%- if key in ('wheat', 'paddy', 'maize', 'mustard', 'gram', 'bajra') -%}{{ icon('crop-' ~ key, 'crop-ic') }}
+  {%- else -%}{{ icon('sprout') }}{%- endif -%}
+{%- endmacro %}
+
+{% macro crop(name) -%}
+  <span class="chip">{{ crop_icon(name) }}{{ t(name) }}</span>
+{%- endmacro %}
+
+{% macro crop_name(name) -%}
+  <span class="crop-name">{{ crop_icon(name) }}{{ t(name) }}</span>
+{%- endmacro %}
+
+{# calendar tile for a YYYY-MM-DD date #}
+{% macro datetile(d) -%}
+  {%- set parts = (d|nicedate).split(' ') -%}
+  <span class="datetile {{ 'today' if d == g.today.isoformat() }}" aria-hidden="true">
+    <span class="m">{{ t(parts[1]) if parts|length > 1 else '' }}</span>
+    <span class="d">{{ parts[0] }}</span>
+    <span class="w">{{ d|dayname }}</span>
+  </span>
+{%- endmacro %}
+
+{# a forecast day's picture. words beat numbers when the api gives us words #}
+{% macro wx_glyph(day) -%}
+  {%- set desc = (day.description or '')|lower -%}
+  {%- if day.rain_mm > 0.5 or 'rain' in desc or 'drizzle' in desc or 'storm' in desc -%}{{ icon('cloud-rain') }}
+  {%- elif 'overcast' in desc or 'broken' in desc -%}{{ icon('cloud') }}
+  {%- elif 'cloud' in desc or day.humidity >= 70 -%}{{ icon('cloud-sun') }}
+  {%- else -%}{{ icon('sun') }}{%- endif -%}
+{%- endmacro %}
+
+{% macro forecast_days(forecast) -%}
+<div class="forecast">
+  {% for d in forecast %}
+  <div class="wx {{ 'wet' if d.rain_mm > 0.5 }}">
+    <div class="day">{{ d.date|dayname }}</div>
+    <div class="date">{{ d.date|nicedate }}</div>
+    <div class="glyph">{{ wx_glyph(d) }}</div>
+    <div class="rain">{{ d.rain_mm }}<small> mm</small></div>
+    <div class="desc">{{ t((d.description or '')|lower) }}</div>
+    <div class="hum">{{ icon('droplet') }}<span class="meter"><span style="width: {{ d.humidity }}%"></span></span>{{ d.humidity }}%</div>
+  </div>
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{# where a booking has got to. booked -> weighed -> closed -> paid.
+   needs status, payment_status and actual_quantity on the row #}
+{% macro track(b, compact=False) -%}
+  {%- set s = b.status -%}
+  {%- set pay = b.payment_status -%}
+  {%- set weighed = s in ('arrived', 'completed') -%}
+  {%- set closed = s == 'completed' -%}
+  {%- set paid = pay == 'completed' -%}
+  {%- set held = pay == 'failed' -%}
+  <ol class="track {{ 'compact' if compact }}" aria-label="{{ t('Progress') }}">
+    <li class="done"><span class="dot">{{ icon('check') }}</span><span class="lbl">{{ t("Slot booked") }}</span></li>
+    <li class="{{ 'done' if weighed else 'now' }}"><span class="dot">{{ icon('check' if weighed else 'scale') }}</span><span class="lbl">{{ t("Weighed at centre") }}</span></li>
+    <li class="{{ 'done' if closed else ('now' if weighed else '') }}"><span class="dot">{{ icon('check' if closed else 'receipt') }}</span><span class="lbl">{{ t("Transaction closed") }}</span></li>
+    {% if held %}
+    <li class="fail"><span class="dot">{{ icon('x') }}</span><span class="lbl">{{ t("Payment held") }}</span></li>
+    {% else %}
+    <li class="{{ 'done' if paid else ('now' if closed else '') }}"><span class="dot">{{ icon('check' if paid else 'banknote') }}</span><span class="lbl">{{ t("Money credited") }}</span></li>
+    {% endif %}
+  </ol>
+{%- endmacro %}
+
+{# icon and colour for an alert, by type #}
+{% macro alert_ic(kind) -%}
+  {%- if kind == 'storage_risk' -%}<span class="tl-ic red">{{ icon('cloud-rain') }}</span>
+  {%- elif kind == 'data_mismatch' -%}<span class="tl-ic amber">{{ icon('alert-triangle') }}</span>
+  {%- elif kind == 'payment_update' -%}<span class="tl-ic green">{{ icon('banknote') }}</span>
+  {%- elif kind == 'booking_confirmed' -%}<span class="tl-ic blue">{{ icon('calendar-check') }}</span>
+  {%- elif kind == 'voice_call' -%}<span class="tl-ic">{{ icon('phone-call') }}</span>
+  {%- elif kind == 'slot_reminder' -%}<span class="tl-ic blue">{{ icon('clock') }}</span>
+  {%- else -%}<span class="tl-ic grey">{{ icon('bell') }}</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro alert_label(kind) -%}
+  {%- if kind == 'storage_risk' -%}{{ t("Storage risk") }}
+  {%- elif kind == 'data_mismatch' -%}{{ t("Details to fix") }}
+  {%- elif kind == 'payment_update' -%}{{ t("Payment") }}
+  {%- elif kind == 'booking_confirmed' -%}{{ t("Booking") }}
+  {%- elif kind == 'voice_call' -%}{{ t("Voice call") }}
+  {%- elif kind == 'slot_reminder' -%}{{ t("Slot change") }}
+  {%- else -%}{{ kind|replace('_', ' ')|capitalize }}{%- endif -%}
+{%- endmacro %}
+
+{# the alert in the farmer's language. hindi comes from message_hi; anything
+   older than that column gets a short hindi line by type, never english #}
+{% macro alert_msg(a) -%}
+  {%- if lang() == 'hi' -%}
+    {%- if a.message_hi -%}{{ a.message_hi }}
+    {%- elif a.alert_type == 'storage_risk' -%}आपके क्षेत्र में बारिश का अनुमान है। उपज ढककर ऊंची जगह रखें।
+    {%- elif a.alert_type == 'data_mismatch' -%}आपकी जानकारी में गड़बड़ी है। "मेरी जानकारी" देखें।
+    {%- elif a.alert_type == 'payment_update' -%}आपके भुगतान की स्थिति बदली है।
+    {%- elif a.alert_type == 'booking_confirmed' -%}आपका स्लॉट बुक हो गया है।
+    {%- elif a.alert_type == 'slot_reminder' -%}आपका स्लॉट बदल गया है।
+    {%- elif a.alert_type == 'voice_call' -%}आपको कॉल किया गया।
+    {%- else -%}नई सूचना।{%- endif -%}
+  {#- a call log carries the telephony response for staff. the farmer only
+      needs to know we rang -#}
+  {%- elif a.alert_type == 'voice_call' -%}{{ a.message.split('. ')[0] }}.
+  {%- else -%}{{ a.message }}{%- endif -%}
+{%- endmacro %}
+
+{% macro field_icon(field) -%}
+  {%- if field == 'aadhaar' -%}{{ icon('id-card') }}
+  {%- elif field == 'bank' -%}{{ icon('landmark') }}
+  {%- elif field == 'name_match' -%}{{ icon('user') }}
+  {%- elif field == 'land' -%}{{ icon('map-pin') }}
+  {%- else -%}{{ icon('flag') }}{%- endif -%}
+{%- endmacro %}
+
+{# what's wrong with a detail. staff get the exact rule that failed; a farmer
+   reading hindi gets one plain sentence #}
+{% macro flag_text(fl) -%}
+  {%- if lang() == 'hi' -%}
+    {%- if fl.field_flagged == 'aadhaar' -%}आधार नंबर गलत या अधूरा है।
+    {%- elif fl.field_flagged == 'bank' -%}बैंक खाता नंबर या IFSC गलत है।
+    {%- elif fl.field_flagged == 'name_match' -%}बैंक खाते का नाम आपके नाम से मेल नहीं खाता।
+    {%- elif fl.field_flagged == 'land' -%}भूमि रिकॉर्ड नंबर गलत या अधूरा है।
+    {%- else -%}{{ fl.detail }}{%- endif -%}
+  {%- else -%}{{ fl.detail }}{%- endif -%}
+{%- endmacro %}
+
+{% macro flag_list(flags, resolve=False) -%}
+<ul class="issues">
+  {% for fl in flags %}
+  <li>
+    <span class="sev {{ fl.severity }}">{{ icon('x-circle' if fl.severity == 'blocking' else 'alert-triangle') }}{{ t(fl.severity|capitalize) }}</span>
+    <span class="i-text">{{ flag_text(fl) }}</span>
+    {% if resolve %}
+    <form method="post" action="{{ url_for('admin_resolve_flag', flag_id=fl.id) }}">
+      <button class="btn small secondary" type="submit">{{ icon('check') }}Mark verified</button>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{%- endmacro %}
+
+{# the rain warning, short. english keeps the full reasoning #}
+{% macro risk_text(risk) -%}
+  {%- if lang() == 'hi' -%}
+    {%- set total = risk.forecast|sum(attribute='rain_mm') -%}
+    अगले {{ risk.forecast|length }} दिन में {{ '%.1f'|format(total) }} mm बारिश का अनुमान ({{ t(risk.place) }})।
+  {%- else -%}{{ risk.reason }}{%- endif -%}
+{%- endmacro %}
+
+{# an activity entry's before and after, e.g. processing -> completed #}
+{% macro audit_changes(e) -%}
+  {%- for c in e.changes -%}
+  <span class="change">{% if c.field %}<b>{{ c.field }}</b>{% endif %}<s>{{ c.before }}</s>{{ icon('arrow-right') }}<ins>{{ c.after }}</ins></span>
+  {%- endfor -%}
+{%- endmacro %}
+
+{# the farmer or booking an activity entry was about #}
+{% macro audit_target(e) -%}
+  {%- if e.token_no %}<a class="token-txt" href="{{ url_for('admin_booking', booking_id=e.booking_id) }}">{{ e.token_no }}</a> {% endif -%}
+  {%- if e.farmer_name %}<a href="{{ url_for('admin_farmer', farmer_id=e.farmer_id) }}">{{ e.farmer_name }}</a>{% endif -%}
 {%- endmacro %}

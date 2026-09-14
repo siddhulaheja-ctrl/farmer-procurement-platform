@@ -1,86 +1,76 @@
 {% extends "base.html" %}
+{% from "_macros.html" import crop, crop_icon %}
 {% block title %}{{ t("Procurement centres") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">{{ t("Procurement centres") }}</h2>
-<p class="page-sub">{{ t("Centres in your district are listed first. Choose a centre to see its open slots.") }}</p>
+<div class="pagehead">
+  <div class="ph-text"><h1 class="page-title">{{ t("Procurement centres") }}</h1></div>
+</div>
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="district">{{ t("District") }}</label>
+    <label for="district">{{ icon('map-pin') }} {{ t("District") }}</label>
     <select id="district" name="district">
       <option value="">{{ t("All districts") }}</option>
       {% for d in districts %}
-        <option value="{{ d }}" {{ 'selected' if sel_district == d }}>{{ d }}</option>
+        <option value="{{ d }}" {{ 'selected' if sel_district == d }}>{{ t(d) }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="field">
-    <label for="crop">{{ t("Crop") }}</label>
+    <label for="crop">{{ icon('wheat') }} {{ t("Crop") }}</label>
     <select id="crop" name="crop">
       <option value="">{{ t("All crops") }}</option>
       {% for c in crops %}
-        <option value="{{ c }}" {{ 'selected' if sel_crop == c }}>{{ c }}</option>
+        <option value="{{ c }}" {{ 'selected' if sel_crop == c }}>{{ t(c) }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="actions">
-    <button class="btn" type="submit">{{ t("Filter") }}</button>
+    <button class="btn" type="submit">{{ icon('sliders') }}{{ t("Filter") }}</button>
     <a class="btn secondary" href="{{ url_for('farmer_centres') }}">{{ t("Reset") }}</a>
   </div>
 </form>
 
-<div class="card">
-  {% if centres %}
-  <div class="table-scroll">
-    <table class="data">
-      <thead>
-        <tr><th>{{ t("Centre") }}</th><th>{{ t("District") }}</th><th>{{ t("Crops accepted") }}</th>
-            <th class="num">{{ t("Daily capacity") }}</th><th>{{ t("Next free slot") }}</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for c in centres %}
-        <tr>
-          <td>
-            <strong>{{ c.name }}</strong>
-            <div class="small muted">{{ c.location }}</div>
-          </td>
-          <td class="nowrap">
-            {{ c.district }}
-            {% if c.district == g.farmer.district %}<span class="badge mine">{{ t("Your district") }}</span>{% endif %}
-          </td>
-          <td>
-            <div class="tag-list">
-              {% for crop in c.crop_types_accepted.split(',') %}
-                <span class="badge grey">{{ crop.strip() }}</span>
-              {% endfor %}
-            </div>
-          </td>
-          <td class="num">{{ c.daily_capacity }}</td>
-          <td class="nowrap">
-            {% if c.next_free %}
-              {% set parts = c.next_free.split(' ', 1) %}
-              <strong>{{ parts[0]|dayname }}</strong>
-              <div class="small muted">{{ parts[0]|nicedate }} &middot; {{ parts[1] }}</div>
-            {% else %}
-              <span class="badge red">{{ t("Fully booked") }}</span>
-            {% endif %}
-          </td>
-          <td class="nowrap">
-            <a class="btn small" href="{{ url_for('farmer_centre', centre_id=c.id) }}">{{ t("View slots") }}</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    <div class="empty">{{ t("No centres match that filter.") }}</div>
-  {% endif %}
-</div>
+{% if centres %}
+<div class="centres">
+  {% for c in centres %}
+  {% set mine = c.district == g.farmer.district %}
+  <article class="centre {{ 'mine' if mine }}">
+    <div class="centre-top">
+      <span class="centre-ic">{{ icon('building') }}</span>
+      <div class="ct-main">
+        <h3><a href="{{ url_for('farmer_centre', centre_id=c.id) }}">{{ t(c.name) }}</a></h3>
+        <div class="place">{{ icon('map-pin') }}{{ t(c.location) }}, {{ t(c.district) }}</div>
+      </div>
+      {% if mine %}<span class="badge mine">{{ t("Your district") }}</span>{% endif %}
+    </div>
 
-{# short page, so close it with something rather than leaving a void #}
-<p class="page-foot small muted">
-  {{ t("Your own district is listed first, but you can book at any centre that procures your crop. Bring your Aadhaar card and bank passbook on the day.") }}
-</p>
+    <div class="tag-list">
+      {% for cname in c.crop_types_accepted.split(',') %}{{ crop(cname.strip()) }}{% endfor %}
+    </div>
+
+    <div class="centre-next">
+      {{ icon('calendar-check') }}
+      <div>
+        <small>{{ t("Next free slot") }}</small>
+        {% if c.next_free %}
+          {% set parts = c.next_free.split(' ', 1) %}
+          <strong>{{ parts[0]|dayname }} &middot; {{ parts[1] }}</strong>
+        {% else %}
+          <strong class="hl-bad">{{ t("Fully booked") }}</strong>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="centre-foot">
+      <span class="centre-cap">{{ icon('scale') }}{{ c.daily_capacity }} {{ t("quintals a day") }}</span>
+      <a class="btn small" href="{{ url_for('farmer_centre', centre_id=c.id) }}">{{ t("View slots") }}{{ icon('arrow-right') }}</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty">{{ t("No centres match that filter.") }}</div></div>
+{% endif %}
 {% endblock %}

@@ -2,29 +2,29 @@
 {% block title %}{{ t("Farmer sign in") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<div class="auth-card">
-  <div class="card">
-    <h2>{{ t("Farmer sign in") }}</h2>
-    <div class="card-body">
-      <form method="post">
-        <div class="field">
-          <label for="phone">{{ t("Registered mobile number") }} <span class="req">*</span></label>
-          <input type="tel" id="phone" name="phone" value="{{ phone }}" maxlength="10"
-                 inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel" required autofocus>
-          <div class="hint">{{ t("A one-time password will be sent to this number.") }}</div>
-        </div>
-        <button class="btn block" type="submit">{{ t("Send OTP") }}</button>
-      </form>
-      <hr class="rule">
-      <p class="small muted center" style="margin:0">
-        Not registered yet? <a href="{{ url_for('register') }}">{{ t("Create an account") }}</a>
-      </p>
-    </div>
+<div class="auth">
+  <div class="auth-art">
+    <img src="{{ url_for('static', filename='img/harvest.jpg') }}" width="760" height="506" alt="">
+    <h2>{{ t("Welcome back") }}</h2>
   </div>
 
-  <div class="notice info small">
-    Use the mobile number you registered with. The OTP is not really sent anywhere yet, so
-    any six digits get you in.
+  <div class="auth-form">
+    <p class="eyebrow">{{ icon('smartphone') }}{{ t("Step 1 of 2") }}</p>
+    <h1>{{ t("Farmer sign in") }}</h1>
+    <form method="post" class="mt">
+      <div class="field">
+        <label for="phone">{{ t("Registered mobile number") }} <span class="req">*</span></label>
+        <div class="phone-field">
+          <span class="cc">+91</span>
+          <input type="tel" id="phone" name="phone" value="{{ phone }}" maxlength="10"
+                 inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel" required autofocus>
+        </div>
+      </div>
+      <button class="btn block large" type="submit">{{ t("Send OTP") }}{{ icon('arrow-right') }}</button>
+    </form>
+    <p class="auth-alt">
+      {{ t("Not registered yet?") }} <a href="{{ url_for('register') }}">{{ t("Create an account") }}</a>
+    </p>
   </div>
 </div>
 {% endblock %}

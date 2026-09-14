@@ -1,44 +1,50 @@
 {% extends "base.html" %}
+{% from "_macros.html" import flag_list %}
 {% block title %}{{ t("My details") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<h2 class="page-title">{{ t("My details") }}</h2>
-<p class="page-sub">
-  These are the details used to verify your identity and credit your payment. Correcting a
-  flagged field here re-runs the verification checks immediately.
-</p>
+<div class="pagehead">
+  <div class="ph-text"><h1 class="page-title">{{ t("My details") }}</h1></div>
+</div>
+
+{# one tile per check. the words say the result, the colour only repeats it #}
+{% set checks = [
+  ('aadhaar', t('Aadhaar number'), 'id-card'),
+  ('bank', t('Bank account and IFSC'), 'landmark'),
+  ('name_match', t('Name matches the bank'), 'user'),
+  ('land', t('Land record ID'), 'map-pin'),
+] %}
+<div class="checks" style="margin-bottom: 20px">
+  {% for key, label, ic in checks %}
+    {% set hit = flags|selectattr('field_flagged', 'equalto', key)|list %}
+    {% set blocking = hit|selectattr('severity', 'equalto', 'blocking')|list %}
+    <div class="check {{ 'bad' if blocking else ('warn' if hit else '') }}">
+      <span class="c-ic">{{ icon('x' if blocking else ('alert-triangle' if hit else 'check')) }}</span>
+      <div>
+        <strong>{{ label }}</strong>
+        <span>{{ t("Needs fixing") if blocking else (t("Please check") if hit else t("Passed checks")) }}</span>
+      </div>
+    </div>
+  {% endfor %}
+</div>
 
 {% if flags %}
 <div class="notice error">
-  <h3>{{ flags|length }} issue{{ 's' if flags|length != 1 }} found</h3>
-  <ul>
-    {% for fl in flags %}
-      <li>
-        <span class="badge {{ 'red' if fl.severity == 'blocking' else 'amber' }}">{{ fl.severity }}</span>
-        <strong>{{ fl.field_flagged|replace('_',' ')|title }}:</strong> {{ fl.detail }}
-      </li>
-    {% endfor %}
-  </ul>
-</div>
-{% else %}
-<div class="notice success">
-  <h3>{{ t("All checks passed") }}</h3>
-  <p style="margin-bottom:0">
-    {{ t("Your Aadhaar, bank and land-record details are correctly formatted and consistent. Nothing should hold up your payment.") }}
-  </p>
+  <h3>{{ flags|length }} {{ t("issue(s) found") }}</h3>
+  {{ flag_list(flags) }}
 </div>
 {% endif %}
 
 <div class="card">
-  <h2>{{ t("Edit details") }}</h2>
+  <div class="card-head"><h2 class="card-title">{{ icon('sliders') }}{{ t("Edit details") }}</h2></div>
   <div class="card-body">
     <form method="post">
       {% with f = farmer, show_phone = false %}
         {% include "_farmer_fields.html" %}
       {% endwith %}
       <div class="btn-row mt">
-        <button class="btn" type="submit">{{ t("Save and re-check") }}</button>
-        <a class="btn secondary" href="{{ url_for('farmer_dashboard') }}">{{ t("Back to dashboard") }}</a>
+        <button class="btn large" type="submit">{{ icon('refresh') }}{{ t("Save and re-check") }}</button>
+        <a class="btn secondary large" href="{{ url_for('farmer_dashboard') }}">{{ t("Back to dashboard") }}</a>
       </div>
     </form>
   </div>

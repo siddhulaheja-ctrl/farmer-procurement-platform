@@ -155,6 +155,8 @@ def validate_and_flag(farmer_id: int) -> list:
             "%d issue(s) found in your registration details (%d critical). Please visit your "
             "procurement centre or update your profile before your slot date, otherwise your "
             "payment may be delayed." % (len(problems), blocking),
+            message_hi="आपकी जानकारी में %d गड़बड़ी मिली (%d गंभीर)। भुगतान न रुके, इसलिए "
+                       "स्लॉट से पहले इन्हें ठीक करें।" % (len(problems), blocking),
         )
     return problems
 

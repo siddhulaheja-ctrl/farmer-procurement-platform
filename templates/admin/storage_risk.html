@@ -1,49 +1,70 @@
 {% extends "base.html" %}
-{% from "_macros.html" import risk_badge %}
+{% from "_macros.html" import risk_badge, avatar, crop %}
 {% block title %}Storage Risk{% endblock %}
 
 {% block content %}
-<h2 class="page-title">Storage risk watchlist</h2>
-<p class="page-sub">
-  Upcoming bookings ranked by spoilage risk. A high-risk farmer is holding harvested produce
-  through a wet spell &mdash; offer them an earlier slot before the grain is downgraded at the gate.
-</p>
+<div class="pagehead">
+  <div class="ph-text">
+    <h1 class="page-title">Storage risk watchlist</h1>
+  </div>
+</div>
+
+{% set high = rows|selectattr('storage_risk', 'equalto', 'high')|list|length %}
+{% set low = rows|selectattr('storage_risk', 'equalto', 'low')|list|length %}
+<div class="stat-row">
+  <div class="stat {{ 'bad' if high else 'zero' }}">
+    <span class="stat-ic">{{ icon('cloud-rain') }}</span>
+    <div><div class="n">{{ high }}</div><div class="l">High risk</div></div>
+  </div>
+  <div class="stat {{ 'warn' if low else 'zero' }}">
+    <span class="stat-ic">{{ icon('cloud') }}</span>
+    <div><div class="n">{{ low }}</div><div class="l">Low risk</div></div>
+  </div>
+  <div class="stat {{ 'good' if rows|length - high - low else 'zero' }}">
+    <span class="stat-ic">{{ icon('sun') }}</span>
+    <div><div class="n">{{ rows|length - high - low }}</div><div class="l">No risk found</div></div>
+  </div>
+  <div class="stat {{ 'info' if rows else 'zero' }}">
+    <span class="stat-ic">{{ icon('calendar') }}</span>
+    <div><div class="n">{{ rows|length }}</div><div class="l">Upcoming bookings</div></div>
+  </div>
+</div>
 
 <div class="card">
-  <div class="card-head">
-    <span>{{ rows|length }} upcoming booking{{ 's' if rows|length != 1 }}</span>
-
-  </div>
+  <div class="card-head"><h2 class="card-title">{{ icon('list') }}Watchlist <span class="count">{{ rows|length }}</span></h2></div>
   {% if rows %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Risk</th><th>Farmer</th><th>Village</th><th>Centre</th><th>Slot date</th>
+        <tr><th>Risk</th><th>Farmer</th><th>Slot</th>
             <th class="num">Days away</th><th>Crop</th><th class="num">Est. qty</th><th></th></tr>
       </thead>
       <tbody>
         {% for r in rows %}
-        <tr>
+        {% set away = r.date|daysaway %}
+        <tr class="{{ 'row-high' if r.storage_risk == 'high' }}">
           <td>{{ risk_badge(r.storage_risk) }}</td>
           <td>
-            <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
-            <div class="small muted">{{ r.phone_number }}</div>
+            <div class="who">
+              {{ avatar(r.farmer_name, 'sm') }}
+              <div class="who-text">
+                <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
+                <span class="sub-line">{{ r.village }}, {{ r.farmer_district }}</span>
+              </div>
+            </div>
           </td>
-          <td class="nowrap">{{ r.village }}
-            <div class="small muted">{{ r.farmer_district }}</div></td>
-          <td class="small">{{ r.centre_name }}</td>
-          <td class="nowrap">{{ r.date|nicedate }}</td>
-          <td class="num">{{ r.date|daysaway }}</td>
-          <td>{{ r.crop_type }}</td>
+          <td class="nowrap"><strong>{{ r.date|nicedate }}</strong><span class="sub-line">{{ r.centre_name }}</span></td>
+          <td class="num"><span class="days-away {{ 'far' if away is number and away >= 5 }}">{{ away }}</span></td>
+          <td>{{ crop(r.crop_type) }}</td>
           <td class="num nowrap">{{ '%.1f'|format(r.estimated_quantity) }}</td>
-          <td class="nowrap">
-            <div class="btn-row">
-              <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=r.id) }}">Open</a>
+          <td class="nowrap right">
+            <div class="btn-row" style="justify-content:flex-end">
               {% if r.storage_risk == 'high' %}
               <form method="post" action="{{ url_for('admin_call', booking_id=r.id) }}">
-                <button class="btn small" type="submit">Call</button>
+                <button class="btn small" type="submit">{{ icon('phone-call') }}Call</button>
               </form>
               {% endif %}
+              <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=r.id) }}">Open</a>
             </div>
           </td>
         </tr>
@@ -56,14 +77,4 @@
   {% endif %}
 </div>
 
-<div class="notice info small">
-  Every farmer here is rung on their own registered number.
-</div>
-
-<div class="notice info small">
-  Risk comes from the rainfall and humidity forecast between today and their slot date. We look
-  up the farmer's village, and fall back to the district headquarters when the weather service
-  has never heard of it &mdash; which is most villages. Bookings less than five days out are not
-  assessed, the produce is not sitting at home long enough to matter.
-</div>
 {% endblock %}
