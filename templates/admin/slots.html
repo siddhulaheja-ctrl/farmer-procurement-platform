@@ -12,7 +12,7 @@
   {# centre staff are locked to their own centre, so no choice to offer #}
   {% if not my_centre %}
   <div class="field">
-    <label for="centre_id">{{ icon('building') }} Centre</label>
+    <label for="centre_id">Centre</label>
     <select id="centre_id" name="centre_id">
       <option value="">All centres</option>
       {% for c in centres %}
@@ -22,7 +22,7 @@
   </div>
   {% endif %}
   <div class="field">
-    <label for="date">{{ icon('calendar') }} Date</label>
+    <label for="date">Date</label>
     <input type="date" id="date" name="date" value="{{ sel_date }}">
   </div>
   <div class="actions"><button class="btn" type="submit">{{ icon('sliders') }}Show</button></div>
@@ -30,7 +30,7 @@
 
 <div class="grid side">
   <div class="card">
-    <div class="card-head"><h2 class="card-title">{{ icon('calendar') }}Slots on {{ sel_date|nicedate }} <span class="count">{{ slots|length }}</span></h2></div>
+    <div class="card-head"><h2 class="card-title">Slots on {{ sel_date|nicedate }} <span class="count">{{ slots|length }}</span></h2></div>
     {% if slots %}
     <div class="table-scroll">
       <table class="data">
@@ -68,7 +68,7 @@
 
   <div class="stack">
     <div class="card">
-      <div class="card-head"><h2 class="card-title">{{ icon('hourglass') }}Running late</h2></div>
+      <div class="card-head"><h2 class="card-title">Running late</h2></div>
       <div class="card-body">
         {% for c in centres %}
         <form method="post" action="{{ url_for('admin_set_delay', centre_id=c.id) }}" class="delay-row">
@@ -92,7 +92,7 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2 class="card-title">{{ icon('plus') }}Add or update a slot</h2></div>
+      <div class="card-head"><h2 class="card-title">Add or update a slot</h2></div>
       <div class="card-body">
         <form method="post">
           <div class="field">

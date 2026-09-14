@@ -13,19 +13,15 @@
 
 <div class="stat-row">
   <div class="stat {{ 'good' if received else 'zero' }}">
-    <span class="stat-ic">{{ icon('banknote') }}</span>
-    <div><div class="n">{{ received|rupee }}</div><div class="l">{{ t("Received") }}</div></div>
+    <div><div class="n">{{ received|rupee if received else t("Nothing yet") }}</div><div class="l">{{ t("Received") }}</div></div>
   </div>
   <div class="stat {{ 'warn' if waiting else 'zero' }}">
-    <span class="stat-ic">{{ icon('hourglass') }}</span>
-    <div><div class="n">{{ waiting|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
+    <div><div class="n">{{ waiting|rupee if waiting else t("Nothing yet") }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
   </div>
   <div class="stat {{ 'bad' if held else 'zero' }}">
-    <span class="stat-ic">{{ icon('alert-triangle') }}</span>
     <div><div class="n">{{ held }}</div><div class="l">{{ t("Payments held") }}</div></div>
   </div>
   <div class="stat {{ 'info' if rows else 'zero' }}">
-    <span class="stat-ic">{{ icon('receipt') }}</span>
     <div><div class="n">{{ rows|length }}</div><div class="l">{{ t("Transactions") }}</div></div>
   </div>
 </div>

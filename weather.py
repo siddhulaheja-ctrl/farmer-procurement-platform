@@ -140,13 +140,25 @@ def _live_forecast(point, days):
         return None
 
 
+# Forecasts only change every few hours, and the home page asks for every
+# district at once. Keep an answer for half an hour instead of calling the api
+# on each visit.
+FORECAST_TTL = 30 * 60
+_forecast_cache = {}
+
+
 def get_forecast(district, days=5, village=None):
     """Returns (forecast, source, place). source is 'live' or 'mock'."""
+    import time
+    key = (district, days, village)
+    hit = _forecast_cache.get(key)
+    if hit and time.time() - hit[0] < FORECAST_TTL:
+        return hit[1]
     point = resolve_point(district, village)
     live = _live_forecast(point, days)
-    if live:
-        return live, "live", point
-    return _mock_forecast(district, days), "mock", point
+    result = (live, "live", point) if live else (_mock_forecast(district, days), "mock", point)
+    _forecast_cache[key] = (time.time(), result)
+    return result
 
 
 def assess_risk(district, slot_date_str, village=None):

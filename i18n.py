@@ -11,6 +11,32 @@ TODO: move this to flask-babel if we ever add a third language
 from flask import session
 
 HINDI = {
+    'Indicative rates per quintal, and the rise over the previous season': 'प्रति क्विंटल सांकेतिक दरें, और पिछले सत्र से बढ़ोतरी',
+    "Nothing yet": "अभी कुछ नहीं",
+    # home weather overview
+    'Next three days, every procurement district': 'अगले तीन दिन, सभी खरीद जिले',
+    'Reading at': 'रीडिंग का स्थान',
+    'Rain today': 'आज बारिश',
+    'Rain, 3 days': 'बारिश, 3 दिन',
+    'Humidity': 'नमी',
+    'Keep grain covered': 'अनाज ढककर रखें',
+    'Pick a district for its five-day forecast.': 'पांच दिन का पूर्वानुमान देखने के लिए जिला चुनें।',
+    'No forecast available right now.': 'अभी पूर्वानुमान उपलब्ध नहीं है।',
+    # gate pass form
+    'Government procurement centre': 'सरकारी खरीद केंद्र',
+    'Form': 'प्रपत्र',
+    'Serial no.': 'क्रम संख्या',
+    'Farmer copy': 'किसान प्रति',
+    'Office copy': 'कार्यालय प्रति',
+    'Particulars': 'विवरण',
+    'To be filled at the weighbridge': 'तौल कांटे पर भरा जाएगा',
+    'Weighed quantity (quintals)': 'तौली गई मात्रा (क्विंटल)',
+    'Weighbridge clerk': 'तौल लिपिक',
+    'Centre stamp': 'केंद्र की मुहर',
+    'Farmer signature or thumb impression': 'किसान के हस्ताक्षर या अंगूठा निशान',
+    'Cut along this line. The office copy stays at the centre.': 'इस रेखा पर काटें। कार्यालय प्रति केंद्र पर रहेगी।',
+    'Slot': 'स्लॉट',
+    "Registration no.": "पंजीकरण संख्या",
     # home page notice board
     'Book a weighing slot at your procurement centre': 'अपने खरीद केंद्र पर तौल का स्लॉट बुक करें',
     'Choose a day and time, get a token, and bring your crop when it is your turn. Your Aadhaar and bank details are checked when you register, so your payment is not held up later.': 'दिन और समय चुनें, टोकन पाएं, और अपनी बारी पर उपज लेकर आएं। पंजीकरण के समय ही आपके आधार और बैंक विवरण की जांच हो जाती है, ताकि बाद में भुगतान न रुके।',

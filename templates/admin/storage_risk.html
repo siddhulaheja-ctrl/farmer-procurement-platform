@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import risk_badge, avatar, crop %}
+{% from "_macros.html" import risk_badge, crop %}
 {% block title %}Storage Risk{% endblock %}
 
 {% block content %}
@@ -13,25 +13,21 @@
 {% set low = rows|selectattr('storage_risk', 'equalto', 'low')|list|length %}
 <div class="stat-row">
   <div class="stat {{ 'bad' if high else 'zero' }}">
-    <span class="stat-ic">{{ icon('cloud-rain') }}</span>
     <div><div class="n">{{ high }}</div><div class="l">High risk</div></div>
   </div>
   <div class="stat {{ 'warn' if low else 'zero' }}">
-    <span class="stat-ic">{{ icon('cloud') }}</span>
     <div><div class="n">{{ low }}</div><div class="l">Low risk</div></div>
   </div>
   <div class="stat {{ 'good' if rows|length - high - low else 'zero' }}">
-    <span class="stat-ic">{{ icon('sun') }}</span>
     <div><div class="n">{{ rows|length - high - low }}</div><div class="l">No risk found</div></div>
   </div>
   <div class="stat {{ 'info' if rows else 'zero' }}">
-    <span class="stat-ic">{{ icon('calendar') }}</span>
     <div><div class="n">{{ rows|length }}</div><div class="l">Upcoming bookings</div></div>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-head"><h2 class="card-title">{{ icon('list') }}Watchlist <span class="count">{{ rows|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">Watchlist <span class="count">{{ rows|length }}</span></h2></div>
   {% if rows %}
   <div class="table-scroll">
     <table class="data">
@@ -46,10 +42,9 @@
           <td>{{ risk_badge(r.storage_risk) }}</td>
           <td>
             <div class="who">
-              {{ avatar(r.farmer_name, 'sm') }}
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
-                <span class="sub-line">{{ r.village }}, {{ r.farmer_district }}</span>
+                <span class="sub-line"><span class="mono">{{ reg_no(r.farmer_id) }}</span> &middot; {{ r.village }}</span>
               </div>
             </div>
           </td>

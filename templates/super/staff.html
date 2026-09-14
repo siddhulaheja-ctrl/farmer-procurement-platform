@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar %}
 {% block title %}Staff accounts{% endblock %}
 
 {% block content %}
@@ -14,7 +13,7 @@
 <div class="grid side wide-main">
   <div class="card">
     <div class="card-head">
-      <h2 class="card-title">{{ icon('shield') }}Accounts <span class="count">{{ staff|length }}</span></h2>
+      <h2 class="card-title">Accounts <span class="count">{{ staff|length }}</span></h2>
     </div>
     <div class="table-scroll">
       <table class="data">
@@ -28,7 +27,6 @@
           <tr class="{{ 'row-off' if not s.active }}">
             <td>
               <div class="who">
-                {{ avatar(s.name, 'sm') }}
                 <div class="who-text">
                   <a href="{{ url_for('super_staff_detail', staff_id=s.id) }}">{{ s.name }}</a>
                   <span class="sub-line mono">{{ s.staff_code }}</span>
@@ -51,7 +49,7 @@
   </div>
 
   <div class="card">
-    <div class="card-head"><h2 class="card-title">{{ icon('user-plus') }}Add an account</h2></div>
+    <div class="card-head"><h2 class="card-title">Add an account</h2></div>
     <div class="card-body">
       <form method="post">
         <div class="field">

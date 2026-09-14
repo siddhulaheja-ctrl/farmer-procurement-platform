@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, avatar, crop %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, crop %}
 {% block title %}Bookings Dashboard{% endblock %}
 
 {% block content %}
@@ -15,24 +15,20 @@
 
 <div class="stat-row">
   <div class="stat {{ 'info' if summary.get('booked') else 'zero' }}">
-    <span class="stat-ic">{{ icon('calendar-check') }}</span>
     <div><div class="n">{{ summary.get('booked', 0) }}</div><div class="l">Booked</div></div>
   </div>
   <div class="stat {{ 'warn' if summary.get('arrived') else 'zero' }}">
-    <span class="stat-ic">{{ icon('scale') }}</span>
     <div><div class="n">{{ summary.get('arrived', 0) }}</div><div class="l">Weighed, not closed</div></div>
   </div>
   <div class="stat {{ 'good' if summary.get('completed') else 'zero' }}">
-    <span class="stat-ic">{{ icon('check-circle') }}</span>
     <div><div class="n">{{ summary.get('completed', 0) }}</div><div class="l">Completed</div></div>
   </div>
   <div class="stat {{ 'bad' if summary.flags else 'zero' }}">
-    <span class="stat-ic">{{ icon('flag') }}</span>
     <div><div class="n">{{ summary.flags }}</div><div class="l">Unresolved data flags</div></div>
   </div>
 </div>
 
-{% if summary.risk %}
+{% if summary.risk and g.staff.role != 'superadmin' %}
 <div class="notice warning">
   <strong>{{ summary.risk }}</strong> upcoming booking{{ 's' if summary.risk != 1 }} carry a high
   storage-risk flag. <a href="{{ url_for('admin_storage_risk') }}">Review and offer earlier slots</a>.
@@ -43,7 +39,7 @@
   {# centre staff are locked to their own centre, so no choice to offer #}
   {% if not my_centre %}
   <div class="field">
-    <label for="centre_id">{{ icon('building') }} Centre</label>
+    <label for="centre_id">Centre</label>
     <select id="centre_id" name="centre_id">
       <option value="">All centres</option>
       {% for c in centres %}
@@ -53,11 +49,11 @@
   </div>
   {% endif %}
   <div class="field">
-    <label for="date">{{ icon('calendar') }} Date</label>
+    <label for="date">Date</label>
     <input type="date" id="date" name="date" value="{{ sel_date }}">
   </div>
   <div class="field">
-    <label for="status">{{ icon('list') }} Status</label>
+    <label for="status">Status</label>
     <select id="status" name="status">
       <option value="">All</option>
       {% for s in ['booked','arrived','completed','cancelled'] %}
@@ -73,7 +69,7 @@
 
 <div class="card">
   <div class="card-head">
-    <h2 class="card-title">{{ icon('ticket') }}Bookings <span class="count">{{ bookings|length }}</span></h2>
+    <h2 class="card-title">Bookings <span class="count">{{ bookings|length }}</span></h2>
   </div>
   {% if bookings %}
   <div class="table-scroll">
@@ -88,10 +84,9 @@
           <td><span class="token-txt">{{ b.token_no }}</span></td>
           <td>
             <div class="who">
-              {{ avatar(b.farmer_name, 'sm') }}
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">{{ b.farmer_name }}</a>
-                <span class="sub-line">{{ b.phone_number }} &middot; {{ b.village }}</span>
+                <span class="sub-line"><span class="mono">{{ reg_no(b.farmer_id) }}</span> &middot; {{ b.village }}</span>
               </div>
             </div>
           </td>

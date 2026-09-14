@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar, field_icon %}
+{% from "_macros.html" import field_icon %}
 {% block title %}Data Validation Flags{% endblock %}
 
 {% block content %}
@@ -13,26 +13,22 @@
 {% set warnings = flags|selectattr('severity', 'equalto', 'warning')|list|length %}
 <div class="stat-row">
   <div class="stat {{ 'bad' if blocking else 'zero' }}">
-    <span class="stat-ic">{{ icon('x-circle') }}</span>
     <div><div class="n">{{ blocking }}</div><div class="l">Blocking a payment</div></div>
   </div>
   <div class="stat {{ 'warn' if warnings else 'zero' }}">
-    <span class="stat-ic">{{ icon('alert-triangle') }}</span>
     <div><div class="n">{{ warnings }}</div><div class="l">Warnings</div></div>
   </div>
   <div class="stat {{ 'info' if flags else 'zero' }}">
-    <span class="stat-ic">{{ icon('users') }}</span>
     <div><div class="n">{{ flags|map(attribute='farmer_id')|unique|list|length }}</div><div class="l">Farmers affected</div></div>
   </div>
   <div class="stat {{ 'info' if flags else 'zero' }}">
-    <span class="stat-ic">{{ icon('list') }}</span>
     <div><div class="n">{{ flags|length }}</div><div class="l">Shown</div></div>
   </div>
 </div>
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="status">{{ icon('list') }} Show</label>
+    <label for="status">Show</label>
     <select id="status" name="status">
       <option value="unresolved" {{ 'selected' if sel_status == 'unresolved' }}>Unresolved</option>
       <option value="resolved" {{ 'selected' if sel_status == 'resolved' }}>Resolved</option>
@@ -43,7 +39,7 @@
 </form>
 
 <div class="card">
-  <div class="card-head"><h2 class="card-title">{{ icon('flag') }}Flags <span class="count">{{ flags|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">Flags <span class="count">{{ flags|length }}</span></h2></div>
   {% if flags %}
   <div class="table-scroll">
     <table class="data">
@@ -56,10 +52,9 @@
           <td><span class="sev {{ f.severity }}">{{ icon('x-circle' if f.severity == 'blocking' else 'alert-triangle') }}{{ f.severity }}</span></td>
           <td>
             <div class="who">
-              {{ avatar(f.farmer_name, 'sm') }}
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ f.farmer_name }}</a>
-                <span class="sub-line">{{ f.phone_number }} &middot; {{ f.district }}</span>
+                <span class="sub-line"><span class="mono">{{ reg_no(f.farmer_id) }}</span> &middot; {{ f.district }}</span>
               </div>
             </div>
           </td>

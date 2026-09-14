@@ -15,10 +15,10 @@
   </div>
   <figure class="lead-photo">
     <picture>
-      <source srcset="{{ url_for('static', filename='img/hero-field.webp') }}" type="image/webp">
-      <img src="{{ url_for('static', filename='img/hero-field.jpg') }}" width="1280" height="848"
-           alt="Farmer preparing a field for a wheat crop in Punjab" fetchpriority="high">
+      <img src="{{ url_for("static", filename="img/fields-uttarakhand.jpg") }}" width="1100" height="696"
+           alt="Women carrying loads along the bunds between paddy nurseries in Uttarakhand" fetchpriority="high">
     </picture>
+    <figcaption>Paddy nurseries, Uttarakhand &middot; Digvijaysjanoti, CC BY-SA 4.0</figcaption>
   </figure>
 </section>
 
@@ -26,11 +26,13 @@
 <section class="board">
   <div class="board-col">
     <h2 class="board-title">{{ t("Minimum Support Price") }}</h2>
-    <p class="board-sub">{{ t("RMS 2025-26, indicative rates per quintal") }}</p>
+    <p class="board-sub">{{ t("Indicative rates per quintal, and the rise over the previous season") }}</p>
     <table class="data msp">
       <tbody>
         {% for name, rate in msp.items() %}
-        <tr><td>{{ crop_name(name) }}</td><td class="num"><strong>&#8377;{{ "{:,}".format(rate|int) }}</strong></td></tr>
+        <tr><td>{{ crop_name(name) }}</td>
+            <td class="num small muted">{% set prev = msp_prev.get(name) %}{% if prev and rate > prev %}+&#8377;{{ "{:,}".format((rate - prev)|int) }}{% endif %}</td>
+            <td class="num"><strong>&#8377;{{ "{:,}".format(rate|int) }}</strong></td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -86,10 +88,34 @@
       {% elif picked %}
         <div class="empty">{{ t("No forecast available for that district right now.") }}</div>
       {% else %}
-        <div class="wx-empty">
-          <div class="row">{{ icon('cloud') }}{{ icon('sun') }}{{ icon('cloud-rain') }}</div>
-          <strong>{{ t("Choose your district") }}</strong>
+        <div class="wx-head">
+          <h3 class="card-title">{{ t("Next three days, every procurement district") }}</h3>
+          {% if source == "live" %}<span class="badge green">{{ t("Live forecast") }}</span>
+          {% elif source %}<span class="state off">{{ t("Simulated forecast") }}</span>{% endif %}
         </div>
+        {% if outlook %}
+        <div class="table-scroll">
+          <table class="data wx-all">
+            <thead><tr><th>{{ t("District") }}</th><th>{{ t("Reading at") }}</th><th class="num">{{ t("Rain today") }}</th>
+                       <th class="num">{{ t("Rain, 3 days") }}</th><th class="num">{{ t("Humidity") }}</th><th></th></tr></thead>
+            <tbody>
+              {% for o in outlook %}
+              <tr>
+                <td><a href="{{ url_for("home", district=o.district) }}#weather">{{ t(o.district) }}</a></td>
+                <td class="muted">{{ t(o.place) }}</td>
+                <td class="num">{{ o.today.rain_mm }} mm</td>
+                <td class="num">{% if o.wet_days %}<strong>{{ o.rain_3d }} mm</strong>{% else %}{{ o.rain_3d }} mm{% endif %}</td>
+                <td class="num">{{ o.today.humidity }}%</td>
+                <td>{% if o.rain_3d >= 5 %}<span class="badge amber">{{ t("Keep grain covered") }}</span>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted wx-note">{{ t("Pick a district for its five-day forecast.") }}</p>
+        {% else %}
+        <div class="empty">{{ t("No forecast available right now.") }}</div>
+        {% endif %}
       {% endif %}
     </div>
   </div>
@@ -99,8 +125,8 @@
   <div class="audience">
     <div class="aud">
       <div class="aud-photo">
-        <img src="{{ url_for('static', filename='img/harvest.jpg') }}" width="760" height="506" loading="lazy"
-             alt="Farmer harvesting rice by hand in Raichur, Karnataka">
+        <img src="{{ url_for("static", filename="img/nursery-uttarakhand.jpg") }}" width="760" height="449" loading="lazy"
+             alt="Women working paddy nursery plots in Uttarakhand">
         <span class="aud-tag">{{ icon('sprout') }}{{ t("For farmers") }}</span>
       </div>
       <div class="aud-body">
@@ -122,8 +148,8 @@
 
     <div class="aud">
       <div class="aud-photo">
-        <img src="{{ url_for('static', filename='img/planting.jpg') }}" width="760" height="409" loading="lazy"
-             alt="Women planting paddy seedlings in Assam">
+        <img src="{{ url_for("static", filename="img/mandi-rudrapur.jpg") }}" width="760" height="365" loading="lazy"
+             alt="Purvi Rudrapur Kisan Seva Sahkari Samiti at Bagwara, with a paddy procurement centre notice">
         <span class="aud-tag">{{ icon('shield') }}{{ t("For centre staff") }}</span>
       </div>
       <div class="aud-body">

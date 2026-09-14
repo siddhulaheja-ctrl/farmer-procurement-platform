@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar, audit_changes, audit_target %}
+{% from "_macros.html" import audit_changes, audit_target %}
 {% block title %}Activity log{% endblock %}
 
 {% block content %}
@@ -13,7 +13,7 @@
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="centre_id">{{ icon('building') }} Centre</label>
+    <label for="centre_id">Centre</label>
     <select id="centre_id" name="centre_id">
       <option value="">All centres</option>
       {% for c in centres %}
@@ -22,7 +22,7 @@
     </select>
   </div>
   <div class="field">
-    <label for="staff_id">{{ icon('user') }} Person</label>
+    <label for="staff_id">Person</label>
     <select id="staff_id" name="staff_id">
       <option value="">Anyone</option>
       {% for s in staff %}
@@ -31,7 +31,7 @@
     </select>
   </div>
   <div class="field">
-    <label for="action">{{ icon('list') }} Action</label>
+    <label for="action">Action</label>
     <select id="action" name="action">
       <option value="">Any action</option>
       {% for key, a in actions.items() %}
@@ -40,7 +40,7 @@
     </select>
   </div>
   <div class="field">
-    <label for="days">{{ icon('calendar') }} When</label>
+    <label for="days">When</label>
     <select id="days" name="days">
       <option value="">All time</option>
       <option value="1" {{ 'selected' if sel.get('days') == '1' }}>Today</option>
@@ -60,7 +60,7 @@
 
 <div class="card">
   <div class="card-head">
-    <h2 class="card-title">{{ icon('file-text') }}Entries <span class="count">{{ entries|length }}</span></h2>
+    <h2 class="card-title">Entries <span class="count">{{ entries|length }}</span></h2>
   </div>
   {% if entries %}
   <div class="table-scroll">
@@ -72,7 +72,6 @@
           <td class="nowrap">{{ e.at|stamp }}</td>
           <td>
             <div class="who">
-              {{ avatar(e.staff_name, 'sm') }}
               <div class="who-text">
                 <a href="{{ url_for('super_staff_detail', staff_id=e.staff_id) }}">{{ e.staff_name }}</a>
                 <span class="sub-line mono">{{ e.staff_code }}</span>

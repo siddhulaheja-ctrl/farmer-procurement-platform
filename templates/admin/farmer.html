@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, avatar, flag_list, crop %}
+{% from "_macros.html" import status_badge, payment_badge, flag_list, crop %}
 {% block title %}{{ farmer.name }}{% endblock %}
 
 {% block content %}
@@ -8,9 +8,8 @@
 </nav>
 
 <div class="pagehead">
-  {{ avatar(farmer.name, 'lg') }}
   <div class="ph-text">
-    <p class="eyebrow">Farmer record</p>
+    <p class="eyebrow">Farmer record &middot; {{ reg_no(farmer.id) }}</p>
     <h1 class="page-title">{{ farmer.name }}</h1>
     <div class="meta-row">
       <span>{{ icon('phone') }}{{ farmer.phone_number }}</span>
@@ -31,7 +30,7 @@
 
 <div class="grid side">
   <div class="card">
-    <div class="card-head"><h2 class="card-title">{{ icon('sliders') }}Correct record</h2></div>
+    <div class="card-head"><h2 class="card-title">Correct record</h2></div>
     <div class="card-body">
       <form method="post">
         {% with f = farmer, show_phone = false %}
@@ -46,7 +45,7 @@
   </div>
 
   <div class="card">
-    <div class="card-head"><h2 class="card-title">{{ icon('ticket') }}Booking history <span class="count">{{ bookings|length }}</span></h2></div>
+    <div class="card-head"><h2 class="card-title">Booking history <span class="count">{{ bookings|length }}</span></h2></div>
     {% if bookings %}
     <div class="table-scroll">
       <table class="data">

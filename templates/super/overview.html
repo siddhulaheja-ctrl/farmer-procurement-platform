@@ -15,27 +15,23 @@
 
 <div class="stat-row">
   <div class="stat {{ 'info' if totals.today else 'zero' }}">
-    <span class="stat-ic">{{ icon('calendar-check') }}</span>
     <div><div class="n">{{ totals.today }}</div><div class="l">Booked for today</div></div>
   </div>
   <div class="stat {{ 'good' if totals.weighed else 'zero' }}">
-    <span class="stat-ic">{{ icon('scale') }}</span>
     <div><div class="n">{{ totals.weighed }}</div><div class="l">Weighed so far</div></div>
   </div>
   <div class="stat {{ 'bad' if totals.held_n else 'zero' }}">
-    <span class="stat-ic">{{ icon('banknote') }}</span>
-    <div><div class="n">{{ totals.held_amount|rupee }}</div><div class="l">{{ totals.held_n }} payment{{ 's' if totals.held_n != 1 }} held</div></div>
+    <div><div class="n">{{ totals.held_amount|rupee if totals.held_amount else "None held" }}</div><div class="l">{{ totals.held_n }} payment{{ 's' if totals.held_n != 1 }} held</div></div>
   </div>
-  <div class="stat {{ 'warn' if totals.high_risk else 'zero' }}">
-    <span class="stat-ic">{{ icon('cloud-rain') }}</span>
-    <div><div class="n">{{ totals.high_risk }}</div><div class="l">Upcoming, high storage risk</div></div>
+  <div class="stat {{ 'info' if totals.signed_in else 'zero' }}">
+    <div><div class="n">{{ totals.signed_in }} / {{ totals.staff_active }}</div><div class="l">Counter staff signed in today</div></div>
   </div>
 </div>
 
 <div class="grid side">
   <div class="card">
     <div class="card-head">
-      <h2 class="card-title">{{ icon('calendar') }}Bookings by slot date</h2>
+      <h2 class="card-title">Bookings by slot date</h2>
     </div>
     <div class="card-body">
       <div class="legend">
@@ -78,7 +74,7 @@
   </div>
 
   <div class="card">
-    <div class="card-head"><h2 class="card-title">{{ icon('wallet') }}Where the money is</h2></div>
+    <div class="card-head"><h2 class="card-title">Where the money is</h2></div>
     <div class="card-body">
       <ul class="split-list">
         {% for p in payments %}
@@ -120,7 +116,6 @@
         <span>
           {% if c.delay_minutes %}<span class="badge amber">{{ c.delay_minutes }} min behind</span>{% endif %}
           {% if c.held %}<span class="badge red">{{ c.held }} held</span>{% endif %}
-          {% if c.high_risk %}<span class="badge amber">{{ c.high_risk }} at risk</span>{% endif %}
         </span>
         <a class="btn small secondary" href="{{ url_for('admin_dashboard', centre_id=c.id, date=g.today.isoformat()) }}">Bookings{{ icon('arrow-right') }}</a>
       </div>

@@ -21,19 +21,15 @@
 
 <div class="stat-row">
   <div class="stat {{ 'good' if stats.weighed else 'zero' }}">
-    <span class="stat-ic">{{ icon('scale') }}</span>
     <div><div class="n">{{ stats.weighed }}</div><div class="l">Loads weighed, 30 days</div></div>
   </div>
   <div class="stat {{ 'good' if stats.closed else 'zero' }}">
-    <span class="stat-ic">{{ icon('check-circle') }}</span>
     <div><div class="n">{{ stats.closed }}</div><div class="l">Transactions closed</div></div>
   </div>
   <div class="stat {{ 'info' if stats.calls else 'zero' }}">
-    <span class="stat-ic">{{ icon('phone-call') }}</span>
     <div><div class="n">{{ stats.calls }}</div><div class="l">Farmers called</div></div>
   </div>
   <div class="stat {{ 'warn' if stats.sensitive else 'zero' }}">
-    <span class="stat-ic">{{ icon('shield') }}</span>
     <div><div class="n">{{ stats.sensitive }}</div><div class="l">Money or ID changed by hand</div></div>
   </div>
 </div>
@@ -41,7 +37,7 @@
 <div class="grid side">
   <div class="card">
     <div class="card-head">
-      <h2 class="card-title">{{ icon('list') }}What they did <span class="count">{{ entries|length }}</span></h2>
+      <h2 class="card-title">What they did <span class="count">{{ entries|length }}</span></h2>
       {% if stats.sensitive %}
       <a class="btn small secondary" href="{{ url_for('super_activity', staff_id=person.id, sensitive=1) }}">Only the sensitive ones</a>
       {% endif %}
@@ -75,7 +71,7 @@
 
   <div class="stack">
     <div class="card">
-      <div class="card-head"><h2 class="card-title">{{ icon('sliders') }}Account</h2></div>
+      <div class="card-head"><h2 class="card-title">Account</h2></div>
       <div class="card-body">
         <form method="post">
           <div class="field">
@@ -106,7 +102,7 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2 class="card-title">{{ icon('lock') }}Reset password</h2></div>
+      <div class="card-head"><h2 class="card-title">Reset password</h2></div>
       <div class="card-body">
         <form method="post">
           <input type="hidden" name="do" value="password">

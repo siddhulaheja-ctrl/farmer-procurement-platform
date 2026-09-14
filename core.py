@@ -11,6 +11,12 @@ CROPS = ["Wheat", "Paddy", "Mustard", "Gram", "Maize", "Bajra"]
 MSP = {"Wheat": 2425.0, "Paddy": 2300.0, "Mustard": 5950.0,
        "Gram": 5650.0, "Maize": 2225.0, "Bajra": 2625.0}
 
+# The season before, so the home page can show how much each rate rose.
+# Rabi crops against RMS 2024-25, kharif crops against KMS 2023-24.
+# TODO: research to confirm each figure against the CACP / PIB notification.
+MSP_PREVIOUS = {"Wheat": 2275.0, "Paddy": 2183.0, "Mustard": 5650.0,
+                "Gram": 5440.0, "Maize": 2090.0, "Bajra": 2500.0}
+
 GRADES = ["A", "FAQ", "B", "Rejected"]
 # Price adjustment applied to MSP by quality grade.
 GRADE_FACTOR = {"A": 1.00, "FAQ": 1.00, "B": 0.94, "Rejected": 0.0}

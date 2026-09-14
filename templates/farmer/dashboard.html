@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, avatar, track, datetile, crop, alert_ic, alert_label, alert_msg, flag_list %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, track, datetile, crop, alert_ic, alert_label, alert_msg, flag_list %}
 {% block title %}{{ t("Dashboard") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <section class="welcome">
-  {{ avatar(g.farmer.name) }}
   <div class="welcome-text">
     <h1>{{ t("Namaste") }}, {{ g.farmer.name }}</h1>
     <div class="meta-row">
       <span>{{ icon('map-pin') }}{{ t(g.farmer.village) }}, {{ t(g.farmer.district) }}</span>
-      <span>{{ icon('phone') }}+91 {{ g.farmer.phone_number }}</span>
+      <span>{{ icon("id-card") }}{{ t("Registration no.") }} <b class="mono">{{ reg_no(g.farmer.id) }}</b></span>
+      
     </div>
   </div>
   <a class="btn wheat large" href="{{ url_for('farmer_centres') }}">{{ icon('calendar-plus') }}{{ t("Book a new slot") }}</a>
@@ -25,19 +25,15 @@
 
 <div class="stat-row">
   <div class="stat {{ 'info' if upcoming else 'zero' }}">
-    <span class="stat-ic">{{ icon('calendar') }}</span>
     <div><div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
   </div>
   <div class="stat {{ 'good' if paid_amount else 'zero' }}">
-    <span class="stat-ic">{{ icon('banknote') }}</span>
-    <div><div class="n">{{ paid_amount|rupee }}</div><div class="l">{{ t("Received") }}</div></div>
+    <div><div class="n">{{ paid_amount|rupee if paid_amount else t("Nothing yet") }}</div><div class="l">{{ t("Received") }}</div></div>
   </div>
   <div class="stat {{ 'warn' if pending_amount else 'zero' }}">
-    <span class="stat-ic">{{ icon('hourglass') }}</span>
-    <div><div class="n">{{ pending_amount|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
+    <div><div class="n">{{ pending_amount|rupee if pending_amount else t("Nothing yet") }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
   </div>
   <div class="stat {{ 'bad' if flags else 'good' }}">
-    <span class="stat-ic">{{ icon('flag' if flags else 'shield') }}</span>
     <div><div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>
   </div>
 </div>

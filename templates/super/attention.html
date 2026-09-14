@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar, audit_changes, audit_target %}
+{% from "_macros.html" import audit_changes, audit_target %}
 {% block title %}Needs attention{% endblock %}
 
 {% block content %}
@@ -29,7 +29,6 @@
       <li>
         {% if s.key == 'held' %}
           <div class="who">
-            {{ avatar(it.farmer_name, 'sm') }}
             <div class="who-text">
               <a href="{{ url_for('admin_farmer', farmer_id=it.farmer_id) }}">{{ it.farmer_name }}</a>
               <span class="sub-line">{{ it.token_no }} &middot; {{ it.centre_name }}</span>
@@ -40,7 +39,6 @@
 
         {% elif s.key == 'flags' %}
           <div class="who">
-            {{ avatar(it.name, 'sm') }}
             <div class="who-text">
               <a href="{{ url_for('super_staff_detail', staff_id=it.id) }}">{{ it.name }}</a>
               <span class="sub-line">{{ it.staff_code }} &middot; {{ it.centre_name }}</span>
@@ -51,7 +49,6 @@
 
         {% elif s.key == 'overrides' %}
           <div class="who">
-            {{ avatar(it.staff_name, 'sm') }}
             <div class="who-text">
               <a href="{{ url_for('super_staff_detail', staff_id=it.staff_id) }}">{{ it.staff_name }}</a>
               <span class="sub-line">{{ audit_target(it) }}</span>
@@ -71,10 +68,9 @@
 
         {% elif s.key == 'rejected' %}
           <div class="who">
-            {{ avatar(it.farmer_name, 'sm') }}
             <div class="who-text">
               <a href="{{ url_for('admin_farmer', farmer_id=it.farmer_id) }}">{{ it.farmer_name }}</a>
-              <span class="sub-line">{{ it.village }} &middot; {{ it.centres }}</span>
+              <span class="sub-line"><span class="mono">{{ reg_no(it.farmer_id) }}</span> &middot; {{ it.village }} &middot; {{ it.centres }}</span>
             </div>
           </div>
           <div class="attn-fact"><strong>{{ it.n }} rejected</strong><span>last on {{ it.last_date|nicedate }}</span></div>

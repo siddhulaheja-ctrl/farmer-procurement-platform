@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import payment_badge, grade_badge, avatar, crop %}
+{% from "_macros.html" import payment_badge, grade_badge, crop %}
 {% block title %}Transactions{% endblock %}
 
 {% block content %}
@@ -15,26 +15,22 @@
 {% set failed = rows|selectattr('payment_status', 'equalto', 'failed')|list|length %}
 <div class="stat-row">
   <div class="stat {{ 'info' if total else 'zero' }}">
-    <span class="stat-ic">{{ icon('rupee') }}</span>
-    <div><div class="n">{{ total|rupee }}</div><div class="l">Value shown</div></div>
+    <div><div class="n">{{ total|rupee if total else "None" }}</div><div class="l">Value shown</div></div>
   </div>
   <div class="stat {{ 'good' if paid else 'zero' }}">
-    <span class="stat-ic">{{ icon('banknote') }}</span>
-    <div><div class="n">{{ paid|rupee }}</div><div class="l">Credited</div></div>
+    <div><div class="n">{{ paid|rupee if paid else "None yet" }}</div><div class="l">Credited</div></div>
   </div>
   <div class="stat {{ 'warn' if moving else 'zero' }}">
-    <span class="stat-ic">{{ icon('hourglass') }}</span>
     <div><div class="n">{{ moving }}</div><div class="l">Pending or processing</div></div>
   </div>
   <div class="stat {{ 'bad' if failed else 'zero' }}">
-    <span class="stat-ic">{{ icon('alert-triangle') }}</span>
     <div><div class="n">{{ failed }}</div><div class="l">Failed or held</div></div>
   </div>
 </div>
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="payment_status">{{ icon('list') }} Payment status</label>
+    <label for="payment_status">Payment status</label>
     <select id="payment_status" name="payment_status">
       <option value="">All</option>
       {% for s in ['pending','processing','completed','failed'] %}
@@ -49,7 +45,7 @@
 </form>
 
 <div class="card">
-  <div class="card-head"><h2 class="card-title">{{ icon('receipt') }}Transactions <span class="count">{{ rows|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">Transactions <span class="count">{{ rows|length }}</span></h2></div>
   {% if rows %}
   <div class="table-scroll">
     <table class="data">
@@ -65,10 +61,9 @@
             <span class="sub-line">{{ r.date|nicedate }} &middot; {{ r.centre_name }}</span></td>
           <td>
             <div class="who">
-              {{ avatar(r.farmer_name, 'sm') }}
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
-                <span class="sub-line">{{ r.phone_number }}</span>
+                <span class="sub-line mono">{{ reg_no(r.farmer_id) }}</span>
               </div>
             </div>
           </td>

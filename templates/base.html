@@ -15,7 +15,6 @@
 {# in the head, not at the end: it sets the text size before the first paint #}
 <script src="{{ url_for('static', filename='js/a11y.js') }}"></script>
 </head>
-{%- from "_macros.html" import avatar -%}
 {# staff get a console with a side menu, everyone else a top menu #}
 {%- set staff_layout = g.staff -%}
 <body class="{{ 'is-staff' if g.staff else 'is-public' }}">
@@ -76,7 +75,7 @@
     {% if g.farmer or g.staff %}
     <div class="account">
       {% set who = g.farmer or g.staff %}
-      {{ avatar(who.name, 'wheat' if g.staff else '') }}
+      <span class="acc-id">{{ reg_no(g.farmer.id) if g.farmer else g.staff.staff_code }}</span>
       <span class="acc-name">{{ who.name }}<small>{{ t("Farmer") if g.farmer else (g.staff.centre_name or 'District supervisor') }}</small></span>
       <a class="iconbtn" href="{{ url_for('logout') if g.farmer else url_for('admin_logout') }}" title="{{ t('Sign out') }}">{{ icon('log-out') }}<span class="sr">{{ t("Sign out") }}</span></a>
     </div>
@@ -100,7 +99,9 @@
     <span class="side-label">Money and records</span>
     <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if request.endpoint == 'admin_transactions' }}">{{ icon('receipt') }}Transactions</a>
     <a href="{{ url_for('admin_flags') }}" class="{{ 'active' if request.endpoint == 'admin_flags' }}">{{ icon('flag') }}Data flags</a>
+    {% if g.staff.role != 'superadmin' %}
     <a href="{{ url_for('admin_storage_risk') }}" class="{{ 'active' if request.endpoint == 'admin_storage_risk' }}">{{ icon('cloud-rain') }}Storage risk</a>
+    {% endif %}
     <span class="side-label">Farmers</span>
     <a href="{{ url_for('admin_farmers') }}" class="{{ 'active' if request.endpoint in ('admin_farmers','admin_farmer') }}">{{ icon('users') }}All farmers</a>
     <a href="{{ url_for('admin_register_farmer') }}" class="{{ 'active' if request.endpoint == 'admin_register_farmer' }}">{{ icon('user-plus') }}Register farmer</a>
@@ -168,9 +169,8 @@
     </div>
 
     <div class="photo-credit">
-      Photographs from Wikimedia Commons &mdash; CIAT (CC BY-SA 2.0);
-      Nanditha Gogate, WELL Labs (CC BY-SA 4.0);
-      &#2439;&#2486;&#2494;&#2472; &#2460;&#2509;&#2479;&#2507;&#2468;&#2495; &#2476;&#2480;&#2494; (CC BY-SA 4.0).
+      Photographs from Wikimedia Commons, all CC BY-SA 4.0 &mdash; Digvijaysjanoti (paddy nurseries, Uttarakhand);
+      RaviVerma2018 (Purvi Rudrapur Kisan Seva Sahkari Samiti, Bagwara). Full details in static/img/credits.json.
     </div>
 
     <div class="foot-bottom">

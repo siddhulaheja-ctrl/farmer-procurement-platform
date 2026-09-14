@@ -1,37 +1,34 @@
+{# Colour only for what needs someone to act. Normal progress - booked,
+   completed, paid - is plain text, so the failed payment or the high risk
+   row is the thing that stands out when you run your eye down a table. #}
 {% macro status_badge(s) -%}
-  {% if s == 'booked' %}<span class="badge blue">{{ t("Booked") }}</span>
-  {% elif s == 'arrived' %}<span class="badge amber">{{ t("Arrived") }}</span>
-  {% elif s == 'completed' %}<span class="badge green">{{ t("Completed") }}</span>
-  {% elif s == 'cancelled' %}<span class="badge grey">{{ t("Cancelled") }}</span>
-  {% else %}<span class="badge grey">{{ s }}</span>{% endif %}
+  {% if s == 'booked' %}<span class="state">{{ t("Booked") }}</span>
+  {% elif s == 'arrived' %}<span class="state">{{ t("Arrived") }}</span>
+  {% elif s == 'completed' %}<span class="state">{{ t("Completed") }}</span>
+  {% elif s == 'cancelled' %}<span class="state off">{{ t("Cancelled") }}</span>
+  {% else %}<span class="state">{{ s }}</span>{% endif %}
 {%- endmacro %}
 
 {% macro payment_badge(s) -%}
-  {% if s == 'completed' %}<span class="badge green">{{ t("Paid") }}</span>
-  {% elif s == 'processing' %}<span class="badge blue">{{ t("Processing") }}</span>
-  {% elif s == 'pending' %}<span class="badge amber">{{ t("Pending") }}</span>
+  {% if s == 'completed' %}<span class="state">{{ t("Paid") }}</span>
+  {% elif s == 'processing' %}<span class="state">{{ t("Processing") }}</span>
+  {% elif s == 'pending' %}<span class="state">{{ t("Pending") }}</span>
   {% elif s == 'failed' %}<span class="badge red">{{ t("Failed") }}</span>
-  {% else %}<span class="badge grey plain">&mdash;</span>{% endif %}
+  {% else %}<span class="state off">&mdash;</span>{% endif %}
 {%- endmacro %}
 
 {% macro risk_badge(r) -%}
   {% if r == 'high' %}<span class="badge red">{{ t("High risk") }}</span>
-  {% elif r == 'low' %}<span class="badge amber">{{ t("Low risk") }}</span>
-  {% else %}<span class="badge grey">{{ t("None") }}</span>{% endif %}
+  {% elif r == 'low' %}<span class="state warn">{{ t("Low risk") }}</span>
+  {% else %}<span class="state off">{{ t("None") }}</span>{% endif %}
 {%- endmacro %}
 
 {% macro grade_badge(g) -%}
-  {% if g == 'A' %}<span class="badge green">{{ t("Grade A") }}</span>
-  {% elif g == 'FAQ' %}<span class="badge green">{{ t("FAQ") }}</span>
+  {% if g == 'A' %}<span class="state">{{ t("Grade A") }}</span>
+  {% elif g == 'FAQ' %}<span class="state">{{ t("FAQ") }}</span>
   {% elif g == 'B' %}<span class="badge amber">{{ t("Grade B") }}</span>
   {% elif g == 'Rejected' %}<span class="badge red">{{ t("Rejected") }}</span>
-  {% else %}<span class="badge grey plain">&mdash;</span>{% endif %}
-{%- endmacro %}
-
-{# initials in a circle. two letters is enough to tell six farmers apart #}
-{% macro avatar(name, cls='') -%}
-  {%- set parts = (name or '?').split() -%}
-  <span class="avatar {{ cls }}" aria-hidden="true">{{ (parts[0][:1] ~ (parts[-1][:1] if parts|length > 1 else ''))|upper }}</span>
+  {% else %}<span class="state off">&mdash;</span>{% endif %}
 {%- endmacro %}
 
 {# a crop's own little drawing, so wheat can be told from paddy without reading #}

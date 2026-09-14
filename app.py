@@ -116,6 +116,20 @@ def icon(name, cls=""):
                   % (escape(cls), url_for("static", filename="img/icons.svg"), escape(name)))
 
 
+DISTRICT_CODES = {"Udham Singh Nagar": "USN", "Haridwar": "HRD", "Dehradun": "DDN", "Nainital": "NTL"}
+
+
+def reg_no(farmer_id):
+    """UK/USN/00013 - state, district, serial. What a register at the counter
+    would call a farmer, in place of initials in a circle. District lookups are
+    loaded once per request."""
+    if not farmer_id:
+        return ""
+    if "farmer_districts" not in g:
+        g.farmer_districts = {r["id"]: r["district"] for r in query("SELECT id, district FROM farmers")}
+    code = DISTRICT_CODES.get(g.farmer_districts.get(farmer_id), "UK")
+    return "UK/%s/%05d" % (code, farmer_id)
+
 # App factory
 
 def create_app():
@@ -126,6 +140,7 @@ def create_app():
     app.jinja_env.globals["t"] = t
     app.jinja_env.globals["lang"] = get_lang
     app.jinja_env.globals["icon"] = icon
+    app.jinja_env.globals["reg_no"] = reg_no
     register_routes(app)
     register_filters(app)
     return app
@@ -180,7 +195,8 @@ def register_filters(app):
             if head:
                 parts.insert(0, head)
             whole = ",".join(parts) + "," + tail
-        return ("-" if neg else "") + "₹" + whole + "." + dec
+        # whole rupees read as whole rupees - paise only when there are some
+        return ("-" if neg else "") + "₹" + whole + ("" if dec == "00" else "." + dec)
 
     @app.template_filter("mask")
     def mask(value, keep=4):
@@ -300,11 +316,22 @@ def register_routes(app):
         districts = _districts()
         picked = request.args.get("district", "")
         forecast = place = source = None
+        outlook = []
         if picked in districts:
             forecast, source, point = weather.get_forecast(picked, 5)
             place = point["place"] if point else picked
-        return render_template("home.html", msp=core.MSP, districts=districts, picked=picked,
-                               forecast=forecast, place=place, source=source)
+        else:
+            # nothing picked yet: every district at a glance instead of an empty box
+            for d in districts:
+                days, src, point = weather.get_forecast(d, 3)
+                if not days:
+                    continue
+                outlook.append({"district": d, "place": point["place"] if point else d, "source": src,
+                                "today": days[0], "rain_3d": round(sum(x["rain_mm"] for x in days), 1),
+                                "wet_days": sum(1 for x in days if x["rain_mm"] > 0.5)})
+            source = "live" if outlook and all(o["source"] == "live" for o in outlook) else ("mock" if outlook else None)
+        return render_template("home.html", msp=core.MSP, msp_prev=core.MSP_PREVIOUS, districts=districts, picked=picked,
+                               forecast=forecast, place=place, source=source, outlook=outlook)
 
     @app.route("/t/<token>")
     def token_lookup(token):
@@ -1070,6 +1097,11 @@ def register_routes(app):
     @app.route("/admin/storage-risk")
     @staff_required
     def admin_storage_risk():
+        # offering an earlier slot is done at the centre, by the people who
+        # know which slots they can open. the supervisor does not work this list
+        if g.staff["role"] == "superadmin":
+            flash("Storage risk is handled by centre staff.", "info")
+            return redirect(url_for("super_overview"))
         rows = query(
             "SELECT b.*, s.date, s.time_window, s.centre_id, s.max_capacity, s.booked_count,"
             " c.name AS centre_name, c.location, c.district AS centre_district,"

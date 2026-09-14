@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_macros.html" import avatar %}
 {% block title %}Registered Farmers{% endblock %}
 
 {% block content %}
@@ -14,7 +13,7 @@
 
 <form method="get" class="filter-bar">
   <div class="field grow">
-    <label for="q">{{ icon('search') }} Search by name, mobile or village</label>
+    <label for="q">Search by name, mobile or village</label>
     <input type="text" id="q" name="q" value="{{ q }}">
   </div>
   <div class="actions">
@@ -24,7 +23,7 @@
 </form>
 
 <div class="card">
-  <div class="card-head"><h2 class="card-title">{{ icon('users') }}Records <span class="count">{{ farmers|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">Records <span class="count">{{ farmers|length }}</span></h2></div>
   {% if farmers %}
   <div class="table-scroll">
     <table class="data">
@@ -37,10 +36,9 @@
         <tr>
           <td>
             <div class="who">
-              {{ avatar(f.name, 'sm') }}
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=f.id) }}">{{ f.name }}</a>
-                <span class="sub-line mono">{{ f.phone_number }}</span>
+                <span class="sub-line"><span class="mono">{{ reg_no(f.id) }}</span> &middot; {{ f.phone_number }}</span>
               </div>
             </div>
           </td>

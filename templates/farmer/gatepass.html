@@ -8,46 +8,86 @@
   <a href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ b.token_no }}</a>{{ icon('chevron-right') }}<span>{{ t("Gate pass") }}</span>
 </nav>
 
+{# Laid out like the printed forms at a mandi gate: a form number and serial,
+   particulars in ruled boxes, blanks the weighbridge clerk fills in by hand,
+   and an office copy the farmer tears off and leaves at the counter. #}
 <div class="gatepass">
-  <div class="gp-head">
-    <img class="gp-crest" src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="52" height="52" alt="">
-    <div>
-      <div class="s">{{ t("GOVERNMENT PROCUREMENT CENTRE") }}</div>
+  <header class="gp-head">
+    <img class="gp-crest" src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="48" height="48" alt="">
+    <div class="gp-title">
+      <div class="gp-org">{{ t("Government procurement centre") }} &middot; {{ t(b.centre_name) }}</div>
       <h2>{{ t("Electronic Gate Pass") }}</h2>
-      <div class="s">{{ t(b.centre_name) }}</div>
     </div>
-  </div>
+    <div class="gp-ref">
+      <div>{{ t("Form") }} KS-GP-1</div>
+      <div>{{ t("Serial no.") }} <b>{{ '%06d'|format(b.id) }}</b></div>
+      <div class="gp-copy">{{ t("Farmer copy") }}</div>
+    </div>
+  </header>
 
-  <div class="gp-token">
-    <div>
-      <div class="c">{{ t("Token number") }}</div>
+  <section class="gp-main">
+    <div class="gp-token">
+      <div class="k">{{ t("Token number") }}</div>
       <div class="t">{{ b.token_no }}</div>
-      <div class="gp-when">{{ icon('calendar') }}{{ b.date|nicedate }} &middot; {{ b.time_window }}</div>
+      <div class="gp-when">{{ b.date|nicedate }} ({{ b.date|dayname }}) &middot; {{ b.time_window }}</div>
     </div>
-    {# the clerk scans this to open the record. the token beside it is still
-       what identifies you, so read it out if the scan won't work #}
+    {# the clerk scans this to open the booking. the token beside it is still
+       what identifies the farmer, so it gets read out if the code will not scan #}
     <div class="qr-box">
       {{ qr_svg|safe }}
-      <div class="c tiny">{{ t("For centre staff") }}</div>
+      <div class="k">{{ t("For centre staff") }}</div>
     </div>
-  </div>
+  </section>
 
-  <div class="gp-body">
-    <dl class="kv">
-      <dt>{{ icon('user') }}{{ t("Farmer") }}</dt><dd>{{ farmer.name }}</dd>
-      <dt>{{ icon('phone') }}{{ t("Mobile") }}</dt><dd>{{ farmer.phone_number }}</dd>
-      <dt>{{ icon('map-pin') }}{{ t("Village / district") }}</dt><dd>{{ t(farmer.village) }}, {{ t(farmer.district) }}</dd>
-      <dt>{{ icon('file-text') }}{{ t("Land record ID") }}</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
-      <dt>{{ t("Crop declared") }}</dt><dd>{{ crop_name(b.crop_type) }}</dd>
-      <dt>{{ icon('package') }}{{ t("Estimated quantity") }}</dt><dd>{{ '%.1f'|format(b.estimated_quantity) }} {{ t("quintals") }}</dd>
-      <dt>{{ icon('building') }}{{ t("Centre address") }}</dt><dd>{{ t(b.location) }}, {{ t(b.centre_district) }}</dd>
-    </dl>
-  </div>
+  <table class="gp-form">
+    <caption>{{ t("Particulars") }}</caption>
+    <tbody>
+      <tr><th>{{ t("Farmer") }}</th><td>{{ farmer.name }}</td>
+          <th>{{ t("Registration no.") }}</th><td class="mono">{{ reg_no(farmer.id) }}</td></tr>
+      <tr><th>{{ t("Mobile") }}</th><td class="mono">{{ farmer.phone_number }}</td>
+          <th>{{ t("Village / district") }}</th><td>{{ t(farmer.village) }}, {{ t(farmer.district) }}</td></tr>
+      <tr><th>{{ t("Land record ID") }}</th><td class="mono">{{ farmer.land_record_id or '—' }}</td>
+          <th>{{ t("Crop declared") }}</th><td>{{ crop_name(b.crop_type) }}</td></tr>
+      <tr><th>{{ t("Estimated quantity") }}</th><td>{{ '%.1f'|format(b.estimated_quantity) }} {{ t("quintals") }}</td>
+          <th>{{ t("Centre address") }}</th><td>{{ t(b.location) }}, {{ t(b.centre_district) }}</td></tr>
+    </tbody>
+  </table>
 
-  <div class="gp-foot">
+  <table class="gp-form gp-fill">
+    <caption>{{ t("To be filled at the weighbridge") }}</caption>
+    <tbody>
+      <tr><th>{{ t("Weighed quantity (quintals)") }}</th><td></td>
+          <th>{{ t("Quality grade") }}</th><td></td></tr>
+      <tr class="gp-sign"><th>{{ t("Weighbridge clerk") }}</th><td></td>
+          <th>{{ t("Centre stamp") }}</th><td></td></tr>
+    </tbody>
+  </table>
+
+  <p class="gp-note">
     {{ t("Show this pass with your Aadhaar card and bank passbook.") }}
     {{ t("Issued") }} {{ issued.strftime('%d %b %Y, %H:%M') }}.
-  </div>
+  </p>
+
+  <div class="gp-tear" aria-hidden="true"><span>{{ t("Cut along this line. The office copy stays at the centre.") }}</span></div>
+
+  <section class="gp-stub">
+    <div class="gp-stub-head">
+      <b>{{ t("Office copy") }}</b>
+      <span>{{ t("Form") }} KS-GP-1 &middot; {{ t("Serial no.") }} {{ '%06d'|format(b.id) }}</span>
+    </div>
+    <table class="gp-form">
+      <tbody>
+        <tr><th>{{ t("Token number") }}</th><td class="mono"><b>{{ b.token_no }}</b></td>
+            <th>{{ t("Registration no.") }}</th><td class="mono">{{ reg_no(farmer.id) }}</td></tr>
+        <tr><th>{{ t("Farmer") }}</th><td>{{ farmer.name }}</td>
+            <th>{{ t("Slot") }}</th><td>{{ b.date|nicedate }}, {{ b.time_window }}</td></tr>
+        <tr><th>{{ t("Crop declared") }}</th><td>{{ t(b.crop_type) }}, {{ '%.1f'|format(b.estimated_quantity) }} {{ t("quintals") }}</td>
+            <th>{{ t("Weighed quantity (quintals)") }}</th><td></td></tr>
+        <tr class="gp-sign"><th>{{ t("Farmer signature or thumb impression") }}</th><td></td>
+            <th>{{ t("Weighbridge clerk") }}</th><td></td></tr>
+      </tbody>
+    </table>
+  </section>
 </div>
 
 <div class="btn-row center no-print mt">
