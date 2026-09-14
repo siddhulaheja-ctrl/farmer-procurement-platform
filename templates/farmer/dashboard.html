@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, track, datetile, crop, alert_ic, alert_label, alert_msg, flag_list %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, track, datetile, crop, alert_ic, alert_label, alert_msg, flag_list, voice_banner %}
 {% block title %}{{ t("Dashboard") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
@@ -14,6 +14,8 @@
   </div>
   <a class="btn wheat large" href="{{ url_for('farmer_centres') }}">{{ icon('calendar-plus') }}{{ t("Book a new slot") }}</a>
 </section>
+
+{{ voice_banner() }}
 
 {% if flags %}
 <div class="notice error">

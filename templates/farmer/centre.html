@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import crop, datetile %}
+{% from "_macros.html" import crop, datetile, forecast_days, hours_table, wx_glyph %}
 {% block title %}{{ t(centre.name) }}{% endblock %}
 
 {% block content %}
@@ -25,48 +25,12 @@
       action="{{ url_for('farmer_reschedule', booking_id=reschedule_id) if reschedule_id else url_for('farmer_book') }}">
   <input type="hidden" name="back" value="{{ request.full_path }}">
 
-  <div class="card stepcard">
-    <div class="card-head">
-      <h2 class="card-title"><span class="stepnum">1</span>{{ t("Choose a slot") }}</h2>
-    </div>
-    <div class="card-body">
-      {% if by_date %}
-        {% for d, slots in by_date.items() %}
-        <div class="day">
-          {{ datetile(d) }}
-          <div class="day-slots" role="radiogroup" aria-label="{{ d|nicedate }}">
-            {% for s in slots %}
-              {% set free = s.max_capacity - s.booked_count %}
-              {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 100 %}
-              {# capacity only shouts when it is running out #}
-              <label class="slot {{ 'full' if free <= 0 }}">
-                <input type="radio" name="slot_id" value="{{ s.id }}" required {{ 'disabled' if free <= 0 }}>
-                <span class="slot-text">
-                  <span class="tw">{{ s.time_window }}</span>
-                  {% if free <= 0 %}
-                    <span class="cap">{{ t("Fully booked") }}</span>
-                  {% elif pct >= 60 %}
-                    <span class="cap tight">{{ t("Only") }} {{ free }} {{ t("left") }}</span>
-                  {% endif %}
-                </span>
-                {% if free > 0 and pct >= 60 %}
-                  <span class="capbar"><span class="{{ 'hi' if pct >= 90 else 'mid' }}" style="width: {{ pct }}%"></span></span>
-                {% endif %}
-              </label>
-            {% endfor %}
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div class="empty">{{ t("No slots have been published for this centre yet.") }}</div>
-      {% endif %}
-    </div>
-  </div>
-
+  {# crop and quantity first: they are short, and a farmer knows them before
+     scrolling through two weeks of slots #}
   {% if not reschedule_id %}
   <div class="card stepcard">
     <div class="card-head">
-      <h2 class="card-title"><span class="stepnum">2</span>{{ t("What are you bringing?") }}</h2>
+      <h2 class="card-title"><span class="stepnum">1</span>{{ t("What are you bringing?") }}</h2>
     </div>
     <div class="card-body">
       <div class="field-row two">
@@ -86,6 +50,82 @@
   </div>
   {% endif %}
 
+  {% if wx_forecast %}
+  <section class="card centre-weather" id="centre-weather">
+    <div class="card-head">
+      <h2 class="card-title">{{ icon('cloud-sun') }}{{ t("Weather at %s")|format(t(wx_place)) }}</h2>
+      {% if wx_source == 'live' %}<span class="badge green">{{ t("Live forecast") }}</span>
+      {% else %}<span class="state off">{{ t("Simulated forecast") }}</span>{% endif %}
+    </div>
+    <div class="card-body">
+      {{ forecast_days(wx_forecast, current=wx_forecast[0].date, pick=True) }}
+      <p class="small muted cw-hint" data-js hidden>{{ t("Tap a day to see it hour by hour, or choose a slot below.") }}</p>
+      {# today's hours show without script too; the other days wait for a tap #}
+      {% for d in wx_forecast %}
+      <div class="cw-day" data-day="{{ d.date }}" data-js{{ '' if loop.first else ' hidden' }}>
+        <h3 class="cw-day-title">{{ d.date|dayname }}, {{ d.date|nicedate }} &middot; {{ t("Hour by hour") }}</h3>
+        {% if wx_hours[d.date] %}{{ hours_table(wx_hours[d.date]) }}
+        {% else %}<div class="empty">{{ t("No hourly readings left for this day.") }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="card stepcard">
+    <div class="card-head">
+      <h2 class="card-title"><span class="stepnum">{{ '1' if reschedule_id else '2' }}</span>{{ t("Choose a slot") }}</h2>
+    </div>
+    <div class="card-body">
+      {% if by_date %}
+        {% for d, slots in by_date.items() %}
+        <div class="day">
+          {{ datetile(d) }}
+          <div class="day-slots" role="radiogroup" aria-label="{{ d|nicedate }}">
+            {% for s in slots %}
+              {% set free = s.max_capacity - s.booked_count %}
+              {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 100 %}
+              {# capacity only shouts when it is running out #}
+              <label class="slot {{ 'full' if free <= 0 }}">
+                <input type="radio" name="slot_id" value="{{ s.id }}" required {{ 'disabled' if free <= 0 }}
+                       data-date="{{ d }}" data-start="{{ s.time_window[:2]|int }}" data-end="{{ s.time_window[-5:-3]|int }}"
+                       data-window="{{ s.time_window }}">
+                <span class="slot-text">
+                  <span class="tw">{{ s.time_window }}</span>
+                  {% if free <= 0 %}
+                    <span class="cap">{{ t("Fully booked") }}</span>
+                  {% elif pct >= 60 %}
+                    <span class="cap tight">{{ t("Only") }} {{ free }} {{ t("left") }}</span>
+                  {% endif %}
+                </span>
+                {% if free > 0 and pct >= 60 %}
+                  <span class="capbar"><span class="{{ 'hi' if pct >= 90 else 'mid' }}" style="width: {{ pct }}%"></span></span>
+                {% endif %}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        {# opened by centre.js when a slot on this day is chosen #}
+        <div class="slot-weather" data-day="{{ d }}" data-js hidden>
+          {% set fd = wx_by_date.get(d) %}
+          {% if fd %}
+          <p class="sw-sum">{{ wx_glyph(fd) }}<span><strong>{{ t("Weather on this day") }}:</strong>
+            {{ t((fd.description or '')|lower) }} &middot; {{ fd.rain_mm }} mm {{ t("rain") }} &middot; {{ t("humidity") }} {{ fd.humidity }}%</span></p>
+          <p class="sw-slot" data-js hidden><strong>{{ t("During your slot") }} <span data-window></span>:</strong>
+            <span data-slot-summary data-chance="{{ t('Chance of rain')|lower }}"></span></p>
+          <div class="notice warning small sw-wet" data-js hidden><p>{{ t("Rain is likely during your slot. Keep your produce covered on the way.") }}</p></div>
+          {% if wx_hours.get(d) %}{{ hours_table(wx_hours[d]) }}{% endif %}
+          {% else %}
+          <p class="sw-sum sw-far">{{ icon('cloud') }}<span>{{ t("The forecast only goes five days ahead. Check again closer to this date.") }}</span></p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">{{ t("No slots have been published for this centre yet.") }}</div>
+      {% endif %}
+    </div>
+  </div>
+
   <div class="actionbar">
     <span class="ab-text">{{ icon('info') }}{{ t("One slot per day, up to three active bookings.") }}</span>
     <div class="btn-row">
@@ -94,4 +134,8 @@
     </div>
   </div>
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/centre.js') }}"></script>
 {% endblock %}

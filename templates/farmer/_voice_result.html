@@ -1,0 +1,133 @@
+{# one step of the spoken booking conversation. part of the voice page, and
+   sent back as html after every turn so the page never reloads - a reload
+   would stop the browser from speaking the next question #}
+{% from "_macros.html" import crop_name %}
+
+{# the words a field was read from, so the farmer can see why we think it #}
+{% macro heard(p, field) -%}
+  {%- if p.heard.get(field) %}<span class="heard">{{ t("heard") }}: &ldquo;{{ p.heard[field] }}&rdquo;</span>{% endif -%}
+{%- endmacro %}
+
+{% set p = step.parsed %}
+{% set r = step.proposal %}
+
+<div class="voice-say" data-say="{{ step.say }}" data-slot="{{ step.slot_id or '' }}">
+  <p class="voice-said">{{ step.say }}</p>
+  <button type="button" class="btn secondary" data-replay data-js hidden>{{ icon('volume') }}{{ t("Hear it again") }}</button>
+  {% if step.directions %}
+  {# opens the maps app on a phone, from wherever the farmer is standing #}
+  <a class="btn secondary" href="{{ step.directions }}" target="_blank" rel="noopener">{{ icon('navigation') }}{{ t("Directions") }}</a>
+  {% endif %}
+</div>
+
+{% if step.stage == 'booked' %}
+<div class="notice success">
+  <h3>{{ t("Token number") }}: <span class="mono">{{ step.token }}</span></h3>
+  <a class="btn" href="{{ step.url }}">{{ t("Open my booking") }}</a>
+</div>
+{% elif p and p.heard and step.stage != 'cancelled' %}
+
+  {% if r and r.slot %}
+    {% if step.stage == 'confirm' %}
+    <div class="voice-answer" data-js hidden>
+      <button type="button" class="btn yes-btn" data-decision="yes">{{ icon('check') }}{{ t("Yes, book it") }}</button>
+      <button type="button" class="btn no-btn" data-decision="no">{{ icon('x') }}{{ t("No") }}</button>
+    </div>
+    {% elif step.stage == 'ask_crop' %}
+    <div class="voice-crops" data-js hidden>
+      {% for c in r.accepted %}<button type="button" class="btn secondary" data-answer="{{ c }}">{{ crop_name(c) }}</button>{% endfor %}
+    </div>
+    {% elif step.stage == 'ask_quantity' %}
+    <div class="voice-qty" data-js hidden>
+      <div class="field">
+        <label for="voice-quantity">{{ t("Estimated quantity (quintals)") }}</label>
+        <input type="number" id="voice-quantity" min="0.1" max="500" step="0.1" inputmode="decimal">
+      </div>
+      <button type="button" class="btn large" data-quantity-done>{{ icon('check') }}{{ t("Done") }}</button>
+    </div>
+    {% endif %}
+  {% endif %}
+
+<div class="grid side mt">
+  <div class="card">
+    <div class="card-head">
+      <h2 class="card-title">{{ t("What we understood") }}</h2>
+      {# which path read the sentence: the AI, or the word list when it couldn't #}
+      {% if p.source == 'ai' %}<span class="badge blue">{{ t("Understood by AI") }}</span>
+      {% else %}<span class="state off">{{ t("Understood offline") }}</span>{% endif %}
+    </div>
+    <div class="table-scroll">
+      <table class="data understood">
+        <tbody>
+          <tr><th>{{ t("Centre") }}</th>
+              <td>{% if p.centre %}{{ t(p.centre) }}{% elif p.district %}{{ t("Any centre in %s")|format(t(p.district)) }}{% else %}<span class="muted">{{ t("Not said. Looking in your district.") }}</span>{% endif %}
+                  {{ heard(p, 'centre') }}</td></tr>
+          <tr><th>{{ t("Day") }}</th>
+              <td>{% if p.day and p.day_kind == 'after' %}{{ t("From %s")|format(p.day|nicedate) }}
+                  {% elif p.day %}{{ p.day|dayname }}, {{ p.day|nicedate }}
+                  {% elif p.date_unclear %}<span class="hl-bad">{{ t("Could not work out that date.") }}</span>
+                  {% else %}<span class="muted">{{ t("Not said. Earliest free day.") }}</span>{% endif %}
+                  {{ heard(p, 'day') }}</td></tr>
+          <tr><th>{{ t("Time") }}</th>
+              <td>{% if p.hours %}{% for h in p.hours %}{{ window_label(h) }}{{ ', ' if not loop.last }}{% endfor %}
+                  {% elif p.out_of_hours %}<span class="hl-bad">{{ t("Centres weigh between 08:00 and 16:00.") }}</span>
+                  {% else %}<span class="muted">{{ t("Not said. Any time.") }}</span>{% endif %}
+                  {{ heard(p, 'time') }}</td></tr>
+          <tr><th>{{ t("Crop") }}</th>
+              <td>{% if p.crop %}{{ crop_name(p.crop) }}{% else %}<span class="muted">{{ t("Not said. Choose below.") }}</span>{% endif %}
+                  {{ heard(p, 'crop') }}</td></tr>
+          <tr><th>{{ t("Quantity") }}</th>
+              <td>{% if p.quantity %}{{ '%g'|format(p.quantity) }} {{ t("quintals") }}{% else %}<span class="muted">{{ t("Not said. Enter it below.") }}</span>{% endif %}
+                  {{ heard(p, 'quantity') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if r and r.slot %}
+  {% set s = r.slot %}
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">{{ t("Suggested slot") }}</h2></div>
+    <div class="card-body">
+      {% if 'already_booked_that_day' in r.notes %}
+      <div class="notice warning small"><p>{{ t("You already have a booking that day, so this is another day.") }}</p></div>
+      {% elif 'other_day' in r.notes %}
+      <div class="notice warning small"><p>{{ t("Nothing was free on the day you asked. This is the nearest free day.") }}</p></div>
+      {% elif 'other_time' in r.notes %}
+      <div class="notice warning small"><p>{{ t("That time was full. This is another time on the same day.") }}</p></div>
+      {% endif %}
+
+      {# the same booking by hand: for typing, for browsers without script,
+         and to fix a misheard crop or number before confirming #}
+      <form method="post" action="{{ url_for('farmer_book') }}">
+        <input type="hidden" name="slot_id" value="{{ s.id }}">
+        <input type="hidden" name="back" value="{{ url_for('farmer_voice') }}">
+        <dl class="voice-slot">
+          <div><dt>{{ t("Procurement centre") }}</dt>
+               <dd><strong>{{ t(s.centre_name) }}</strong><span class="muted">{{ t(s.location) }}, {{ t(s.centre_district) }}</span></dd></div>
+          <div><dt>{{ t("Date") }}</dt><dd><strong>{{ s.date|dayname }}, {{ s.date|nicedate }}</strong></dd></div>
+          <div><dt>{{ t("Reporting time") }}</dt><dd><strong>{{ s.time_window }}</strong></dd></div>
+        </dl>
+        <div class="field">
+          <label for="crop_type">{{ t("Crop") }}</label>
+          <select id="crop_type" name="crop_type" required>
+            {% if not p.crop %}<option value="">{{ t("Select") }}</option>{% endif %}
+            {% for c in r.accepted %}<option value="{{ c }}" {{ 'selected' if p.crop == c }}>{{ t(c) }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="estimated_quantity">{{ t("Estimated quantity (quintals)") }}</label>
+          <input type="number" id="estimated_quantity" name="estimated_quantity" min="0.1" max="500" step="0.1" required
+                 value="{{ '%g'|format(p.quantity) if p.quantity }}">
+        </div>
+        <p class="small muted">{{ t("Nothing is booked until you press Confirm booking.") }}</p>
+        <div class="btn-row">
+          <a class="btn secondary" href="{{ url_for('farmer_centre', centre_id=s.centre_id) }}">{{ t("Choose another slot") }}</a>
+          <button class="btn wheat" type="submit">{{ icon('check') }}{{ t("Confirm booking") }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}

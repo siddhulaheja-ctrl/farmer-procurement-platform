@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import forecast_days, crop_name %}
+{% from "_macros.html" import forecast_days, crop_name, hours_table %}
 {% block title %}{{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
@@ -84,7 +84,22 @@
             <span class="badge grey">{{ t("Simulated forecast") }}</span>
           {% endif %}
         </div>
-        {{ forecast_days(forecast) }}
+        {{ forecast_days(forecast, district=picked, current=day) }}
+
+        {% if day %}
+        <div class="day-detail" id="day-detail">
+          <div class="wx-head">
+            <h3 class="card-title">{{ day|dayname }}, {{ day|nicedate }} &middot; {{ t("Hour by hour") }}</h3>
+            <a class="btn small secondary" href="{{ url_for('home', district=picked) }}#weather">{{ icon('x') }}{{ t("Close") }}</a>
+          </div>
+          {% if hours %}
+          {{ hours_table(hours) }}
+          <p class="small muted wx-note">{{ t("Readings are for three-hour steps, in local time.") }}</p>
+          {% else %}
+          <div class="empty">{{ t("No hourly readings left for this day.") }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
       {% elif picked %}
         <div class="empty">{{ t("No forecast available for that district right now.") }}</div>
       {% else %}
@@ -164,4 +179,45 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* #weather and #day-detail: the browser puts the target at the very top,
+   where the sticky header covers its first lines. put it in the middle of
+   what can be seen instead, or just under the header if it's too tall */
+(function () {
+    var TARGETS = { '#weather': 'weather', '#day-detail': 'day-detail' };
+
+    function centre(hash) {
+        var el = document.getElementById(TARGETS[hash]);
+        if (!el) { return; }
+        var header = document.querySelector('.topbar');
+        var covered = header ? header.offsetHeight : 0;
+        var box = el.getBoundingClientRect();
+        var room = window.innerHeight - covered;
+        var gap = box.height < room ? (room - box.height) / 2 : 12;
+        window.scrollTo(0, Math.max(0, window.pageYOffset + box.top - covered - gap));
+    }
+
+    if (TARGETS[location.hash]) {
+        // again on load, once the photos above have taken their height
+        document.addEventListener('DOMContentLoaded', function () { centre(location.hash); });
+        window.addEventListener('load', function () { centre(location.hash); });
+    }
+    window.addEventListener('hashchange', function () { centre(location.hash); });
+
+    // the Weather link while already on this page, when the hash doesn't change
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest ? e.target.closest('a[href]') : null;
+        if (!link) { return; }
+        var url = new URL(link.href, location.href);
+        if (url.pathname === location.pathname && url.search === location.search && TARGETS[url.hash]) {
+            e.preventDefault();
+            history.replaceState(null, '', url.hash);
+            centre(url.hash);
+        }
+    });
+})();
+</script>
 {% endblock %}

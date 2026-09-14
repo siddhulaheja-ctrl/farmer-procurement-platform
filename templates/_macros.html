@@ -65,36 +65,112 @@
   {%- else -%}{{ icon('sun') }}{%- endif -%}
 {%- endmacro %}
 
-{% macro forecast_days(forecast) -%}
+{# the way into booking by voice, big and plain: many farmers will never type #}
+{% macro voice_banner() -%}
+<a class="voice-banner" href="{{ url_for('farmer_voice') }}">
+  <span class="vb-mic">{{ icon('mic') }}</span>
+  <span class="vb-text">
+    <strong>{{ t("Book by speaking") }}</strong>
+    <span>{{ t("Tap here and say the centre, day, crop and quantity. No typing needed.") }}</span>
+  </span>
+  <span class="vb-go">{{ icon('arrow-right') }}</span>
+</a>
+{%- endmacro %}
+
+{# with a district, each day is a link to that day hour by hour on the home page.
+   with pick, each day is a button that shows its hours on the same page (centre.js) #}
+{% macro forecast_days(forecast, district=None, current=None, pick=False) -%}
 <div class="forecast">
   {% for d in forecast %}
-  <div class="wx {{ 'wet' if d.rain_mm > 0.5 }}">
+  {%- set tag = 'a' if district else 'div' %}
+  <{{ tag }} class="wx {{ 'wet' if d.rain_mm > 0.5 }} {{ 'on' if current == d.date }}"
+    {%- if district %} href="{{ url_for('home', district=district, day=d.date) }}#day-detail"{% if current == d.date %} aria-current="true"{% endif %}
+    {%- elif pick %} role="button" tabindex="0" data-pick-day="{{ d.date }}" aria-pressed="{{ 'true' if current == d.date else 'false' }}"{% endif %}>
     <div class="day">{{ d.date|dayname }}</div>
     <div class="date">{{ d.date|nicedate }}</div>
     <div class="glyph">{{ wx_glyph(d) }}</div>
     <div class="rain">{{ d.rain_mm }}<small> mm</small></div>
     <div class="desc">{{ t((d.description or '')|lower) }}</div>
     <div class="hum">{{ icon('droplet') }}<span class="meter"><span style="width: {{ d.humidity }}%"></span></span>{{ d.humidity }}%</div>
-  </div>
+    {% if district or pick %}<div class="more">{{ t("Hour by hour") }}</div>{% endif %}
+  </{{ tag }}>
   {% endfor %}
+</div>
+{%- endmacro %}
+
+{# one day, three-hourly. each row carries its hour, temperature, chance of rain
+   and rain, so the slot picker can pick out the readings around a chosen time #}
+{% macro hours_table(hours) -%}
+<div class="table-scroll">
+  <table class="data wx-hours">
+    <thead><tr><th>{{ t("Time") }}</th><th>{{ t("Sky") }}</th><th class="num">{{ t("Temperature") }}</th>
+               <th class="num">{{ t("Chance of rain") }}</th><th class="num">{{ t("Rain") }}</th>
+               <th class="num">{{ t("Humidity") }}</th><th class="num">{{ t("Wind") }}</th></tr></thead>
+    <tbody>
+      {% for h in hours %}
+      <tr class="{{ 'wet' if h.rain_mm > 0.5 }}" data-hour="{{ '%.2f'|format(h.at.hour + h.at.minute / 60) }}"
+          data-temp="{{ h.temp }}" data-chance="{{ h.rain_chance }}" data-rain="{{ '%.1f'|format(h.rain_mm) }}"
+          data-wet="{{ 1 if h.rain_mm > 0.5 or h.rain_chance >= 60 else 0 }}">
+        <td class="nowrap">{{ h.at.strftime('%H:%M') }}</td>
+        <td><span class="wx-sky">{{ wx_glyph(h) }}{{ t((h.description or '')|lower) }}</span></td>
+        <td class="num">{{ h.temp }}&deg;C</td>
+        <td class="num">{{ h.rain_chance }}%</td>
+        <td class="num">{% if h.rain_mm > 0.5 %}<strong>{{ '%.1f'|format(h.rain_mm) }} mm</strong>{% else %}{{ '%.1f'|format(h.rain_mm) }} mm{% endif %}</td>
+        <td class="num">{{ h.humidity }}%</td>
+        <td class="num">{{ h.wind_kmh }} km/h</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {%- endmacro %}
 
 {# where a booking has got to. booked -> weighed -> closed -> paid.
    needs status, payment_status and actual_quantity on the row #}
+{# where the money is. payments.py has the stages #}
+{% macro stage_badge(stage) -%}
+  {% if stage == 'credited' %}<span class="badge green">{{ t("Credited") }}</span>
+  {% elif stage == 'sent' %}<span class="badge blue">{{ t("Sent to bank") }}</span>
+  {% elif stage == 'billed' %}<span class="state">{{ t("Bill ready") }}</span>
+  {% elif stage == 'weighed' %}<span class="state">{{ t("Weighed") }}</span>
+  {% elif stage == 'returned' %}<span class="badge red">{{ t("Returned by bank") }}</span>
+  {% elif stage == 'held' %}<span class="badge red">{{ t("Payment held") }}</span>
+  {% elif stage == 'nil' %}<span class="state off">{{ t("Nothing payable") }}</span>
+  {% else %}<span class="state off">&mdash;</span>{% endif %}
+{%- endmacro %}
+
+{# a payment step as the farmer reads it #}
+{% macro stage_step(stage) -%}
+  {%- set words = {
+      'weighed': "Crop weighed at the centre", 'closed': "Receipt issued", 'billed': "Bill ready for the bank",
+      'sent': "Sent to your bank", 'credited': "Money credited", 'returned': "Returned by the bank",
+      'held': "Payment held", 'nil': "Rejected, nothing to pay"} -%}
+  {{ t(words.get(stage, stage)) }}
+{%- endmacro %}
+
+{% macro stage_icon(stage) -%}
+  {%- if stage == 'credited' -%}<span class="tl-ic green">{{ icon('check') }}</span>
+  {%- elif stage in ('returned', 'held') -%}<span class="tl-ic red">{{ icon('alert-triangle') }}</span>
+  {%- elif stage == 'sent' -%}<span class="tl-ic blue">{{ icon('send') }}</span>
+  {%- elif stage == 'weighed' -%}<span class="tl-ic amber">{{ icon('scale') }}</span>
+  {%- elif stage == 'nil' -%}<span class="tl-ic grey">{{ icon('x-circle') }}</span>
+  {%- else -%}<span class="tl-ic">{{ icon('receipt') }}</span>{%- endif -%}
+{%- endmacro %}
+
 {% macro track(b, compact=False) -%}
   {%- set s = b.status -%}
   {%- set pay = b.payment_status -%}
+  {%- set stage = b.pay_stage -%}
   {%- set weighed = s in ('arrived', 'completed') -%}
   {%- set closed = s == 'completed' -%}
-  {%- set paid = pay == 'completed' -%}
-  {%- set held = pay == 'failed' -%}
+  {%- set paid = stage == 'credited' if stage else pay == 'completed' -%}
+  {%- set held = stage in ('held', 'returned', 'nil') if stage else pay == 'failed' -%}
   <ol class="track {{ 'compact' if compact }}" aria-label="{{ t('Progress') }}">
     <li class="done"><span class="dot">{{ icon('check') }}</span><span class="lbl">{{ t("Slot booked") }}</span></li>
     <li class="{{ 'done' if weighed else 'now' }}"><span class="dot">{{ icon('check' if weighed else 'scale') }}</span><span class="lbl">{{ t("Weighed at centre") }}</span></li>
     <li class="{{ 'done' if closed else ('now' if weighed else '') }}"><span class="dot">{{ icon('check' if closed else 'receipt') }}</span><span class="lbl">{{ t("Transaction closed") }}</span></li>
     {% if held %}
-    <li class="fail"><span class="dot">{{ icon('x') }}</span><span class="lbl">{{ t("Payment held") }}</span></li>
+    <li class="fail"><span class="dot">{{ icon('x') }}</span><span class="lbl">{{ t("Returned by bank") if stage == 'returned' else (t("Nothing payable") if stage == 'nil' else t("Payment held")) }}</span></li>
     {% else %}
     <li class="{{ 'done' if paid else ('now' if closed else '') }}"><span class="dot">{{ icon('check' if paid else 'banknote') }}</span><span class="lbl">{{ t("Money credited") }}</span></li>
     {% endif %}
@@ -122,18 +198,19 @@
   {%- else -%}{{ kind|replace('_', ' ')|capitalize }}{%- endif -%}
 {%- endmacro %}
 
-{# the alert in the farmer's language. hindi comes from message_hi; anything
-   older than that column gets a short hindi line by type, never english #}
+{# the alert in the farmer's language. hindi has the full text in message_hi;
+   other languages, and hindi rows older than that column, get a short line
+   by type, never english #}
 {% macro alert_msg(a) -%}
-  {%- if lang() == 'hi' -%}
-    {%- if a.message_hi -%}{{ a.message_hi }}
-    {%- elif a.alert_type == 'storage_risk' -%}आपके क्षेत्र में बारिश का अनुमान है। उपज ढककर ऊंची जगह रखें।
-    {%- elif a.alert_type == 'data_mismatch' -%}आपकी जानकारी में गड़बड़ी है। "मेरी जानकारी" देखें।
-    {%- elif a.alert_type == 'payment_update' -%}आपके भुगतान की स्थिति बदली है।
-    {%- elif a.alert_type == 'booking_confirmed' -%}आपका स्लॉट बुक हो गया है।
-    {%- elif a.alert_type == 'slot_reminder' -%}आपका स्लॉट बदल गया है।
-    {%- elif a.alert_type == 'voice_call' -%}आपको कॉल किया गया।
-    {%- else -%}नई सूचना।{%- endif -%}
+  {%- if lang() != 'en' -%}
+    {%- if lang() == 'hi' and a.message_hi -%}{{ a.message_hi }}
+    {%- elif a.alert_type == 'storage_risk' -%}{{ t("Rain is expected in your area. Cover your crop and keep it off the ground.") }}
+    {%- elif a.alert_type == 'data_mismatch' -%}{{ t("Something in your details does not match. See My Details.") }}
+    {%- elif a.alert_type == 'payment_update' -%}{{ t("Your payment status has changed.") }}
+    {%- elif a.alert_type == 'booking_confirmed' -%}{{ t("Your slot has been booked.") }}
+    {%- elif a.alert_type == 'slot_reminder' -%}{{ t("Your slot has changed.") }}
+    {%- elif a.alert_type == 'voice_call' -%}{{ t("We called you.") }}
+    {%- else -%}{{ t("New notice.") }}{%- endif -%}
   {#- a call log carries the telephony response for staff. the farmer only
       needs to know we rang -#}
   {%- elif a.alert_type == 'voice_call' -%}{{ a.message.split('. ')[0] }}.
@@ -149,13 +226,13 @@
 {%- endmacro %}
 
 {# what's wrong with a detail. staff get the exact rule that failed; a farmer
-   reading hindi gets one plain sentence #}
+   reading another language gets one plain sentence #}
 {% macro flag_text(fl) -%}
-  {%- if lang() == 'hi' -%}
-    {%- if fl.field_flagged == 'aadhaar' -%}आधार नंबर गलत या अधूरा है।
-    {%- elif fl.field_flagged == 'bank' -%}बैंक खाता नंबर या IFSC गलत है।
-    {%- elif fl.field_flagged == 'name_match' -%}बैंक खाते का नाम आपके नाम से मेल नहीं खाता।
-    {%- elif fl.field_flagged == 'land' -%}भूमि रिकॉर्ड नंबर गलत या अधूरा है।
+  {%- if lang() != 'en' -%}
+    {%- if fl.field_flagged == 'aadhaar' -%}{{ t("The Aadhaar number is wrong or incomplete.") }}
+    {%- elif fl.field_flagged == 'bank' -%}{{ t("The bank account number or IFSC is wrong.") }}
+    {%- elif fl.field_flagged == 'name_match' -%}{{ t("The name on the bank account does not match your name.") }}
+    {%- elif fl.field_flagged == 'land' -%}{{ t("The land record number is wrong or incomplete.") }}
     {%- else -%}{{ fl.detail }}{%- endif -%}
   {%- else -%}{{ fl.detail }}{%- endif -%}
 {%- endmacro %}
@@ -178,9 +255,9 @@
 
 {# the rain warning, short. english keeps the full reasoning #}
 {% macro risk_text(risk) -%}
-  {%- if lang() == 'hi' -%}
+  {%- if lang() != 'en' -%}
     {%- set total = risk.forecast|sum(attribute='rain_mm') -%}
-    अगले {{ risk.forecast|length }} दिन में {{ '%.1f'|format(total) }} mm बारिश का अनुमान ({{ t(risk.place) }})।
+    {{ t("%(mm).1f mm of rain expected in the next %(days)d days (%(place)s).")|format(mm=total, days=risk.forecast|length, place=t(risk.place)) }}
   {%- else -%}{{ risk.reason }}{%- endif -%}
 {%- endmacro %}
 

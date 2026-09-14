@@ -39,6 +39,23 @@
     root.removeAttribute('data-contrast');
 
     document.addEventListener('DOMContentLoaded', function () {
+        // the language menu opens on its own (details/summary); close it on a
+        // tap anywhere else or on Escape, the way people expect a menu to behave
+        var menus = document.querySelectorAll('details.langmenu');
+        function closeMenus(except) {
+            for (var m = 0; m < menus.length; m++) {
+                if (menus[m] !== except) { menus[m].open = false; }
+            }
+        }
+        document.addEventListener('click', function (e) {
+            for (var m = 0; m < menus.length; m++) {
+                if (menus[m].open && !menus[m].contains(e.target)) { menus[m].open = false; }
+            }
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { closeMenus(null); }
+        });
+
         applySize(step);                     // re-run, the buttons exist now
         var buttons = document.querySelectorAll('[data-fontstep]');
         for (var n = 0; n < buttons.length; n++) {

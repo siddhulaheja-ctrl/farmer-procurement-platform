@@ -1,11 +1,12 @@
-"""Hindi translations.
+"""Farmer-side translations: Hindi here, Bengali in lang/bn.py.
 
 Keyed on the english string so templates stay readable - {{ t("Book a Slot") }}.
-If a string is missing from the dict it just falls back to english, so a half
+If a string is missing from a table it just falls back to english, so a half
 finished translation doesn't break the page.
 
 Only the farmer side is translated. Centre staff use the english admin screens.
-TODO: move this to flask-babel if we ever add a third language
+The bengali table needs a native speaker to read it over.
+TODO: move this to flask-babel before adding the rest of the 22
 """
 
 from flask import session
@@ -581,15 +582,233 @@ HINDI = {
     "Prototype. All data shown is sample data.": "प्रोटोटाइप। दिखाई गई सारी जानकारी नमूना है।",
     "Show this pass with your Aadhaar card and bank passbook.": "यह पास आधार कार्ड और बैंक पासबुक के साथ दिखाएं।",
     "Not allowed": "अनुमति नहीं",
+
+    # short alert, flag and rain lines, by type
+    "Rain is expected in your area. Cover your crop and keep it off the ground.": "आपके क्षेत्र में बारिश का अनुमान है। उपज ढककर ऊंची जगह रखें।",
+    "Something in your details does not match. See My Details.": "आपकी जानकारी में गड़बड़ी है। \"मेरी जानकारी\" देखें।",
+    "Your payment status has changed.": "आपके भुगतान की स्थिति बदली है।",
+    "Your slot has been booked.": "आपका स्लॉट बुक हो गया है।",
+    "Your slot has changed.": "आपका स्लॉट बदल गया है।",
+    "We called you.": "आपको कॉल किया गया।",
+    "New notice.": "नई सूचना।",
+    "The Aadhaar number is wrong or incomplete.": "आधार नंबर गलत या अधूरा है।",
+    "The bank account number or IFSC is wrong.": "बैंक खाता नंबर या IFSC गलत है।",
+    "The name on the bank account does not match your name.": "बैंक खाते का नाम आपके नाम से मेल नहीं खाता।",
+    "The land record number is wrong or incomplete.": "भूमि रिकॉर्ड नंबर गलत या अधूरा है।",
+    "%(mm).1f mm of rain expected in the next %(days)d days (%(place)s).": "अगले %(days)d दिन में %(mm).1f mm बारिश का अनुमान (%(place)s)।",
+
+    # one day, hour by hour
+    "Hour by hour": "घंटेवार",
+    "Close": "बंद करें",
+    "Sky": "आसमान",
+    "Temperature": "तापमान",
+    "Chance of rain": "बारिश की संभावना",
+    "Rain": "बारिश",
+    "Wind": "हवा",
+    "Readings are for three-hour steps, in local time.": "हर तीन घंटे की रीडिंग, स्थानीय समय में।",
+    "No hourly readings left for this day.": "इस दिन के लिए अब कोई घंटेवार रीडिंग नहीं बची।",
+    # weather on a centre's slot page
+    "Weather at %s": "%s का मौसम",
+    "Tap a day to see it hour by hour, or choose a slot below.": "घंटेवार देखने के लिए कोई दिन दबाएं, या नीचे स्लॉट चुनें।",
+    "Weather on this day": "इस दिन का मौसम",
+    "During your slot": "आपके स्लॉट के समय",
+    "Rain is likely during your slot. Keep your produce covered on the way.": "आपके स्लॉट के समय बारिश की संभावना है। रास्ते में उपज ढककर लाएं।",
+    "The forecast only goes five days ahead. Check again closer to this date.": "पूर्वानुमान केवल पांच दिन आगे तक मिलता है। इस तारीख के करीब फिर देखें।",
+
+    # book by speaking
+    "Book by speaking": "बोलकर बुक करें",
+    "Understood by AI": "AI ने समझा",
+    # questions asked while booking by voice
+    "Directions": "रास्ता देखें",
+    "%(centre)s is at %(place)s. Tap Directions on the screen to open the map.": "%(centre)s %(place)s में है। नक्शा खोलने के लिए स्क्रीन पर रास्ता देखें बटन दबाएं।",
+    "It is very close to %s.": "यह %s के बहुत पास है।",
+    "From %(village)s it is about %(km)d km by road, roughly %(minutes)d minutes by car or motorcycle. A loaded tractor takes about twice as long.": "%(village)s से यह सड़क से लगभग %(km)d किलोमीटर है, कार या मोटरसाइकिल से करीब %(minutes)d मिनट। भरी हुई ट्रैक्टर-ट्रॉली को लगभग दोगुना समय लगता है।",
+    "I could not work out the exact distance from your village.": "आपके गांव से ठीक दूरी पता नहीं चल पाई।",
+    "Tell me which centre, and the way will be shown.": "कौन सा केंद्र है, यह बताइए, फिर रास्ता दिखाया जाएगा।",
+    "Bring your Aadhaar card, bank passbook and land record, and your token number or gate pass.": "आधार कार्ड, बैंक पासबुक, भूमि रिकॉर्ड और अपना टोकन नंबर या गेट पास साथ लाएं।",
+    "Centres weigh from 8 in the morning to 4 in the afternoon. Please arrive at the start of your slot.": "केंद्रों पर सुबह 8 से दोपहर 4 बजे तक तौल होती है। अपने स्लॉट की शुरुआत में पहुंचें।",
+    "The support price for %(crop)s is %(price)s rupees a quintal.": "%(crop)s का समर्थन मूल्य %(price)s रुपये प्रति क्विंटल है।",
+    "Support prices for every crop are on the home page.": "हर फसल का समर्थन मूल्य होम पेज पर है।",
+    "Your payment goes to your bank account after your crop is weighed and the transaction is closed. You can follow it on the Payments page.": "फसल की तौल और लेनदेन पूरा होने के बाद भुगतान सीधे आपके बैंक खाते में जाता है। भुगतान पेज पर इसे देख सकते हैं।",
+    "I can only help with booking a slot here. For anything else, use the Help button or call Kisan Call Centre on 1800 180 1551.": "यहां सिर्फ स्लॉट बुकिंग में मदद हो सकती है। बाकी सवालों के लिए मदद बटन दबाएं या किसान कॉल सेंटर 1800 180 1551 पर फोन करें।",
+    "Now tell me what you would like to book.": "अब बताइए, आप क्या बुक करना चाहते हैं।",
+    # the help chat
+    "Help": "मदद",
+    "Krishi Sahayak": "कृषि सहायक",
+    "Ask about booking, payments or centres": "बुकिंग, भुगतान या केंद्रों के बारे में पूछें",
+    "Namaste! I am Krishi Sahayak. Ask me about registering, booking a slot, what to bring, or your payment.": "नमस्ते! मैं कृषि सहायक हूं। पंजीकरण, स्लॉट बुकिंग, क्या लाना है, या अपने भुगतान के बारे में पूछिए।",
+    "How do I book a slot?": "स्लॉट कैसे बुक करें?",
+    "What should I bring?": "साथ क्या लाना है?",
+    "When will I get paid?": "भुगतान कब मिलेगा?",
+    "Type your question": "अपना सवाल लिखें",
+    "Send": "भेजें",
+    "Speak": "बोलें",
+    "Thinking...": "सोच रहे हैं...",
+    "Sorry, I could not answer just now. Please try again, or call Kisan Call Centre on 1800-180-1551.": "माफ़ कीजिए, अभी जवाब नहीं मिल पाया। फिर कोशिश करें, या किसान कॉल सेंटर 1800-180-1551 पर फोन करें।",
+    "Answers are a guide only. Never share your OTP or bank details in a chat.": "जवाब सिर्फ मार्गदर्शन के लिए हैं। चैट में कभी OTP या बैंक विवरण न बताएं।",
+    "You have asked a lot of questions. Please wait a few minutes, or call Kisan Call Centre on 1800-180-1551.": "आपने बहुत सवाल पूछे हैं। कुछ मिनट रुकें, या किसान कॉल सेंटर 1800-180-1551 पर फोन करें।",
+    "Tap Farmer Sign In and enter your registered mobile number. You will get a one-time password (OTP). Never share the OTP with anyone.": "किसान लॉगिन दबाएं और पंजीकृत मोबाइल नंबर डालें। आपको एक OTP मिलेगा। OTP किसी को न बताएं।",
+    "To register, tap Register and enter your mobile number, Aadhaar, bank account and land record. It takes about five minutes. Any CSC centre can also register you.": "पंजीकरण के लिए पंजीकरण दबाएं और मोबाइल नंबर, आधार, बैंक खाता और भूमि रिकॉर्ड भरें। लगभग पांच मिनट लगते हैं। कोई भी CSC केंद्र भी पंजीकरण कर सकता है।",
+    "Open your booking from the Dashboard, then tap Cancel booking or Reschedule this slot.": "डैशबोर्ड से अपनी बुकिंग खोलें, फिर बुकिंग रद्द करें या स्लॉट बदलें दबाएं।",
+    "The home page shows the weather for every district for the next five days.": "होम पेज पर हर जिले का अगले पांच दिन का मौसम है।",
+    "Tap Book a Slot, choose a centre, your crop and quantity, then a day and time. You can also book by speaking.": "स्लॉट बुक करें दबाएं, केंद्र, फसल और मात्रा चुनें, फिर दिन और समय। आप बोलकर भी बुक कर सकते हैं।",
+    "Support prices per quintal:": "प्रति क्विंटल समर्थन मूल्य:",
+    "I could not answer that right now. Please call Kisan Call Centre on 1800-180-1551, or ask at your procurement centre.": "इसका जवाब अभी नहीं दे पाए। किसान कॉल सेंटर 1800-180-1551 पर फोन करें, या अपने खरीद केंद्र पर पूछें।",
+    "Understood offline": "ऑफ़लाइन समझा",
+    "Tap here and say the centre, day, crop and quantity. No typing needed.": "यहां दबाएं और केंद्र, दिन, फसल और मात्रा बोलें। लिखने की ज़रूरत नहीं।",
+    "Language": "भाषा",
+    "Say the centre, the day, the time, your crop and how many quintals. You will see the slot before anything is booked.": "केंद्र, दिन, समय, फसल और कितने क्विंटल, यह बोलें। बुक होने से पहले आपको स्लॉट दिखाया जाएगा।",
+    "What would you like to book?": "आप क्या बुक करना चाहते हैं?",
+    "For example: Rudrapur, tomorrow morning, wheat, 20 quintals": "जैसे: रुद्रपुर, कल सुबह, गेहूं, 20 क्विंटल",
+    "Tap and speak": "दबाकर बोलें",
+    "Stop": "रोकें",
+    "Find my slot": "मेरा स्लॉट खोजें",
+    "Listening. Speak slowly, and tap Stop when you finish.": "सुन रहे हैं। धीरे-धीरे बोलें, और बोल लेने के बाद रोकें दबाएं।",
+    "Speaking in": "बोलने की भाषा",
+    "Got it. Finding a slot...": "समझ गए। स्लॉट खोज रहे हैं...",
+    "Nothing was heard. Tap and try again, or type it.": "कुछ सुनाई नहीं दिया। फिर से दबाकर बोलें, या लिख दें।",
+    "The microphone is blocked. Allow it in the browser, or type instead.": "माइक्रोफोन बंद है। ब्राउज़र में अनुमति दें, या लिखकर बताएं।",
+    "Voice did not work in this browser. Type instead.": "इस ब्राउज़र में आवाज़ काम नहीं कर पाई। लिखकर बताएं।",
+    "Voice needs Google Chrome. You can type instead.": "आवाज़ के लिए Google Chrome चाहिए। आप लिख भी सकते हैं।",
+    "You can say": "आप ऐसे बोल सकते हैं",
+    "Leave out the centre and we look in your district. Leave out the day and we find the earliest free one.": "केंद्र न बताएं तो आपके जिले में खोजेंगे। दिन न बताएं तो सबसे पहला खाली दिन ढूंढेंगे।",
+    "We could not pick out any booking details from that. Try saying the centre, day, crop and quantity.": "इसमें से बुकिंग की कोई जानकारी नहीं मिली। केंद्र, दिन, फसल और मात्रा बोलकर देखें।",
+    "What we understood": "हमने क्या समझा",
+    "Any centre in %s": "%s का कोई भी केंद्र",
+    "Not said. Looking in your district.": "नहीं बताया। आपके जिले में खोज रहे हैं।",
+    "Day": "दिन",
+    "From %s": "%s से",
+    "Could not work out that date.": "यह तारीख समझ नहीं आई।",
+    "Not said. Earliest free day.": "नहीं बताया। सबसे पहला खाली दिन।",
+    "Centres weigh between 08:00 and 16:00.": "केंद्रों पर तौल 08:00 से 16:00 के बीच होती है।",
+    "Not said. Any time.": "नहीं बताया। कोई भी समय।",
+    "Not said. Choose below.": "नहीं बताया। नीचे चुनें।",
+    "Not said. Enter it below.": "नहीं बताया। नीचे भरें।",
+    "heard": "सुना",
+    "Suggested slot": "सुझाया गया स्लॉट",
+    "You already have 3 active bookings, which is the maximum. Complete or cancel one before booking again.": "आपकी पहले से 3 बुकिंग चल रही हैं, जो सबसे ज़्यादा है। नई बुकिंग से पहले एक पूरी या रद्द करें।",
+    "That centre does not buy this crop.": "यह केंद्र यह फसल नहीं खरीदता।",
+    "No free slot matches. Try another centre or day.": "कोई खाली स्लॉट नहीं मिला। दूसरा केंद्र या दिन आज़माएं।",
+    "Nothing was free on the day you asked. This is the nearest free day.": "आपके बताए दिन कुछ खाली नहीं था। यह सबसे नज़दीकी खाली दिन है।",
+    "That time was full. This is another time on the same day.": "वह समय भरा था। यह उसी दिन का दूसरा समय है।",
+    "You already have a booking that day, so this is another day.": "उस दिन आपकी पहले से बुकिंग है, इसलिए यह दूसरा दिन है।",
+    "Nothing is booked until you press Confirm booking.": "\"बुकिंग पक्की करें\" दबाने तक कुछ बुक नहीं होगा।",
+    "Choose another slot": "दूसरा स्लॉट चुनें",
+
+    # book by speaking, the spoken conversation
+    "%(centre)s. %(day)s, %(time)s. %(crop)s, %(qty)s quintals. Shall I book it? Say yes or no.": "%(centre)s। %(day)s, %(time)s। %(crop)s, %(qty)s क्विंटल। बुक कर दूं? हां या ना बोलिए।",
+    "Which crop are you bringing? This centre buys %s.": "कौन सी फसल ला रहे हैं? यह केंद्र %s खरीदता है।",
+    "How many quintals are you bringing?": "कितने क्विंटल ला रहे हैं?",
+    "Please say yes or no.": "कृपया हां या ना बोलिए।",
+    "Your slot is booked. Your token number is %s. Please write it down.": "आपका स्लॉट बुक हो गया। आपका टोकन नंबर है %s। इसे लिख लीजिए।",
+    "Okay. Nothing has been booked.": "ठीक है। कुछ बुक नहीं हुआ।",
+    "That slot could not be booked.": "यह स्लॉट बुक नहीं हो सका।",
+    "8 to 10 in the morning": "सुबह 8 से 10 बजे",
+    "10 to 12 in the morning": "सुबह 10 से 12 बजे",
+    "12 to 2 in the afternoon": "दोपहर 12 से 2 बजे",
+    "2 to 4 in the afternoon": "दोपहर 2 से 4 बजे",
+    "January": "जनवरी", "February": "फरवरी", "March": "मार्च", "April": "अप्रैल", "June": "जून",
+    "July": "जुलाई", "August": "अगस्त", "September": "सितंबर", "October": "अक्टूबर",
+    "November": "नवंबर", "December": "दिसंबर",
+    "Yes, book it": "हां, बुक करें",
+    "No": "नहीं",
+    "Hear it again": "फिर से सुनें",
+    "Done": "हो गया",
+    "Open my booking": "मेरी बुकिंग खोलें",
+    "Working out what you said...": "आपकी बात समझ रहे हैं...",
+    "Listening for your answer...": "आपका जवाब सुन रहे हैं...",
+    "Tap a button to answer.": "जवाब देने के लिए बटन दबाएं।",
+    "Voice is not set up on this server. Type instead.": "इस सर्वर पर आवाज़ की सुविधा चालू नहीं है। लिखकर बताएं।",
+    "This browser cannot use the microphone. You can type instead.": "यह ब्राउज़र माइक्रोफोन इस्तेमाल नहीं कर सकता। आप लिख सकते हैं।",
+    "This device has no voice for this language. Read the screen or tap the buttons.": "इस फोन में इस भाषा की आवाज़ नहीं है। स्क्रीन पढ़ें या बटन दबाएं।",
+    # payment stages
+    "Sent to bank": "बैंक को भेजा गया",
+    "Bill ready": "बिल तैयार",
+    "Weighed": "तौला गया",
+    "Returned by bank": "बैंक से लौटा",
+    "Nothing payable": "कोई भुगतान नहीं",
+    "Crop weighed at the centre": "केंद्र पर फसल तौली गई",
+    "Receipt issued": "रसीद दी गई",
+    "Bill ready for the bank": "बैंक के लिए बिल तैयार",
+    "Sent to your bank": "आपके बैंक को भेजा गया",
+    "Returned by the bank": "बैंक ने लौटा दिया",
+    "Rejected, nothing to pay": "अस्वीकृत, कोई भुगतान नहीं",
+    "Aadhaar is not linked to this bank account": "आधार इस बैंक खाते से जुड़ा नहीं है",
+    "Ask your bank branch to link your Aadhaar to the account. Tell the centre once it is done.": "अपनी बैंक शाखा से आधार को खाते से जुड़वाएं। हो जाने पर केंद्र को बताएं।",
+    "Name on the bank account does not match": "बैंक खाते का नाम मेल नहीं खाता",
+    "Bring your bank passbook to the centre so your name can be corrected.": "नाम ठीक कराने के लिए बैंक पासबुक लेकर केंद्र आएं।",
+    "IFSC code is wrong": "IFSC कोड गलत है",
+    "Check the IFSC printed in your passbook and correct it on My Details.": "पासबुक में छपा IFSC देखें और मेरी जानकारी में ठीक करें।",
+    "Bank account number is wrong": "बैंक खाता नंबर गलत है",
+    "Check the account number in your passbook and correct it on My Details.": "पासबुक में खाता नंबर देखें और मेरी जानकारी में ठीक करें।",
+    # payment page
+    "Payment": "भुगतान",
+    "The bank's answer is expected in": "बैंक का जवाब आने में",
+    "seconds": "सेकंड",
+    "This page updates by itself.": "यह पेज अपने आप अपडेट होगा।",
+    "Money credited to": "पैसा जमा हुआ:",
+    "Bank reference (UTR)": "बैंक संदर्भ (UTR)",
+    "Some of your Aadhaar or bank details are wrong, so the payment was not sent. Correct them, then tell the centre.": "आपकी आधार या बैंक जानकारी में गलती है, इसलिए भुगतान नहीं भेजा गया। उसे ठीक करें और केंद्र को बताएं।",
+    "The centre sends bills to the bank in batches. You will get a message when it is sent and when the money arrives.": "केंद्र बिल बैच में बैंक को भेजता है। भेजे जाने पर और पैसा आने पर आपको संदेश मिलेगा।",
+    "The crop was rejected at the quality check, so there is nothing to pay.": "गुणवत्ता जांच में फसल अस्वीकृत हुई, इसलिए कोई भुगतान नहीं है।",
+    "What has happened": "अब तक क्या हुआ",
+    "Weighing and price": "तौल और कीमत",
+    "Gross weight": "कुल वजन",
+    "Bags": "बोरे",
+    "Net weight": "शुद्ध वजन",
+    "Moisture": "नमी",
+    "Foreign matter": "कचरा / मिलावट",
+    "Paid into": "किस खाते में",
+    "Receipt no.": "रसीद संख्या",
+    "View / print receipt": "रसीद देखें / छापें",
+    "Held or returned": "रुका या लौटा",
+    "Details": "विवरण",
+    # receipt
+    "Purchase receipt": "खरीद रसीद",
+    "Amount payable": "देय राशि",
+    "To": "खाता",
+    "Token": "टोकन",
+    "Scan to check it is genuine": "असली है या नहीं, स्कैन करके देखें",
+    "Seller": "विक्रेता",
+    "Weighbridge and quality check": "तौल और गुणवत्ता जांच",
+    "paid by the government directly into the bank account above (DBT)": "सरकार द्वारा सीधे ऊपर दिए बैंक खाते में (DBT)",
+    "Keep this receipt until the money reaches your account.": "पैसा खाते में आने तक यह रसीद संभालकर रखें।",
+    "Bill": "बिल",
+    "Print receipt": "रसीद छापें",
+    "Back": "वापस",
+    "Receipt": "रसीद",
+    # pass on the phone, and checking one
+    "Pass": "पास",
+    "Show pass": "पास दिखाएं",
+    "Show pass on phone": "फोन पर पास दिखाएं",
+    "Show this at the gate": "गेट पर यह दिखाएं",
+    "Turn your screen brightness up. If the code will not scan, read out the token number.": "स्क्रीन की रोशनी बढ़ा लें। कोड स्कैन न हो तो टोकन नंबर बोल दें।",
+    "Print instead": "छापकर ले जाएं",
+    "Get this scanned at the gate": "गेट पर स्कैन कराएं",
+    "Check a pass or receipt": "पास या रसीद जांचें",
+    "Genuine gate pass": "असली गेट पास",
+    "Genuine purchase receipt": "असली खरीद रसीद",
+    "Issued by Krishi Sutra and still valid.": "कृषि सूत्र द्वारा जारी और अभी मान्य।",
+    "Not genuine": "असली नहीं",
+    "This code was not issued by Krishi Sutra, it was changed, or it is no longer valid.": "यह कोड कृषि सूत्र ने जारी नहीं किया, इसे बदला गया है, या यह अब मान्य नहीं है।",
+    "Details are shown only to centre staff and to the farmer it belongs to.": "विवरण केवल केंद्र कर्मचारी और संबंधित किसान को दिखता है।",
 }
 
 
+from lang.bn import BENGALI  # noqa: E402
+
+# each language written in its own script, the way a switcher should show it.
+# bengali for the settler farming families of dineshpur
+LANGUAGES = {"en": "English", "hi": "हिन्दी", "bn": "বাংলা"}
+TABLES = {"hi": HINDI, "bn": BENGALI}
+
+
 def get_lang():
-    return session.get("lang", "en")
+    code = session.get("lang", "en")
+    return code if code in LANGUAGES else "en"
 
 
 def t(text):
-    """Translate one string. Falls back to the english if we have no hindi."""
-    if get_lang() == "hi":
-        return HINDI.get(text, text)
-    return text
+    """Translate one string. Anything a table is missing stays in english."""
+    table = TABLES.get(get_lang())
+    return table.get(text, text) if table else text

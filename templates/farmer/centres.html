@@ -1,11 +1,13 @@
 {% extends "base.html" %}
-{% from "_macros.html" import crop, crop_icon %}
+{% from "_macros.html" import crop, crop_icon, voice_banner %}
 {% block title %}{{ t("Procurement centres") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text"><h1 class="page-title">{{ t("Procurement centres") }}</h1></div>
 </div>
+
+{{ voice_banner() }}
 
 <form method="get" class="filter-bar">
   <div class="field">

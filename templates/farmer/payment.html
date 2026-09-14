@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stage_badge, stage_step, stage_icon, grade_badge, crop_name %}
+{% block title %}{{ t("Payment") }} {{ x.token_no }}{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('farmer_payments') }}">{{ icon('wallet') }}{{ t("Payments") }}</a>{{ icon('chevron-right') }}<span>{{ x.token_no }}</span>
+</nav>
+
+<section class="pay-hero">
+  <div>
+    <small>{{ t("Amount") }}</small>
+    <div class="ph-amount">{{ x.total_amount|rupee }}</div>
+    <div class="meta-row">
+      <span>{{ crop_name(x.crop_type) }}</span>
+      <span>{{ icon('scale') }}{{ '%.2f'|format(x.actual_quantity or 0) }} {{ t("quintals") }}</span>
+      <span>{{ icon('building') }}{{ t(x.centre_name) }}</span>
+    </div>
+  </div>
+  <div class="ph-stage">{{ stage_badge(x.pay_stage) }}</div>
+</section>
+
+{% if x.pay_stage == 'sent' %}
+<div class="notice info" data-wait="{{ wait }}">
+  <h3>{{ t("Sent to your bank") }}</h3>
+  <p>{{ t("The bank's answer is expected in") }} <strong data-wait-left>{{ wait }}</strong> {{ t("seconds") }}. {{ t("This page updates by itself.") }}</p>
+</div>
+{% elif x.pay_stage == 'credited' %}
+<div class="notice success">
+  <h3>{{ t("Money credited to") }} {{ bank }}</h3>
+  <p>{% if x.settled_at %}{{ x.settled_at|stamp }}. {% endif %}{% if x.utr %}{{ t("Bank reference (UTR)") }}: <strong class="mono">{{ x.utr }}</strong>{% endif %}</p>
+</div>
+{% elif x.pay_stage == 'returned' %}
+<div class="notice error">
+  <h3>{{ t("Returned by the bank") }}: {{ t(returns[x.return_code][0]) }}</h3>
+  <p>{{ t(returns[x.return_code][1]) }}</p>
+  <a class="btn danger" href="{{ url_for('farmer_profile') }}">{{ icon('id-card') }}{{ t("Correct my details") }}</a>
+</div>
+{% elif x.pay_stage == 'held' %}
+<div class="notice error">
+  <h3>{{ t("Payment held") }}</h3>
+  <p>{{ t("Some of your Aadhaar or bank details are wrong, so the payment was not sent. Correct them, then tell the centre.") }}</p>
+  <a class="btn danger" href="{{ url_for('farmer_profile') }}">{{ icon('id-card') }}{{ t("Correct my details") }}</a>
+</div>
+{% elif x.pay_stage == 'billed' %}
+<div class="notice info">
+  <h3>{{ t("Bill ready for the bank") }}</h3>
+  <p>{{ t("The centre sends bills to the bank in batches. You will get a message when it is sent and when the money arrives.") }}</p>
+</div>
+{% elif x.pay_stage == 'nil' %}
+<div class="notice warning"><p>{{ t("The crop was rejected at the quality check, so there is nothing to pay.") }}</p></div>
+{% endif %}
+
+<div class="grid side">
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">{{ icon('clock') }}{{ t("What has happened") }}</h2></div>
+    <div class="card-body">
+      <ol class="timeline">
+        {% for e in events %}
+        <li>
+          {{ stage_icon(e.stage) }}
+          <div class="tl-body">
+            <div class="tl-meta"><strong>{{ stage_step(e.stage) }}</strong><span>{{ e.at|stamp }}</span></div>
+            {% if e.stage == 'credited' and x.utr %}<div class="tl-msg mono">UTR {{ x.utr }}</div>
+            {% elif e.stage == 'returned' %}<div class="tl-msg">{{ t(e.detail) }}</div>
+            {% elif e.stage == 'closed' %}<div class="tl-msg mono">{{ x.receipt_no }}</div>{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">{{ icon('receipt') }}{{ t("Weighing and price") }}</h2></div>
+    <div class="card-body">
+      <dl class="kv">
+        {% if x.gross_weight %}
+        <dt>{{ t("Gross weight") }}</dt><dd>{{ '%.2f'|format(x.gross_weight) }} {{ t("quintals") }}</dd>
+        <dt>{{ t("Bags") }}</dt><dd>{{ x.bags }} &times; {{ '%.2f'|format(x.bag_weight_kg or 0) }} kg</dd>
+        {% endif %}
+        <dt>{{ t("Net weight") }}</dt><dd>{{ '%.2f'|format(x.actual_quantity or 0) }} {{ t("quintals") }}</dd>
+        {% if x.moisture is not none %}<dt>{{ t("Moisture") }}</dt><dd>{{ '%.1f'|format(x.moisture) }}%</dd>{% endif %}
+        <dt>{{ t("Quality grade") }}</dt><dd>{{ grade_badge(x.quality_grade) }}</dd>
+        <dt>{{ t("Rate applied") }}</dt><dd>{{ x.price_per_unit|rupee }} {{ t("per quintal") }}</dd>
+        <dt>{{ t("Paid into") }}</dt><dd class="mono">{{ bank }}</dd>
+        {% if x.receipt_no %}<dt>{{ t("Receipt no.") }}</dt><dd class="mono">{{ x.receipt_no }}</dd>{% endif %}
+      </dl>
+      {% if x.receipt_no %}
+      <a class="btn secondary block mt" href="{{ url_for('farmer_receipt', booking_id=x.booking_id) }}">{{ icon('printer') }}{{ t("View / print receipt") }}</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/wait.js') }}"></script>{% endblock %}

@@ -3,6 +3,9 @@
 -- inspected with any sqlite browser during the presentation.
 -- TODO: migrate to PostgreSQL for production (see spec section 2).
 
+DROP TABLE IF EXISTS booking_events;
+DROP TABLE IF EXISTS payment_events;
+DROP TABLE IF EXISTS payment_batches;
 DROP TABLE IF EXISTS audit_log;
 DROP TABLE IF EXISTS site_counters;
 DROP TABLE IF EXISTS alerts_log;
@@ -23,6 +26,9 @@ CREATE TABLE farmers (
     ifsc_code       TEXT,              -- mock
     bank_name_on_account TEXT,         -- mock: used by the name-match validation rule
     land_record_id  TEXT,              -- mock
+    -- mock of the NPCI mapper: is Aadhaar linked to this account. A DBT
+    -- payment to an account that isn't comes back, whatever else is right
+    aadhaar_seeded  INTEGER NOT NULL DEFAULT 1,
     village         TEXT,
     district        TEXT,
     registered_via  TEXT    NOT NULL DEFAULT 'self',   -- self | csc | staff
@@ -75,6 +81,9 @@ CREATE TABLE bookings (
     status             TEXT    NOT NULL DEFAULT 'booked',  -- booked|arrived|completed|cancelled
     token_no           TEXT,
     storage_risk       TEXT    NOT NULL DEFAULT 'none',    -- none|low|high
+    gate_in_at         TEXT,                   -- pass scanned in at the gate
+    gate_queue         INTEGER,                -- their number in the day's line at that centre
+    gate_out_at        TEXT,
     created_at         TEXT    NOT NULL,
     FOREIGN KEY (farmer_id) REFERENCES farmers(id),
     FOREIGN KEY (slot_id)   REFERENCES slots(id)
@@ -91,8 +100,64 @@ CREATE TABLE transactions (
     total_amount    REAL,
     payment_status  TEXT NOT NULL DEFAULT 'pending',  -- pending|processing|completed|failed
     payment_date    TEXT,
+    -- the weighbridge record behind actual_quantity
+    gross_weight    REAL,                       -- quintals, bags and all
+    bags            INTEGER,
+    bag_weight_kg   REAL,
+    moisture        REAL,                       -- percent
+    foreign_matter  REAL,                       -- percent
+    grade_note      TEXT,                       -- why staff picked a grade other than the suggested one
+    -- where the money is. payment_status is the coarse version of this, kept
+    -- for the screens that only need paid / not paid. see payments.py
+    pay_stage       TEXT NOT NULL DEFAULT 'weighed',  -- weighed|billed|sent|credited|returned|held|nil
+    receipt_no      TEXT,
+    bill_no         TEXT,
+    batch_id        INTEGER,
+    utr             TEXT,                       -- the bank's reference for a credit
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    return_code     TEXT,
+    weighed_at      TEXT,
+    closed_at       TEXT,
+    sent_at         TEXT,
+    settled_at      TEXT,
     FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
+
+CREATE TABLE payment_batches (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_no   TEXT NOT NULL,
+    centre_id  INTEGER,                         -- NULL when a supervisor sent every centre's bills
+    staff_id   INTEGER,
+    items      INTEGER NOT NULL,
+    amount     REAL NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+-- every step a payment took. only ever added to
+CREATE TABLE payment_events (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER NOT NULL,
+    stage          TEXT NOT NULL,
+    detail         TEXT,
+    staff_id       INTEGER,
+    at             TEXT NOT NULL,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+);
+CREATE INDEX idx_payment_events_txn ON payment_events(transaction_id);
+
+-- every scan of a pass and every gate in / gate out
+CREATE TABLE booking_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id INTEGER,                         -- NULL for a code that matched nothing
+    kind       TEXT NOT NULL,                   -- scan|gate_in|gate_out
+    result     TEXT,                            -- for a scan: what the gate screen said
+    detail     TEXT,
+    staff_id   INTEGER,
+    centre_id  INTEGER,
+    at         TEXT NOT NULL
+);
+CREATE INDEX idx_booking_events_booking ON booking_events(booking_id);
+CREATE INDEX idx_booking_events_at ON booking_events(centre_id, at);
 
 CREATE TABLE data_validation_flags (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

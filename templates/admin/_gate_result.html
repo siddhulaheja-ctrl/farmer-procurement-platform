@@ -1,0 +1,47 @@
+{# One scan's answer. Returned by /admin/gate/check and /admin/gate/act and
+   dropped into the gate page, so it works the same without script. #}
+{% set v = r.v %}{% set b = r.b %}
+<div class="gate-card {{ v.tone }}" data-code="{{ r.code }}">
+  <div class="gc-head">
+    <span class="gc-mark">{{ icon('check-circle' if v.tone == 'ok' else ('alert-triangle' if v.tone == 'warn' else ('x-circle' if v.tone == 'bad' else 'info'))) }}</span>
+    <h2>{{ v.title }}</h2>
+  </div>
+  {% if r.done == 'checkin' or r.done == 'checkin_anyway' %}
+    <p class="gc-done">{{ icon('check') }}Let in. Queue no. <b>{{ b.gate_queue }}</b>. Send them to the weighbridge.</p>
+  {% elif r.done == 'checkout' %}
+    <p class="gc-done">{{ icon('check') }}Marked out at {{ b.gate_out_at[11:16] }}.</p>
+  {% else %}
+    <p>{{ v.detail }}</p>
+  {% endif %}
+
+  {% if b and v.code != 'not_genuine' %}
+  <dl class="kv gc-facts">
+    <dt>Farmer</dt><dd>{{ b.farmer_name }} <span class="sub-line mono">{{ reg_no(b.farmer_id) }} &middot; {{ b.village }}</span></dd>
+    <dt>Aadhaar</dt><dd class="mono">{{ b.aadhaar_number|mask }} <span class="sub-line">match the last four with their card</span></dd>
+    <dt>Slot</dt><dd>{{ b.date|nicedate }} ({{ b.date|dayname }}), {{ b.time_window }} <span class="sub-line">{{ b.centre_name }}</span></dd>
+    <dt>Crop</dt><dd>{{ b.crop_type }}, about {{ '%.0f'|format(b.estimated_quantity) }} quintals <span class="sub-line token-txt">{{ b.token_no }}</span></dd>
+    <dt>Pass</dt><dd>{% if r.genuine %}<span class="badge green">Genuine, signed</span>{% elif r.genuine is none %}<span class="badge amber">Typed by hand</span>{% endif %}</dd>
+  </dl>
+  {% endif %}
+
+  <p class="gc-error notice error small" hidden></p>
+  <div class="btn-row gc-actions">
+    {% if not r.done %}
+      {% if v.action == 'checkin' %}
+        <button type="button" class="btn go large" data-action="checkin">{{ icon('log-in') }}Mark arrived</button>
+      {% elif v.action == 'checkin_anyway' %}
+        <div class="field gc-note">
+          <label for="gate-note">Why let them in anyway?</label>
+          <input type="text" id="gate-note" name="note" placeholder="e.g. centre has room, supervisor agreed">
+        </div>
+        <button type="button" class="btn large" data-action="checkin_anyway">{{ icon('log-in') }}Let in anyway</button>
+      {% elif v.action == 'checkout' %}
+        <button type="button" class="btn go large" data-action="checkout">{{ icon('log-out') }}Mark out at gate</button>
+      {% endif %}
+    {% endif %}
+    {% if b and v.code not in ('not_genuine', 'wrong_centre') %}
+      <a class="btn secondary" href="{{ url_for('admin_booking', booking_id=b.id) }}">{{ icon('eye') }}Open booking</a>
+    {% endif %}
+    <button type="button" class="btn ghost" data-next>{{ icon('scan') }}Scan next</button>
+  </div>
+</div>

@@ -1,0 +1,38 @@
+{# the help chat, Krishi Sahayak (assistant.js, assistant.py). hidden until the
+   script runs: without it there is nothing to talk to #}
+<div class="assistant no-print" id="assistant" hidden
+     data-url="{{ url_for('help_chat') }}"
+     data-thinking="{{ t('Thinking...') }}"
+     data-offline="{{ t('Sorry, I could not answer just now. Please try again, or call Kisan Call Centre on 1800-180-1551.') }}">
+  <button type="button" class="assistant-launch" aria-expanded="false" aria-controls="assistant-panel">
+    {{ icon('message') }}<span>{{ t("Help") }}</span>
+  </button>
+
+  <section class="assistant-panel" id="assistant-panel" role="dialog" aria-label="{{ t('Krishi Sahayak') }}" hidden>
+    <header class="ap-head">
+      <span class="ap-title">
+        <strong>{{ t("Krishi Sahayak") }}</strong>
+        <small>{{ t("Ask about booking, payments or centres") }}</small>
+      </span>
+      <button type="button" class="ap-close" title="{{ t('Close') }}">{{ icon('x') }}<span class="sr">{{ t("Close") }}</span></button>
+    </header>
+
+    <div class="ap-log" aria-live="polite">
+      <div class="ap-msg bot"><p>{{ t("Namaste! I am Krishi Sahayak. Ask me about registering, booking a slot, what to bring, or your payment.") }}</p></div>
+    </div>
+
+    <div class="ap-chips">
+      <button type="button">{{ t("How do I book a slot?") }}</button>
+      <button type="button">{{ t("What should I bring?") }}</button>
+      <button type="button">{{ t("When will I get paid?") }}</button>
+    </div>
+
+    <form class="ap-form">
+      <button type="button" class="ap-mic" title="{{ t('Speak') }}" hidden>{{ icon('mic') }}<span class="sr">{{ t("Speak") }}</span></button>
+      <input type="text" maxlength="500" autocomplete="off" placeholder="{{ t('Type your question') }}" aria-label="{{ t('Type your question') }}">
+      <button type="submit" class="ap-send" title="{{ t('Send') }}">{{ icon('send') }}<span class="sr">{{ t("Send") }}</span></button>
+    </form>
+    <p class="ap-note">{{ t("Answers are a guide only. Never share your OTP or bank details in a chat.") }}</p>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/assistant.js') }}"></script>

@@ -191,6 +191,33 @@ def centre_delay(centre_id):
             "stale_mins": stale_mins}
 
 
+# Highest moisture a lot can have and still be fair average quality, percent.
+# Close to the FAQ norms the procuring agencies publish; the demo only needs
+# the idea that a wet lot drops a grade.
+MOISTURE_MAX = {"Wheat": 12.0, "Paddy": 17.0, "Maize": 14.0, "Gram": 14.0, "Mustard": 8.0, "Bajra": 12.0}
+FOREIGN_FAQ = 0.75       # percent dust, stones, husk
+FOREIGN_B = 2.0
+
+
+def suggest_grade(crop_type, moisture, foreign_matter):
+    """The grade the lab readings point to. Staff can pick another with a reason."""
+    if moisture is None or foreign_matter is None:
+        return None
+    limit = MOISTURE_MAX.get(crop_type, 14.0)
+    if moisture > limit + 2 or foreign_matter > FOREIGN_B:
+        return "Rejected"
+    if moisture > limit or foreign_matter > FOREIGN_FAQ:
+        return "B"
+    if moisture <= limit - 1.5 and foreign_matter <= 0.25:
+        return "A"
+    return "FAQ"
+
+
+def net_quantity(gross_quintals, bags, bag_weight_kg):
+    """What was weighed less the empty bags, in quintals."""
+    return round(max(0.0, gross_quintals - (bags or 0) * (bag_weight_kg or 0) / 100.0), 2)
+
+
 def compute_amount(crop_type, quantity, grade):
     rate = MSP.get(crop_type, 2000.0) * GRADE_FACTOR.get(grade, 1.0)
     return round(rate, 2), round(rate * float(quantity), 2)

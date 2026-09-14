@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge, track, crop_name, forecast_days, risk_text %}
+{% from "_macros.html" import status_badge, stage_badge, risk_badge, grade_badge, track, crop_name, forecast_days, risk_text %}
 {% block title %}{{ t("Booking") }} {{ b.token_no }}{% endblock %}
 
 {% block content %}
@@ -20,8 +20,8 @@
     </div>
     <div class="btn-row">
       {{ status_badge(b.status) }}
-      {% if b.status == 'booked' %}
-        <a class="btn wheat" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ icon('printer') }}{{ t("Gate pass") }}</a>
+      {% if b.status != 'cancelled' and not b.gate_out_at %}
+        <a class="btn wheat" href="{{ url_for('farmer_phone_pass', booking_id=b.id) }}">{{ icon('scan') }}{{ t("Show pass") }}</a>
       {% endif %}
     </div>
   </div>
@@ -77,17 +77,21 @@
     <div class="card">
       <div class="card-head">
         <h2 class="card-title">{{ icon('receipt') }}{{ t("Transaction") }}</h2>
-        {{ payment_badge(txn.payment_status) }}
+        {{ stage_badge(txn.pay_stage) }}
       </div>
       <div class="card-body">
         <dl class="kv">
-          <dt>{{ icon('scale') }}{{ t("Weighed quantity") }}</dt><dd>{{ '%.1f'|format(txn.actual_quantity or 0) }} {{ t("quintals") }}</dd>
+          <dt>{{ icon('scale') }}{{ t("Weighed quantity") }}</dt><dd>{{ '%.2f'|format(txn.actual_quantity or 0) }} {{ t("quintals") }}</dd>
           <dt>{{ icon('award') }}{{ t("Quality grade") }}</dt><dd>{{ grade_badge(txn.quality_grade) }}</dd>
           <dt>{{ icon('rupee') }}{{ t("Rate applied") }}</dt><dd>{{ txn.price_per_unit|rupee }} {{ t("per quintal") }}</dd>
           <dt>{{ icon('banknote') }}{{ t("Total value") }}</dt><dd class="money" style="font-size:1.25rem">{{ txn.total_amount|rupee }}</dd>
-          {% if txn.payment_date %}<dt>{{ icon('calendar-check') }}{{ t("Credited on") }}</dt><dd>{{ txn.payment_date|stamp }}</dd>{% endif %}
+          {% if txn.utr %}<dt>{{ icon('calendar-check') }}{{ t("Bank reference (UTR)") }}</dt><dd class="mono">{{ txn.utr }}</dd>{% endif %}
         </dl>
-        {% if txn.payment_status == 'failed' %}
+        <div class="btn-row mt">
+          <a class="btn secondary" href="{{ url_for('farmer_payment', txn_id=txn.id) }}">{{ icon('wallet') }}{{ t("Track payment") }}</a>
+          {% if txn.receipt_no %}<a class="btn ghost" href="{{ url_for('farmer_receipt', booking_id=b.id) }}">{{ icon('printer') }}{{ t("Receipt") }}</a>{% endif %}
+        </div>
+        {% if txn.pay_stage in ('held', 'returned') %}
         <a class="btn danger block mt" href="{{ url_for('farmer_profile') }}">{{ icon('id-card') }}{{ t("Correct my details") }}</a>
         {% endif %}
       </div>
@@ -111,13 +115,15 @@
     <div class="card">
       <div class="card-body btn-stack">
         {% if b.status == 'booked' %}
-          <a class="btn block" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ icon('printer') }}{{ t("View / print gate pass") }}</a>
+          <a class="btn block" href="{{ url_for('farmer_phone_pass', booking_id=b.id) }}">{{ icon('scan') }}{{ t("Show pass on phone") }}</a>
+          <a class="btn secondary block" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ icon('printer') }}{{ t("View / print gate pass") }}</a>
           <a class="btn secondary block" href="{{ url_for('farmer_centre', centre_id=b.centre_id, reschedule=b.id) }}">{{ icon('refresh') }}{{ t("Reschedule this slot") }}</a>
           <form method="post" action="{{ url_for('farmer_cancel', booking_id=b.id) }}"
                 onsubmit="return confirm('{{ t('Cancel booking') }}?')">
             <button class="btn danger block" type="submit">{{ icon('x-circle') }}{{ t("Cancel booking") }}</button>
           </form>
         {% else %}
+          <a class="btn block" href="{{ url_for('farmer_phone_pass', booking_id=b.id) }}">{{ icon('scan') }}{{ t("Show pass on phone") }}</a>
           <a class="btn secondary block" href="{{ url_for('farmer_payments') }}">{{ icon('wallet') }}{{ t("Track payment") }}</a>
         {% endif %}
       </div>

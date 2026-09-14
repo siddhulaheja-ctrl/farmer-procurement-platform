@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Gate{% endblock %}
+
+{% block content %}
+<div class="pagehead">
+  <div class="ph-text">
+    <p class="eyebrow">{{ g.staff.centre_name or 'Every centre' }}</p>
+    <h1 class="page-title">Gate</h1>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat {{ 'info' if stats.inside else 'zero' }}"><div><div class="n">{{ stats.inside }}</div><div class="l">Let in today</div></div></div>
+  <div class="stat {{ 'good' if stats.out else 'zero' }}"><div><div class="n">{{ stats.out }}</div><div class="l">Left today</div></div></div>
+  <div class="stat {{ 'info' if stats.wait is not none else 'zero' }}"><div><div class="n">{{ '%d min'|format(stats.wait) if stats.wait is not none else '—' }}</div><div class="l">Gate to weighbridge, average</div></div></div>
+  <div class="stat {{ 'info' if stats.scans else 'zero' }}"><div><div class="n">{{ stats.scans|length }}</div><div class="l">Recent scans</div></div></div>
+</div>
+
+<div class="grid side">
+  <div class="stack">
+    <div class="card">
+      <div class="card-body">
+        <div id="gate" class="scanner" data-check="{{ url_for('admin_gate_check') }}" data-act="{{ url_for('admin_gate_act') }}"
+             data-jsqr="{{ url_for('static', filename='vendor/jsQR.min.js') }}">
+          <button type="button" class="btn go large block" id="scan-start">{{ icon('scan') }}Scan pass</button>
+          <div class="scan-view" hidden>
+            <video playsinline muted></video>
+            <span class="scan-frame" aria-hidden="true"></span>
+            <button type="button" class="btn secondary small scan-stop">{{ icon('x') }}Stop</button>
+          </div>
+          <label class="btn secondary block mt" for="scan-photo">{{ icon('smartphone') }}Take a photo of the pass instead</label>
+          <input type="file" id="scan-photo" accept="image/*" capture="environment" class="sr">
+          <form class="type-row mt" id="scan-type" action="{{ url_for('admin_gate') }}" method="get">
+            <label class="sr" for="code">Token number</label>
+            <input type="text" id="code" name="code" class="mono" placeholder="Or type the token, e.g. PC01-S012-003" autocomplete="off" value="{{ code if code and '://' not in code else '' }}">
+            <button class="btn" type="submit">{{ icon('search') }}Check</button>
+          </form>
+          <p class="hint" id="scan-msg" role="status"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="gate-result" aria-live="polite">
+      {% if result %}{% with r = result %}{% include "admin/_gate_result.html" %}{% endwith %}{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">{{ icon('list') }}Today at the gate</h2></div>
+    {% if stats.scans %}
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th>Time</th><th>Token</th><th>What happened</th></tr></thead>
+        <tbody>
+        {% for e in stats.scans %}
+          <tr>
+            <td class="nowrap small">{{ e.at[11:16] }}</td>
+            <td>{% if e.token_no %}<a class="token-txt" href="{{ url_for('admin_booking', booking_id=e.booking_id) }}">{{ e.token_no }}</a>
+                <span class="sub-line">{{ e.farmer_name }}</span>{% else %}<span class="state off">No match</span>{% endif %}</td>
+            <td class="small">
+              {% if e.kind == 'gate_in' %}<span class="badge green">In</span> {{ e.detail }}
+              {% elif e.kind == 'gate_out' %}<span class="badge grey">Out</span>
+              {% else %}<span class="gate-dot {{ 'bad' if e.result in ('not_genuine','wrong_centre','cancelled','missed') else ('warn' if e.result in ('early','late','early_day') else 'ok') }}"></span>{{ e.detail }}{% endif %}
+              {% if e.staff_code %}<span class="sub-line">{{ e.staff_code }}</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">Nothing scanned yet today.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/gate.js') }}"></script>{% endblock %}

@@ -23,7 +23,8 @@
       </div>
       <button class="btn block large" type="submit">{{ icon('log-in') }}Sign in</button>
     </form>
-    <div class="notice warning small">Demo: supervisor <strong>ADMIN</strong>, Rudrapur counter <strong>RUD01</strong>. Password <strong>demo123</strong></div>
+    <p class="small mt">District supervisor? <a href="{{ url_for('super_login') }}">Supervisor sign in</a></p>
+    <div class="notice warning small">Demo: Rudrapur counter <strong>RUD01</strong>, password <strong>demo123</strong></div>
   </div>
 </div>
 {% endblock %}

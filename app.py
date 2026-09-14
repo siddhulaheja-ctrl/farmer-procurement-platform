@@ -26,13 +26,20 @@ import accounts
 import audit
 import core
 import db
+import gate
+import payments
 import qr
 import supervisor
 import voice
 import weather
 from core import BookingError
 from db import execute, query
-from i18n import t, get_lang
+from i18n import t, get_lang, LANGUAGES
+import voicebook
+import speech_to_text
+import voice_ai
+import assistant
+from urllib.parse import quote_plus
 from validation import unresolved_flags, validate_and_flag
 
 # hardcoded otp, shown on the login page
@@ -134,11 +141,16 @@ def reg_no(farmer_id):
 
 def create_app():
     app = Flask(__name__)
+    # behind share_demo's cloudflare tunnel the QR codes have to carry the
+    # public https address, not localhost
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     app.secret_key = os.environ.get("SECRET_KEY", "sih-2026-ps26032-demo-key")
     app.teardown_appcontext(db.close_db)
     db.migrate()
     app.jinja_env.globals["t"] = t
     app.jinja_env.globals["lang"] = get_lang
+    app.jinja_env.globals["languages"] = LANGUAGES
     app.jinja_env.globals["icon"] = icon
     app.jinja_env.globals["reg_no"] = reg_no
     register_routes(app)
@@ -250,8 +262,11 @@ def superadmin_required(fn):
     """Supervisor screens. Centre staff get a 403 rather than a redirect -
     they are signed in, they just can't open this."""
     @wraps(fn)
-    @staff_required
     def wrapper(*a, **kw):
+        if not g.get("staff"):
+            session.pop("staff_id", None)
+            flash("Supervisor sign-in required.", "warning")
+            return redirect(url_for("super_login"))
         if g.staff["role"] != "superadmin":
             abort(403)
         return fn(*a, **kw)
@@ -281,8 +296,12 @@ def register_routes(app):
     def _load_user():
         g.farmer = current_farmer()
         g.staff = current_staff()
-        g.unread = alerts_mod.unread_count(g.farmer["id"]) if g.farmer else 0
         g.today = date.today()
+        # the mock bank answers on the next page load after its delay, so
+        # nothing has to run in the background
+        if request.endpoint != "static":
+            payments.settle_due()
+        g.unread = alerts_mod.unread_count(g.farmer["id"]) if g.farmer else 0
 
     @app.context_processor
     def _footer_context():
@@ -315,11 +334,17 @@ def register_routes(app):
         # up in the url and the page can be linked or reloaded.
         districts = _districts()
         picked = request.args.get("district", "")
-        forecast = place = source = None
+        forecast = place = source = hours = None
         outlook = []
+        day = request.args.get("day", "")
         if picked in districts:
             forecast, source, point = weather.get_forecast(picked, 5)
             place = point["place"] if point else picked
+            # a day card was clicked: that day hour by hour, under the cards
+            if forecast and day in [d["date"] for d in forecast]:
+                hours = weather.get_hours(picked, day)[0]
+            else:
+                day = ""
         else:
             # nothing picked yet: every district at a glance instead of an empty box
             for d in districts:
@@ -331,32 +356,39 @@ def register_routes(app):
                                 "wet_days": sum(1 for x in days if x["rain_mm"] > 0.5)})
             source = "live" if outlook and all(o["source"] == "live" for o in outlook) else ("mock" if outlook else None)
         return render_template("home.html", msp=core.MSP, msp_prev=core.MSP_PREVIOUS, districts=districts, picked=picked,
-                               forecast=forecast, place=place, source=source, outlook=outlook)
+                               forecast=forecast, place=place, source=source, outlook=outlook,
+                               day=day, hours=hours)
 
     @app.route("/t/<token>")
     def token_lookup(token):
-        """Where the QR on a gate pass lands.
+        """Where the QR on a gate pass lands when a normal camera app opens it.
 
-        Staff at that centre get the booking screen, the farmer it belongs to
-        gets their own copy, anyone else is sent to sign in having been shown
-        nothing, so a photographed pass is worth nothing to whoever took it.
+        Staff get the gate screen's verdict for it, the farmer it belongs to
+        gets their booking. Anyone else learns only whether the pass is
+        genuine - no name, no slot - so a photographed pass tells a stranger
+        nothing.
         """
-        b = query("SELECT b.id, b.farmer_id, s.centre_id FROM bookings b JOIN slots s ON s.id = b.slot_id"
-                  " WHERE b.token_no = ?", (token,), one=True)
-        if b is None:
-            flash("No booking found for token %s." % token, "error")
-            return redirect(url_for("admin_login"))
+        sig = request.args.get("s")
         if g.staff:
-            if not _in_my_centre(b["centre_id"]):
-                flash("Token %s belongs to another centre." % token, "error")
-                return redirect(url_for("admin_dashboard"))
-            return redirect(url_for("admin_booking", booking_id=b["id"]))
-        if g.farmer and g.farmer["id"] == b["farmer_id"]:
+            return redirect(url_for("admin_gate", code=request.url))
+        b = query("SELECT b.*, s.centre_id FROM bookings b JOIN slots s ON s.id = b.slot_id"
+                  " WHERE b.token_no = ?", (token.upper(),), one=True)
+        if b is not None and g.farmer and g.farmer["id"] == b["farmer_id"]:
             return redirect(url_for("farmer_booking", booking_id=b["id"]))
-        # the same message whoever you are - a farmer opening someone else
-        # pass learns nothing they did not already hold
-        flash("Sign in to open token %s." % token, "info")
-        return redirect(url_for("admin_login"))
+        return render_template("verify.html", kind="pass", genuine=qr.pass_ok(b, sig))
+
+    @app.route("/r/<number>")
+    def receipt_lookup(number):
+        """Where the QR on a purchase receipt lands. Same rule as a pass."""
+        txn = query("SELECT t.*, b.farmer_id FROM transactions t JOIN bookings b ON b.id = t.booking_id"
+                    " WHERE t.receipt_no = ?", (number.replace("-", "/"),), one=True)
+        genuine = qr.receipt_ok(txn, request.args.get("s"))
+        if txn is not None and genuine:
+            if g.staff:
+                return redirect(url_for("admin_booking", booking_id=txn["booking_id"]))
+            if g.farmer and g.farmer["id"] == txn["farmer_id"]:
+                return redirect(url_for("farmer_payment", txn_id=txn["id"]))
+        return render_template("verify.html", kind="receipt", genuine=genuine)
 
     @app.route("/policy/<slug>")
     def policy(slug):
@@ -416,7 +448,7 @@ def register_routes(app):
 
     @app.route("/lang/<code>")
     def set_lang(code):
-        if code in ("en", "hi"):
+        if code in LANGUAGES:
             session["lang"] = code
         return redirect(request.referrer or url_for("home"))
 
@@ -500,20 +532,358 @@ def register_routes(app):
         for s in slots:
             by_date.setdefault(s["date"], []).append(s)
         accepted = [c.strip() for c in centre["crop_types_accepted"].split(",")]
+        # the weather where this centre is: five days, and each of them hour by
+        # hour, so choosing a slot can show what that day and time look like
+        wx_forecast, wx_source, point = weather.get_forecast(centre["district"], 5, village=centre["location"])
+        wx_forecast = wx_forecast or []
+        wx_hours = {d["date"]: weather.get_hours(centre["district"], d["date"], centre["location"])[0]
+                    for d in wx_forecast}
         return render_template("farmer/centre.html", centre=centre, by_date=by_date,
-                               accepted=accepted, reschedule_id=request.args.get("reschedule"))
+                               accepted=accepted, reschedule_id=request.args.get("reschedule"),
+                               wx_forecast=wx_forecast, wx_by_date={d["date"]: d for d in wx_forecast},
+                               wx_hours=wx_hours, wx_source=wx_source,
+                               wx_place=point["place"] if point else centre["district"])
 
-    @app.route("/farmer/book", methods=["POST"])
-    @farmer_required
-    def farmer_book():
-        slot_id = request.form.get("slot_id")
+    # book by speaking. voice.js holds a spoken conversation through
+    # farmer_voice_step: the portal reads the slot out and a "yes" books it.
+    # every booking still goes through _book_for_farmer and its rules
+
+    VOICE_NOTES = (
+        ("already_booked_that_day", "You already have a booking that day, so this is another day."),
+        ("other_day", "Nothing was free on the day you asked. This is the nearest free day."),
+        ("other_time", "That time was full. This is another time on the same day."),
+    )
+    VOICE_PROBLEMS = {
+        "limit": "You already have 3 active bookings, which is the maximum. Complete or cancel one before booking again.",
+        "crop_not_bought": "That centre does not buy this crop.",
+        "no_slot": "No free slot matches. Try another centre or day.",
+    }
+
+    def _is_booking(p):
+        """Whether parsed words carry booking details, not just a place name."""
+        return bool(p["crop"] or p["quantity"] or p["day"] or p["hours"])
+
+    def _voice_request(text, guesses):
+        """The booking request: Gemini first, the parser filling in what it missed.
+
+        Returns (fields, question topic or None) - None unless the farmer asked
+        something instead of booking. The parser runs every time; it takes
+        milliseconds and needs no internet, so when Gemini can't answer,
+        nothing is lost.
+        """
+        backup = voicebook.best_parse([text] + list(guesses))
         try:
-            booking_id = core.book_slot(g.farmer["id"], int(slot_id),
-                                        request.form.get("crop_type"),
-                                        request.form.get("estimated_quantity"))
-        except (BookingError, TypeError, ValueError) as e:
-            flash(str(e) if isinstance(e, BookingError) else t("Invalid booking request."), "error")
-            return redirect(request.form.get("back") or url_for("farmer_centres"))
+            ai, intent, topic = voice_ai.understand(text, guesses, district=g.farmer["district"])
+        except voice_ai.Unavailable:
+            topic = voicebook.question_topic(text)
+            return backup, topic if topic and not _is_booking(backup) else None
+        if intent == "question":
+            ai["text"] = backup["text"]
+            return voicebook.fill_gaps(ai, backup), topic
+        if not ai["heard"]:
+            return backup, None
+        merged = voicebook.fill_gaps(ai, backup)
+        merged["text"] = backup["text"]
+        return merged, None
+
+    def _voice_reply(said, parsed):
+        """A reply to what was read out: (details it gives, "yes"/"no"/None, question topic or None)."""
+        quick = voicebook.parse(said)
+        kind = voicebook.answer_kind(said)
+        # a plain haan or nahi is answered at once, without waiting on the AI
+        if kind and not quick["heard"] and not voicebook.question_topic(said):
+            return quick, kind, None
+        so_far = ", ".join("%s: %s" % (k, parsed[k]) for k in
+                           ("centre", "district", "day", "hours", "crop", "quantity") if parsed[k])
+        try:
+            ai, intent, topic = voice_ai.understand(
+                said, context="the booking so far is %s. It read this back and asked the farmer to "
+                              "confirm it or give what is missing." % (so_far or "empty"),
+                district=g.farmer["district"])
+        except voice_ai.Unavailable:
+            topic = voicebook.question_topic(said)
+            if topic and not _is_booking(quick):
+                return quick, None, topic
+            return quick, kind, None
+        if intent == "question":
+            return voicebook.fill_gaps(ai, quick), None, topic
+        if not ai["heard"]:
+            return quick, intent if intent in ("yes", "no") else kind, None
+        return voicebook.fill_gaps(ai, quick), None, None
+
+    def _voice_question_answer(topic, centre_name, crop):
+        """A short spoken answer to a question asked while booking, from real data.
+
+        Returns (words to say, a map link or None). Distances come from where
+        the farmer's village and the centre are, never from the AI.
+        """
+        centre = query("SELECT * FROM procurement_centres WHERE name = ?", (centre_name,), one=True) \
+            if centre_name else None
+        directions = None
+        if centre:
+            directions = "https://www.google.com/maps/dir/?api=1&destination=" + quote_plus(
+                "%s, %s, %s, Uttarakhand" % (centre["name"], centre["location"], centre["district"]))
+
+        if topic in ("directions", "travel_time", "distance"):
+            if not centre:
+                return t("Tell me which centre, and the way will be shown."), None
+            say = t("%(centre)s is at %(place)s. Tap Directions on the screen to open the map.") % {
+                "centre": t(centre["name"]), "place": "%s, %s" % (t(centre["location"]), t(centre["district"]))}
+            home = weather.resolve_point(g.farmer["district"], g.farmer["village"])
+            there = weather.resolve_point(centre["district"], centre["location"])
+            if home and there and home["precision"] == "village":
+                road = weather.distance_km(home, there) * 1.3      # roads wind; straight lines don't
+                if road < 1.5:
+                    say += " " + t("It is very close to %s.") % t(g.farmer["village"])
+                else:
+                    minutes = max(5, int(round(road / 35 * 60 / 5.0)) * 5)
+                    say += " " + t("From %(village)s it is about %(km)d km by road, roughly %(minutes)d minutes "
+                                   "by car or motorcycle. A loaded tractor takes about twice as long.") % {
+                        "village": t(g.farmer["village"]), "km": round(road), "minutes": minutes}
+            elif topic != "directions":
+                say += " " + t("I could not work out the exact distance from your village.")
+            return say, directions
+        if topic == "documents":
+            return t("Bring your Aadhaar card, bank passbook and land record, and your token number or gate pass."), None
+        if topic == "timings":
+            return t("Centres weigh from 8 in the morning to 4 in the afternoon. Please arrive at the start of your slot."), None
+        if topic == "price":
+            if crop in core.MSP:
+                return t("The support price for %(crop)s is %(price)s rupees a quintal.") % {
+                    "crop": t(crop), "price": "{:,}".format(int(core.MSP[crop]))}, None
+            return t("Support prices for every crop are on the home page."), None
+        if topic == "payment":
+            return t("Your payment goes to your bank account after your crop is weighed and the transaction is "
+                     "closed. You can follow it on the Payments page."), None
+        return t("I can only help with booking a slot here. For anything else, use the Help button or call "
+                 "Kisan Call Centre on 1800 180 1551."), None
+
+    def _voice_answered(topic, details, parsed, step):
+        """Answer a question, then say again whatever the booking was waiting on.
+
+        step is where the booking stood before the question, or None when the
+        farmer asked before booking anything.
+        """
+        parsed = parsed or {}
+        centre_name = details.get("centre") or parsed.get("centre")
+        if not centre_name and step and step.get("proposal") and step["proposal"].get("slot"):
+            centre_name = step["proposal"]["slot"]["centre_name"]
+        answer, directions = _voice_question_answer(topic, centre_name, details.get("crop") or parsed.get("crop"))
+        if step is None:
+            step = {"parsed": details, "proposal": None, "stage": "answered", "say": "", "listen": "request",
+                    "repeat": False, "url": None, "slot_id": None, "token": None,
+                    "prompt": t("Now tell me what you would like to book.")}
+        # prompt is the booking's own question, so two questions in a row don't stack answers
+        pending = step.get("prompt") or step["say"]
+        step.update(say=(answer + " " + pending).strip(), prompt=pending, directions=directions,
+                    repeat=False, question=topic)
+        return step
+
+    def _voice_step(turns, guesses=(), slot_id=None, decision=None, crop=None, quantity=None):
+        """One turn of the spoken booking, worked out from everything said so far.
+
+        Nothing is kept between turns: the page sends the whole conversation
+        each time. turns[0] is the request, the rest are the farmer's replies.
+        decision is "yes" or "no" from a button; otherwise it comes from the
+        last reply.
+        """
+        parsed, question = _voice_request(turns[0], guesses)
+        if question and len(turns) == 1:
+            # asked something before booking anything: answer, then ask what to book
+            return _voice_answered(question, parsed, None, None)
+        reply = reply_kind = None
+        for n, said in enumerate(turns[1:], 1):
+            details, kind, question = _voice_reply(said, parsed)
+            if question:
+                if n == len(turns) - 1:
+                    # a question in the middle of booking ("rudrapur kaise pahunchun?"):
+                    # answer it, then carry on exactly where the booking was
+                    before = _voice_step(turns[:-1], guesses, slot_id, None, crop, quantity)
+                    return _voice_answered(question, details, before["parsed"], before)
+                continue        # an earlier question: already answered, not part of the booking
+            reply, reply_kind = details, kind
+            if reply["heard"]:
+                parsed = voicebook.merge(parsed, reply)
+        # the crop and quantity boxes, if the farmer fixed them by hand before tapping yes
+        if crop in core.CROPS:
+            parsed["crop"] = crop
+        try:
+            if quantity not in (None, "") and 0 < float(quantity) <= 500:
+                parsed["quantity"] = float(quantity)
+        except (TypeError, ValueError):
+            pass
+
+        # a reply with booking details in it is a correction, not an answer
+        stalled = reply is not None and not reply["heard"]
+        if decision not in ("yes", "no"):
+            decision = (reply_kind or "unclear") if stalled else None
+
+        step = {"parsed": parsed, "proposal": None, "stage": None, "say": "", "listen": None,
+                "repeat": stalled, "url": None, "slot_id": None, "token": None}
+
+        if decision == "no":
+            step.update(stage="cancelled", say=t("Okay. Nothing has been booked."))
+            return step
+        if not parsed["heard"]:
+            step.update(stage="not_understood", listen="request", repeat=True,
+                        say=t("We could not pick out any booking details from that. "
+                              "Try saying the centre, day, crop and quantity."))
+            return step
+
+        proposal = voicebook.propose(parsed, g.farmer)
+        step["proposal"] = proposal
+        if proposal["problem"]:
+            say = t(VOICE_PROBLEMS.get(proposal["problem"], VOICE_PROBLEMS["no_slot"]))
+            listen = None
+            if proposal["problem"] == "crop_not_bought":
+                # a farmer can answer that one by naming another crop
+                say += " " + t("Crops accepted") + ": " + ", ".join(t(c) for c in proposal["accepted"]) + "."
+                listen = "answer"
+            step.update(stage="problem", say=say, listen=listen)
+            return step
+
+        slot = proposal["slot"]
+        step["slot_id"] = slot["id"]
+        crop_ok = parsed["crop"] in proposal["accepted"]
+
+        if decision == "yes" and crop_ok and parsed["quantity"]:
+            try:
+                # the slot that was read out, not a fresh pick the farmer never heard
+                booking_id, b = _book_for_farmer(slot_id or slot["id"], parsed["crop"], parsed["quantity"])
+            except (BookingError, TypeError, ValueError) as e:
+                step.update(stage="problem", say=t("That slot could not be booked.") + " " + t(str(e)))
+                return step
+            step.update(stage="booked", token=b["token_no"], repeat=False,
+                        url=url_for("farmer_booking", booking_id=booking_id),
+                        say=t("Your slot is booked. Your token number is %s. Please write it down.")
+                        % voicebook.spoken_token(b["token_no"]))
+            return step
+
+        before = ""
+        for note, sentence in VOICE_NOTES:
+            if note in proposal["notes"]:
+                before = t(sentence) + " "
+                break
+        if parsed["out_of_hours"]:
+            before = t("Centres weigh between 08:00 and 16:00.") + " " + before
+
+        if not crop_ok:
+            step.update(stage="ask_crop", listen="answer",
+                        say=before + t("Which crop are you bringing? This centre buys %s.")
+                        % ", ".join(t(c) for c in proposal["accepted"]))
+        elif not parsed["quantity"]:
+            step.update(stage="ask_quantity", listen="answer",
+                        say=before + t("How many quintals are you bringing?"))
+        else:
+            say = before + voicebook.confirm_sentence(slot, parsed["crop"], parsed["quantity"])
+            if decision == "unclear":
+                say = t("Please say yes or no.") + " " + say
+            step.update(stage="confirm", listen="answer", say=say)
+        return step
+
+    CHAT_LIMIT = 30         # questions per visitor in ten minutes
+
+    @app.route("/help/chat", methods=["POST"])
+    def help_chat():
+        # the help chat on public and farmer pages (assistant.py). capped per
+        # visitor, so one person can't use up the free AI quota for everyone
+        data = request.get_json(silent=True) or {}
+        messages = []
+        for m in (data.get("messages") or [])[-10:]:
+            if isinstance(m, dict) and m.get("role") in ("user", "assistant") and str(m.get("text") or "").strip():
+                messages.append({"role": m["role"], "text": str(m["text"]).strip()[:500]})
+        while messages and messages[0]["role"] != "user":
+            messages.pop(0)
+        if not messages or messages[-1]["role"] != "user":
+            return jsonify(error="no question"), 400
+        now = datetime.now().timestamp()
+        recent = [x for x in session.get("chat_times", []) if now - x < 600]
+        if len(recent) >= CHAT_LIMIT:
+            return jsonify(reply=t("You have asked a lot of questions. Please wait a few minutes, or call "
+                                   "Kisan Call Centre on 1800-180-1551."),
+                           link=None, suggestions=[], source="limit")
+        session["chat_times"] = recent + [now]
+        return jsonify(assistant.reply(messages, g.farmer))
+
+    @app.route("/farmer/voice", methods=["GET", "POST"])
+    @farmer_required
+    def farmer_voice():
+        # the same first turn as a plain form post, for typing without script
+        said = (request.form.get("said") or "").strip()[:300]
+        guesses = [x.strip()[:300] for x in (request.form.get("alternatives") or "").splitlines() if x.strip()][:6]
+        step = None
+        voice_ai.warm()     # open the connection before the farmer has finished speaking
+        if request.method == "POST" and said:
+            step = _voice_step([said], guesses)
+            said = step["parsed"]["text"]
+        return render_template("farmer/voice.html", said=said, step=step,
+                               window_label=voicebook.window_label)
+
+    @app.route("/farmer/voice/step", methods=["POST"])
+    @farmer_required
+    def farmer_voice_step():
+        data = request.get_json(silent=True) or {}
+
+        def texts(key, most):
+            items = data.get(key)
+            if not isinstance(items, list):
+                return []
+            return [str(x).strip()[:300] for x in items if str(x).strip()][:most]
+
+        turns = texts("turns", 10)
+        if not turns:
+            return jsonify(error="nothing was said"), 400
+        try:
+            slot_id = int(data["slot_id"]) if data.get("slot_id") else None
+        except (TypeError, ValueError):
+            slot_id = None
+        step = _voice_step(turns, texts("guesses", 6), slot_id, data.get("decision"),
+                           data.get("crop"), data.get("quantity"))
+        return jsonify(stage=step["stage"], say=step["say"], listen=step["listen"],
+                       repeat=step["repeat"], url=step["url"], slot_id=step["slot_id"],
+                       source=step["parsed"].get("source", "parser"),
+                       html=render_template("farmer/_voice_result.html", step=step,
+                                            window_label=voicebook.window_label))
+
+    VOICE_RECORDING_TYPES = {"audio/webm": ".webm", "audio/ogg": ".ogg", "audio/mp4": ".mp4",
+                             "audio/wav": ".wav", "audio/x-wav": ".wav"}
+    VOICE_RECORDING_LIMIT = 5 * 1024 * 1024     # 30 seconds of opus is well under 1 MB
+
+    @app.route("/farmer/voice/transcribe", methods=["POST"])
+    @farmer_required
+    def farmer_voice_transcribe():
+        # a recording from a browser with no speech recognition of its own
+        audio = request.files.get("audio")
+        if audio is None:
+            return jsonify(error="no recording"), 400
+        data = audio.read(VOICE_RECORDING_LIMIT + 1)
+        if not data or len(data) > VOICE_RECORDING_LIMIT:
+            return jsonify(error="recording missing or too large"), 413
+        lang = request.form.get("lang", "hi")
+        suffix = VOICE_RECORDING_TYPES.get((audio.mimetype or "").split(";")[0], ".webm")
+        try:
+            text = speech_to_text.transcribe(data, lang if lang in ("hi", "bn", "en") else "hi", suffix)
+        except speech_to_text.Unavailable as e:
+            app.logger.warning("voice transcribe unavailable: %s", e)
+            return jsonify(error="speech to text is not set up"), 503
+        except Exception:
+            app.logger.exception("voice transcribe failed")
+            return jsonify(error="could not read the recording"), 500
+        return jsonify(text=text)
+
+    @app.route("/farmer/voice/warm", methods=["POST"])
+    @farmer_required
+    def farmer_voice_warm():
+        speech_to_text.warm()
+        return "", 204
+
+    def _book_for_farmer(slot_id, crop_type, quantity):
+        """Book a slot for the signed-in farmer, with the alerts, storage check and message.
+
+        Shared by the Confirm button and a spoken "yes", so both go through
+        exactly the same rules. Raises BookingError, TypeError or ValueError.
+        """
+        booking_id = core.book_slot(g.farmer["id"], int(slot_id), crop_type, quantity)
 
         b = query(_BOOKING_SELECT + " WHERE b.id = ?", (booking_id,), one=True)
         alerts_mod.raise_alert(
@@ -538,9 +908,20 @@ def register_routes(app):
         risk = weather.evaluate_booking(booking_id)
         if risk and risk["level"] == "high":
             flash(t("Booking confirmed - but a storage risk was detected. See the warning on "
-                  "your booking."), "warning")
+                  "your booking."), "toast-warning")
         else:
-            flash(t("Booking confirmed. Your token is %s.") % b["token_no"], "success")
+            flash(t("Booking confirmed. Your token is %s.") % b["token_no"], "toast-success")
+        return booking_id, b
+
+    @app.route("/farmer/book", methods=["POST"])
+    @farmer_required
+    def farmer_book():
+        try:
+            booking_id, _b = _book_for_farmer(request.form.get("slot_id"), request.form.get("crop_type"),
+                                              request.form.get("estimated_quantity"))
+        except (BookingError, TypeError, ValueError) as e:
+            flash(str(e) if isinstance(e, BookingError) else t("Invalid booking request."), "error")
+            return redirect(request.form.get("back") or url_for("farmer_centres"))
         return redirect(url_for("farmer_booking", booking_id=booking_id))
 
     @app.route("/farmer/booking/<int:booking_id>")
@@ -589,11 +970,43 @@ def register_routes(app):
     @farmer_required
     def farmer_gatepass(booking_id):
         b = _owned_booking(booking_id)
-        # absolute - it gets scanned from a different phone
-        target = url_for("token_lookup", token=b["token_no"], _external=True)
+        target = qr.pass_url(b)
         return render_template("farmer/gatepass.html", b=b, farmer=g.farmer,
                                issued=datetime.now(), qr_svg=qr.gatepass_svg(target),
                                qr_target=target)
+
+    @app.route("/farmer/booking/<int:booking_id>/pass")
+    @farmer_required
+    def farmer_phone_pass(booking_id):
+        """The pass on the farmer's own screen, big and bright, for anyone without a printer."""
+        b = _owned_booking(booking_id)
+        if b["status"] == "cancelled":
+            abort(404)
+        return render_template("farmer/pass.html", b=b, qr_svg=qr.gatepass_svg(qr.pass_url(b), box_size=12))
+
+    @app.route("/farmer/payment/<int:txn_id>")
+    @farmer_required
+    def farmer_payment(txn_id):
+        x = payments.full(txn_id)
+        if x is None or x["farmer_id"] != g.farmer["id"]:
+            abort(404)
+        return render_template("farmer/payment.html", x=x, events=payments.events(txn_id),
+                               bank=payments.bank_label(x), wait=payments.seconds_left(x),
+                               returns=payments.RETURNS)
+
+    @app.route("/farmer/booking/<int:booking_id>/receipt")
+    @farmer_required
+    def farmer_receipt(booking_id):
+        b = _owned_booking(booking_id)
+        return _receipt(b["id"], back=url_for("farmer_booking", booking_id=b["id"]))
+
+    def _receipt(booking_id, back):
+        txn = query("SELECT id FROM transactions WHERE booking_id = ?", (booking_id,), one=True)
+        x = payments.full(txn["id"]) if txn else None
+        if x is None or not x["receipt_no"]:
+            abort(404)
+        return render_template("receipt.html", x=x, bank=payments.bank_label(x), back=back,
+                               qr_svg=qr.gatepass_svg(qr.receipt_url(x)), stages=payments.STAGES)
 
     @app.route("/farmer/alerts")
     @farmer_required
@@ -642,8 +1055,8 @@ def register_routes(app):
 
     # admin
 
-    @app.route("/admin/login", methods=["GET", "POST"])
-    def admin_login():
+    def _sign_in_staff(role, template, landing):
+        """The centre staff and supervisor sign-in pages. Each lets in only its own role."""
         if request.method == "POST":
             code = (request.form.get("staff_code") or "").strip().upper()
             pwd = request.form.get("password") or ""
@@ -652,16 +1065,30 @@ def register_routes(app):
             # account, so the form can't be used to find out which codes exist
             if s is None or not s["active"] or not accounts.check_password(s["password"], pwd):
                 flash("Invalid staff code or password.", "error")
-                return render_template("admin/login.html", code=code)
+                return render_template(template, code=code)
+            if s["role"] != role:
+                # right password, wrong door. only said once the password is
+                # right, so it gives nothing away
+                other = (("super_login", "supervisor sign in") if s["role"] == "superadmin"
+                         else ("admin_login", "centre staff sign in"))
+                flash(Markup('This account signs in on the <a href="%s">%s</a> page.')
+                      % (url_for(other[0]), other[1]), "warning")
+                return render_template(template, code=code)
             session["staff_id"] = s["id"]
             execute("UPDATE staff SET last_login = ? WHERE id = ?",
                     (datetime.now().isoformat(timespec="seconds"), s["id"]))
             audit.record(s, "sign_in")
             flash("Signed in as %s." % s["name"], "success")
-            if s["role"] == "superadmin":
-                return redirect(url_for("super_overview"))
-            return redirect(url_for("admin_dashboard"))
-        return render_template("admin/login.html", code="")
+            return redirect(url_for(landing))
+        return render_template(template, code="")
+
+    @app.route("/admin/login", methods=["GET", "POST"])
+    def admin_login():
+        return _sign_in_staff("staff", "admin/login.html", "admin_dashboard")
+
+    @app.route("/super/login", methods=["GET", "POST"])
+    def super_login():
+        return _sign_in_staff("superadmin", "super/login.html", "super_overview")
 
     @app.route("/admin/dashboard")
     @staff_required
@@ -714,7 +1141,19 @@ def register_routes(app):
         farmer = query("SELECT * FROM farmers WHERE id = ?", (b["farmer_id"],), one=True)
         return render_template("admin/booking.html", b=b, txn=txn, farmer=farmer,
                                flags=unresolved_flags(b["farmer_id"]),
-                               grades=core.GRADES, msp=core.MSP)
+                               grades=core.GRADES, msp=core.MSP,
+                               moisture_max=core.MOISTURE_MAX.get(b["crop_type"], 14.0),
+                               foreign_faq=core.FOREIGN_FAQ, foreign_b=core.FOREIGN_B,
+                               bank_checks=payments.checks(farmer), bank=payments.bank_label(farmer),
+                               stages=payments.STAGES, wait=payments.seconds_left(txn) if txn else None,
+                               late=payments.is_late(txn) if txn else False,
+                               returns=payments.RETURNS, visit=gate.visit(booking_id))
+
+    @app.route("/admin/booking/<int:booking_id>/receipt")
+    @staff_required
+    def admin_receipt(booking_id):
+        b = _scoped_booking(booking_id)
+        return _receipt(b["id"], back=url_for("admin_booking", booking_id=b["id"]))
 
     @app.route("/admin/booking/<int:booking_id>/arrive", methods=["POST"])
     @staff_required
@@ -723,26 +1162,58 @@ def register_routes(app):
         if b["status"] != "booked":
             flash("Only a booked entry can be marked as arrived.", "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
+        def number(field, low=0.0, high=None):
+            v = float(request.form.get(field))
+            if v < low or (high is not None and v > high):
+                raise ValueError(field)
+            return v
+
         try:
-            actual = float(request.form.get("actual_quantity"))
+            gross = number("gross_weight")
+            bags = int(number("bags", 0, 2000))
+            bag_kg = number("bag_weight_kg", 0, 5)
+            moisture = number("moisture", 0, 40)
+            foreign = number("foreign_matter", 0, 30)
         except (TypeError, ValueError):
-            flash("Enter the actual weighed quantity in quintals.", "error")
+            flash("Enter the gross weight, number of bags, bag weight, moisture and foreign matter.", "error")
+            return redirect(url_for("admin_booking", booking_id=booking_id))
+        actual = core.net_quantity(gross, bags, bag_kg)
+        if actual <= 0:
+            flash("The bags weigh more than the gross weight. Check the readings.", "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
         grade = request.form.get("quality_grade")
         if grade not in core.GRADES:
             flash("Select a quality grade.", "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
+        suggested = core.suggest_grade(b["crop_type"], moisture, foreign)
+        note = (request.form.get("grade_note") or "").strip()
+        if grade != suggested and len(note) < 5:
+            flash("The readings suggest grade %s. Write why you picked %s." % (suggested, grade), "error")
+            return redirect(url_for("admin_booking", booking_id=booking_id))
 
         rate, total = core.compute_amount(b["crop_type"], actual, grade)
+        now = datetime.now().isoformat(timespec="seconds")
+        if not b["gate_in_at"]:
+            # weighed without a gate scan - still counts as having come in
+            gate.check_in(b, g.staff, note="at the weighbridge")
         execute("UPDATE bookings SET status = 'arrived' WHERE id = ?", (booking_id,))
+        cols = (actual, grade, rate, total, gross, bags, bag_kg, moisture, foreign,
+                note if grade != suggested else None, now)
         if query("SELECT id FROM transactions WHERE booking_id = ?", (booking_id,), one=True):
-            execute("UPDATE transactions SET actual_quantity=?, quality_grade=?,"
-                    " price_per_unit=?, total_amount=? WHERE booking_id=?",
-                    (actual, grade, rate, total, booking_id))
+            execute("UPDATE transactions SET actual_quantity=?, quality_grade=?, price_per_unit=?, total_amount=?,"
+                    " gross_weight=?, bags=?, bag_weight_kg=?, moisture=?, foreign_matter=?, grade_note=?,"
+                    " weighed_at=? WHERE booking_id=?", cols + (booking_id,))
         else:
-            execute("INSERT INTO transactions (booking_id, actual_quantity, quality_grade,"
-                    " price_per_unit, total_amount, payment_status)"
-                    " VALUES (?,?,?,?,?, 'pending')", (booking_id, actual, grade, rate, total))
+            execute("INSERT INTO transactions (actual_quantity, quality_grade, price_per_unit, total_amount,"
+                    " gross_weight, bags, bag_weight_kg, moisture, foreign_matter, grade_note, weighed_at,"
+                    " booking_id, payment_status, pay_stage) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'pending', 'weighed')",
+                    cols + (booking_id,))
+        txn_id = query("SELECT id FROM transactions WHERE booking_id = ?", (booking_id,), one=True)["id"]
+        payments.log(txn_id, "weighed", "%.2f q gross, %d bags, %.2f q net, moisture %.1f%%, grade %s"
+                     % (gross, bags, actual, moisture, grade), g.staff, now)
+        if grade != suggested:
+            audit.record(g.staff, "grade_override", farmer_id=b["farmer_id"], booking_id=booking_id,
+                         centre_id=b["centre_id"], detail=note, before=suggested, after=grade)
 
         alerts_mod.raise_alert(
             b["farmer_id"], "payment_update", "app",
@@ -817,12 +1288,19 @@ def register_routes(app):
             flash("Record the weighed quantity before completing the transaction.", "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
 
-        # don't pay out if their details are still wrong
+        if b["status"] != "arrived":
+            flash("This transaction is already closed.", "error")
+            return redirect(url_for("admin_booking", booking_id=booking_id))
+        execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
+        # receipt first, then a bill, a hold (details still wrong) or nothing to pay
+        stage = payments.close(txn, b, g.staff)
+        if stage == "nil":
+            audit.record(g.staff, "close", farmer_id=b["farmer_id"], booking_id=booking_id,
+                         centre_id=b["centre_id"], detail="Rejected, nothing payable")
+            flash("Closed. Rejected produce, so there is nothing to pay. Receipt issued.", "success")
+            return _after_write(booking_id)
         blocking = [f for f in unresolved_flags(b["farmer_id"]) if f["severity"] == "blocking"]
-        if blocking:
-            execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
-            execute("UPDATE transactions SET payment_status='failed' WHERE booking_id=?",
-                    (booking_id,))
+        if stage == "held":
             alerts_mod.raise_alert(
                 b["farmer_id"], "payment_update", "app",
                 "Procurement completed but PAYMENT HELD: %d unresolved detail(s) - %s. "
@@ -833,86 +1311,204 @@ def register_routes(app):
                            "सही दस्तावेज़ लेकर अपने केंद्र जाएं।" % len(blocking))
             audit.record(g.staff, "payment_held", farmer_id=b["farmer_id"], booking_id=booking_id,
                          centre_id=b["centre_id"], detail="%d blocking flag(s) open" % len(blocking))
-            flash("Transaction closed, but payment marked FAILED - farmer has %d unresolved "
-                  "blocking flag(s)." % len(blocking), "warning")
+            flash("Transaction closed and receipt issued, but the payment is HELD - the farmer has %d "
+                  "blocking detail problem(s). Fix the record, then release it." % len(blocking), "warning")
             return _after_write(booking_id)
 
-        execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
-        execute("UPDATE transactions SET payment_status='processing' WHERE booking_id=?",
-                (booking_id,))
         alerts_mod.raise_alert(
             b["farmer_id"], "payment_update", "app",
-            "Transaction complete. %.2f is being credited to your registered bank account. "
-            "Expect credit within 48-72 hours." % txn["total_amount"], booking_id=booking_id,
-            message_hi="लेनदेन पूरा। ₹%d आपके बैंक खाते में 2-3 दिन में जमा होगा।"
+            "Transaction complete. Rs %s will be sent to your registered bank account in the centre's next "
+            "payment batch." % format(int(txn["total_amount"] or 0), ","), booking_id=booking_id,
+            message_hi="लेनदेन पूरा। ₹%d केंद्र के अगले भुगतान बैच में आपके बैंक खाते में भेजे जाएंगे।"
                        % int(txn["total_amount"] or 0))
         alerts_mod.raise_alert(
             b["farmer_id"], "payment_update", "ivr",
-            "नमस्ते। आपकी उपज की खरीद पूरी हो गई है। %d रुपये का भुगतान प्रक्रिया में है "
-            "और दो से तीन दिन में आपके बैंक खाते में जमा हो जाएगा। धन्यवाद।"
+            "नमस्ते। आपकी उपज की खरीद पूरी हो गई है। %d रुपये केंद्र के अगले भुगतान बैच में "
+            "आपके बैंक खाते में भेजे जाएंगे। धन्यवाद।"
             % int(txn["total_amount"] or 0), booking_id=booking_id)
         audit.record(g.staff, "close", farmer_id=b["farmer_id"], booking_id=booking_id,
                      centre_id=b["centre_id"], detail="Rs %s to be paid" % format(int(txn["total_amount"] or 0), ","))
-        flash("Transaction completed. Payment moved to 'processing'.", "success")
+        flash("Transaction closed. Receipt issued and the bill is ready for the next payment batch.", "success")
         return _after_write(booking_id)
+
+    def _scoped_txn(txn_id):
+        x = payments.full(txn_id)
+        if x is None or not _in_my_centre(x["centre_id"]):
+            abort(404)
+        return x
+
+    def _back_to(default):
+        return redirect(request.form.get("back") or request.referrer or default)
 
     @app.route("/admin/transactions")
     @staff_required
     def admin_transactions():
-        status = request.args.get("payment_status", "")
-        sql = ("SELECT t.*, b.crop_type, b.token_no, b.farmer_id, f.name AS farmer_name,"
-               " f.phone_number, s.date, c.name AS centre_name"
-               " FROM transactions t"
-               " JOIN bookings b ON b.id = t.booking_id"
-               " JOIN farmers f ON f.id = b.farmer_id"
-               " JOIN slots s ON s.id = b.slot_id"
-               " JOIN procurement_centres c ON c.id = s.centre_id WHERE 1=1")
-        args = []
-        if status:
-            sql += " AND t.payment_status = ?"
-            args.append(status)
-        if _my_centre():
-            sql += " AND c.id = ?"
-            args.append(_my_centre())
-        sql += " ORDER BY s.date DESC, t.id DESC"
-        return render_template("admin/transactions.html", rows=query(sql, tuple(args)),
-                               sel_status=status)
+        """The payment register: bills waiting for the bank, returns to fix, everything sent."""
+        stage = request.args.get("stage", "")
+        if stage not in payments.STAGES:
+            stage = ""
+        rows = payments.register(_my_centre(), stage or None)
+        everything = rows if not stage else payments.register(_my_centre())
+        ready = [r for r in everything if r["pay_stage"] == "billed"]
+        return render_template("admin/transactions.html", rows=rows, all_rows=everything, sel_stage=stage,
+                               stages=payments.STAGES, ready=ready,
+                               ready_amount=sum(r["total_amount"] or 0 for r in ready),
+                               returned=[r for r in everything if r["pay_stage"] == "returned"],
+                               late={r["id"] for r in everything if payments.is_late(r)},
+                               waiting={r["id"]: payments.seconds_left(r) for r in everything if r["pay_stage"] == "sent"},
+                               batches=payments.batches(_my_centre()), returns=payments.RETURNS,
+                               bank_label=payments.bank_label, credit_seconds=payments.CREDIT_SECONDS)
+
+    @app.route("/admin/transactions.csv")
+    @staff_required
+    def admin_transactions_csv():
+        import csv
+        import io
+        out = io.StringIO()
+        w = csv.writer(out)
+        w.writerow(["Receipt", "Token", "Farmer", "Centre", "Slot date", "Crop", "Net quintals", "Grade", "Rate",
+                    "Amount", "Stage", "Bill", "Batch", "UTR", "Return reason", "Attempts", "Closed", "Settled"])
+        for r in payments.register(_my_centre()):
+            w.writerow([r["receipt_no"] or "", r["token_no"], r["farmer_name"], r["centre_name"], r["date"],
+                        r["crop_type"], r["actual_quantity"], r["quality_grade"], r["price_per_unit"],
+                        r["total_amount"], payments.STAGES[r["pay_stage"]][1], r["bill_no"] or "",
+                        r["batch_no"] or "", r["utr"] or "",
+                        payments.RETURNS[r["return_code"]][0] if r["return_code"] else "", r["attempts"],
+                        r["closed_at"] or "", r["settled_at"] or ""])
+        return app.response_class(out.getvalue(), mimetype="text/csv", headers={
+            "Content-Disposition": "attachment; filename=payment-register-%s.csv" % date.today().isoformat()})
+
+    @app.route("/admin/payments/batch", methods=["POST"])
+    @staff_required
+    def admin_payment_batch():
+        ready = [r for r in payments.register(_my_centre(), "billed")]
+        batch = payments.send(ready, g.staff, _my_centre())
+        if batch is None:
+            flash("No bills are waiting for the bank.", "info")
+        else:
+            audit.record(g.staff, "payment_batch", ref_id=batch["id"],
+                         detail="%s: %d bill%s, Rs %s" % (batch["batch_no"], batch["items"],
+                                                          "s" if batch["items"] != 1 else "",
+                                                          format(int(batch["amount"]), ",")))
+            flash("Batch %s sent: %d bill%s, %s. The bank answers in about %d seconds."
+                  % (batch["batch_no"], batch["items"], "s" if batch["items"] != 1 else "",
+                     "Rs " + format(int(batch["amount"]), ","), payments.CREDIT_SECONDS), "toast-success")
+        return _back_to(url_for("admin_transactions"))
+
+    @app.route("/admin/transaction/<int:txn_id>/send", methods=["POST"])
+    @staff_required
+    def admin_payment_send(txn_id):
+        """One bill now, or a returned one again once its details are fixed."""
+        x = _scoped_txn(txn_id)
+        if x["pay_stage"] not in ("billed", "returned"):
+            flash("Only a bill ready for the bank or a returned payment can be sent.", "error")
+            return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
+        again = x["pay_stage"] == "returned"
+        if again:
+            failing = [c["label"] for c in payments.checks(x) if not c["ok"]]
+            if failing and not request.form.get("anyway"):
+                flash("Still failing: %s. Fix the farmer's record first, or the bank will return it again."
+                      % ", ".join(failing), "error")
+                return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
+        batch = payments.send([x], g.staff, x["centre_id"])
+        audit.record(g.staff, "payment_resend" if again else "payment_batch", farmer_id=x["farmer_id"],
+                     booking_id=x["booking_id"], ref_id=txn_id, centre_id=x["centre_id"],
+                     detail="%s: Rs %s" % (batch["batch_no"], format(int(x["total_amount"] or 0), ",")))
+        flash("Sent to the bank in %s. The answer comes in about %d seconds."
+              % (batch["batch_no"], payments.CREDIT_SECONDS), "toast-success")
+        return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
+
+    @app.route("/admin/transaction/<int:txn_id>/release", methods=["POST"])
+    @staff_required
+    def admin_payment_release(txn_id):
+        x = _scoped_txn(txn_id)
+        if payments.release(x, g.staff):
+            audit.record(g.staff, "payment_release", farmer_id=x["farmer_id"], booking_id=x["booking_id"],
+                         ref_id=txn_id, centre_id=x["centre_id"], detail="Rs %s" % format(int(x["total_amount"] or 0), ","))
+            flash("Released. The bill is ready for the bank.", "success")
+        else:
+            flash("It can't be released while the farmer still has a blocking detail problem.", "error")
+        return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
 
     @app.route("/admin/transaction/<int:txn_id>/payment", methods=["POST"])
     @staff_required
     def admin_payment(txn_id):
-        new = request.form.get("payment_status")
-        if new not in ("pending", "processing", "completed", "failed"):
+        """Setting a stage by hand. For when the bank's answer came some other
+        way. Needs a written reason, goes in the activity log as sensitive."""
+        x = _scoped_txn(txn_id)
+        new = request.form.get("stage")
+        reason = (request.form.get("reason") or "").strip()
+        if new not in payments.STAGES:
             abort(400)
-        t = query("SELECT t.*, b.farmer_id, s.centre_id FROM transactions t"
-                  " JOIN bookings b ON b.id = t.booking_id JOIN slots s ON s.id = b.slot_id"
-                  " WHERE t.id = ?", (txn_id,), one=True)
-        if t is None or not _in_my_centre(t["centre_id"]):
+        if len(reason) < 8:
+            flash("Write why you are changing it by hand (at least a few words).", "error")
+            return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
+        if new == x["pay_stage"]:
+            flash("It is already at that stage.", "info")
+            return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
+        payments.override(x, new, reason, g.staff)
+        amount = int(x["total_amount"] or 0)
+        if new == "credited":
+            alerts_mod.raise_alert(x["farmer_id"], "payment_update", "app",
+                                   "Payment of Rs %s has been credited to your bank account." % format(amount, ","),
+                                   booking_id=x["booking_id"], message_hi="₹%d आपके बैंक खाते में जमा हो गए।" % amount)
+        audit.record(g.staff, "payment_manual", farmer_id=x["farmer_id"], booking_id=x["booking_id"],
+                     ref_id=txn_id, centre_id=x["centre_id"], detail="Rs %s - %s" % (format(amount, ","), reason),
+                     before=payments.STAGES[x["pay_stage"]][1], after=payments.STAGES[new][1])
+        flash("Stage set to '%s' by hand. This shows in the supervisor's activity log." % payments.STAGES[new][1],
+              "warning")
+        return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
+
+    # the gate
+
+    @app.route("/admin/gate")
+    @staff_required
+    def admin_gate():
+        """Scan a pass with the phone's camera, or type the token."""
+        code = request.args.get("code", "")
+        result = _gate_result(code) if code else None
+        return render_template("admin/gate.html", stats=gate.today(_my_centre()), result=result, code=code)
+
+    def _gate_result(code):
+        token, sig = gate.parse_code(code)
+        b = gate.find(token) if token else None
+        # typed by hand has nothing to check. a real pass for a cancelled
+        # booking is still genuine - the verdict then says cancelled, not fake
+        genuine = None if sig is None else qr.pass_signed(b, sig)
+        v = gate.verdict(b, genuine, _my_centre())
+        gate.log_scan(b, g.staff, v, _my_centre())
+        return {"v": v, "b": b, "code": code, "genuine": genuine}
+
+    @app.route("/admin/gate/check", methods=["POST"])
+    @staff_required
+    def admin_gate_check():
+        r = _gate_result((request.get_json(silent=True) or {}).get("code") or request.form.get("code", ""))
+        return jsonify({"tone": r["v"]["tone"], "html": render_template("admin/_gate_result.html", r=r)})
+
+    @app.route("/admin/gate/act", methods=["POST"])
+    @staff_required
+    def admin_gate_act():
+        data = request.get_json(silent=True) or request.form
+        token, sig = gate.parse_code(data.get("code", ""))
+        b = gate.find(token) if token else None
+        if b is None or not _in_my_centre(b["centre_id"]):
             abort(404)
-        pdate = datetime.now().isoformat(timespec="seconds") if new == "completed" else None
-        execute("UPDATE transactions SET payment_status=?, payment_date=? WHERE id=?",
-                (new, pdate, txn_id))
-        msg = {
-            "completed": "Payment of %.2f has been credited to your bank account." % (t["total_amount"] or 0),
-            "processing": "Your payment of %.2f is being processed." % (t["total_amount"] or 0),
-            "failed": "Your payment could not be processed. Please contact your procurement centre.",
-            "pending": "Your payment is queued for processing.",
-        }[new]
-        amount = int(t["total_amount"] or 0)
-        msg_hi = {
-            "completed": "₹%d आपके बैंक खाते में जमा हो गए।" % amount,
-            "processing": "₹%d का भुगतान प्रक्रिया में है।" % amount,
-            "failed": "आपका भुगतान नहीं हो सका। अपने खरीद केंद्र से संपर्क करें।",
-            "pending": "आपका भुगतान कतार में है।",
-        }[new]
-        alerts_mod.raise_alert(t["farmer_id"], "payment_update", "app", msg,
-                               booking_id=t["booking_id"], message_hi=msg_hi)
-        if new != t["payment_status"]:
-            audit.record(g.staff, "payment_manual", farmer_id=t["farmer_id"],
-                         booking_id=t["booking_id"], ref_id=txn_id, centre_id=t["centre_id"],
-                         detail="Rs %s" % format(amount, ","), before=t["payment_status"], after=new)
-        flash("Payment status set to '%s'." % new, "success")
-        return redirect(request.referrer or url_for("admin_transactions"))
+        if sig is not None and not qr.pass_signed(b, sig):
+            abort(403)
+        action = data.get("action")
+        if action in ("checkin", "checkin_anyway") and b["status"] == "booked" and not b["gate_in_at"]:
+            note = (data.get("note") or "").strip() if action == "checkin_anyway" else None
+            if action == "checkin_anyway" and len(note or "") < 3:
+                return jsonify({"error": "Write a short reason for letting them in."}), 400
+            gate.check_in(b, g.staff, note=note)
+        elif action == "checkout" and b["status"] == "completed" and not b["gate_out_at"]:
+            gate.check_out(b, g.staff)
+        else:
+            return jsonify({"error": "Nothing to do for this pass now."}), 400
+        b = gate.find(token)
+        v = gate.verdict(b, True if sig else None, _my_centre())
+        r = {"v": v, "b": b, "code": data.get("code", ""), "genuine": True if sig else None, "done": action}
+        return jsonify({"tone": v["tone"], "html": render_template("admin/_gate_result.html", r=r)})
 
     @app.route("/admin/flags")
     @staff_required
@@ -966,6 +1562,11 @@ def register_routes(app):
                  (request.form.get("land_record_id") or "").strip().upper(),
                  (request.form.get("village") or "").strip(),
                  (request.form.get("district") or "").strip(), farmer_id))
+            seeded = 1 if request.form.get("aadhaar_seeded") else 0
+            if seeded != farmer["aadhaar_seeded"]:
+                execute("UPDATE farmers SET aadhaar_seeded = ? WHERE id = ?", (seeded, farmer_id))
+                audit.record(g.staff, "id_edit", farmer_id=farmer_id, detail="Aadhaar linked to bank account",
+                             before="yes" if farmer["aadhaar_seeded"] else "no", after="yes" if seeded else "no")
             changed, before, after = audit.farmer_diff(farmer, request.form)
             if changed:
                 audit.record(g.staff, "id_edit" if audit.touches_id(changed) else "record_edit",
@@ -996,7 +1597,11 @@ def register_routes(app):
             sql += " AND (f.name LIKE ? OR f.phone_number LIKE ? OR f.village LIKE ?)"
             args += ["%" + q + "%"] * 3
         sql += " ORDER BY flag_count DESC, f.name LIMIT 200"     # add paging later
-        return render_template("admin/farmers.html", farmers=query(sql, tuple(args)), q=q)
+        farmers = query(sql, tuple(args))
+        if request.args.get("partial"):
+            # the live search on the page asks for just the list
+            return render_template("admin/_farmer_rows.html", farmers=farmers, q=q)
+        return render_template("admin/farmers.html", farmers=farmers, q=q)
 
     @app.route("/admin/register-farmer", methods=["GET", "POST"])
     @staff_required
@@ -1223,9 +1828,11 @@ def register_routes(app):
 
     @app.route("/admin/logout")
     def admin_logout():
+        # back to the page they signed in on
+        supervisor = bool(g.get("staff")) and g.staff["role"] == "superadmin"
         session.pop("staff_id", None)
         flash("Staff signed out.", "success")
-        return redirect(url_for("admin_login"))
+        return redirect(url_for("super_login" if supervisor else "admin_login"))
 
     # The IVR runs as its own service (see farmer-ivr/). It has no database,
     # it reads everything from this feed.
@@ -1241,7 +1848,8 @@ def register_routes(app):
             _BOOKING_SELECT + " WHERE b.farmer_id = ? AND b.status IN ('booked','arrived')"
             " ORDER BY s.date", (farmer["id"],))
         txns = query(
-            "SELECT t.payment_status, t.total_amount, b.token_no FROM transactions t"
+            "SELECT t.payment_status, t.pay_stage, t.utr, t.return_code, t.total_amount, b.token_no"
+            " FROM transactions t"
             " JOIN bookings b ON b.id = t.booking_id WHERE b.farmer_id = ?"
             " ORDER BY t.id DESC LIMIT 5", (farmer["id"],))
         return jsonify({
@@ -1280,7 +1888,8 @@ _BOOKING_SELECT = (
     "SELECT b.*, s.date, s.time_window, s.centre_id, s.max_capacity, s.booked_count,"
     " c.name AS centre_name, c.location, c.district AS centre_district,"
     " f.name AS farmer_name, f.phone_number, f.village, f.district AS farmer_district,"
-    " t.payment_status, t.total_amount, t.actual_quantity, t.quality_grade"
+    " t.payment_status, t.total_amount, t.actual_quantity, t.quality_grade, t.pay_stage, t.id AS txn_id,"
+    " t.receipt_no"
     " FROM bookings b"
     " JOIN slots s ON s.id = b.slot_id"
     " JOIN procurement_centres c ON c.id = s.centre_id"

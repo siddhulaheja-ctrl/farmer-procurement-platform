@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ 'hi' if lang() == 'hi' else 'en' }}">
+<html lang="{{ lang() }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -33,11 +33,16 @@
         <button type="button" data-fontstep="1" aria-pressed="true" title="{{ t("Normal text size") }}">A</button>
         <button type="button" data-fontstep="3" aria-pressed="false" title="{{ t("Larger text") }}">A<sup>+</sup></button>
       </span>
-      <span class="util-group langswitch">
-        {{ icon('globe') }}
-        <a href="{{ url_for('set_lang', code='en') }}" class="{{ 'on' if lang() == 'en' }}" lang="en">English</a>
-        <a href="{{ url_for('set_lang', code='hi') }}" class="{{ 'on' if lang() == 'hi' }}" lang="hi">हिन्दी</a>
-      </span>
+      {# a menu, not a row of links, so the strip stays short as languages are added.
+         details/summary opens without script; a11y.js closes it on an outside tap #}
+      <details class="langmenu">
+        <summary title="{{ t('Language') }}">{{ icon('globe') }}<span lang="{{ lang() }}">{{ languages[lang()] }}</span>{{ icon('chevron-down') }}</summary>
+        <ul>
+          {% for code, name in languages.items() %}
+          <li><a href="{{ url_for('set_lang', code=code) }}" lang="{{ code }}"{% if lang() == code %} class="on" aria-current="true"{% endif %}>{{ name }}</a></li>
+          {% endfor %}
+        </ul>
+      </details>
     </span>
   </div>
 </div>
@@ -57,9 +62,9 @@
     {% if not g.staff %}
     <nav class="mainnav" aria-label="{{ t('Main menu') }}">
       {% if g.farmer %}
-        <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint in ('farmer_dashboard', 'farmer_booking', 'farmer_gatepass') }}">{{ icon('grid') }}{{ t("Dashboard") }}</a>
+        <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint in ('farmer_dashboard', 'farmer_booking', 'farmer_gatepass', 'farmer_phone_pass') }}">{{ icon('grid') }}{{ t("Dashboard") }}</a>
         <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if request.endpoint in ('farmer_centres','farmer_centre') }}">{{ icon('calendar-plus') }}{{ t("Book a Slot") }}</a>
-        <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if request.endpoint == 'farmer_payments' }}">{{ icon('wallet') }}{{ t("Payments") }}</a>
+        <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if request.endpoint in ('farmer_payments', 'farmer_payment', 'farmer_receipt') }}">{{ icon('wallet') }}{{ t("Payments") }}</a>
         <a href="{{ url_for('farmer_alerts_page') }}" class="{{ 'active' if request.endpoint == 'farmer_alerts_page' }}">{{ icon('bell') }}{{ t("Alerts") }}{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
         <a href="{{ url_for('farmer_profile') }}" class="{{ 'active' if request.endpoint == 'farmer_profile' }}">{{ icon('id-card') }}{{ t("My Details") }}</a>
       {% else %}
@@ -94,10 +99,11 @@
     <a href="{{ url_for('super_activity') }}" class="{{ 'active' if request.endpoint == 'super_activity' }}">{{ icon('list') }}Activity log</a>
     {% endif %}
     <span class="side-label">Today</span>
-    <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint in ('admin_dashboard', 'admin_booking') }}">{{ icon('grid') }}Bookings</a>
+    <a href="{{ url_for('admin_gate') }}" class="{{ 'active' if request.endpoint == 'admin_gate' }}">{{ icon('scan') }}Gate scan</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint in ('admin_dashboard', 'admin_booking', 'admin_receipt') }}">{{ icon('grid') }}Bookings</a>
     <a href="{{ url_for('admin_slots') }}" class="{{ 'active' if request.endpoint == 'admin_slots' }}">{{ icon('layers') }}Slots</a>
     <span class="side-label">Money and records</span>
-    <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if request.endpoint == 'admin_transactions' }}">{{ icon('receipt') }}Transactions</a>
+    <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if request.endpoint == 'admin_transactions' }}">{{ icon('receipt') }}Payments</a>
     <a href="{{ url_for('admin_flags') }}" class="{{ 'active' if request.endpoint == 'admin_flags' }}">{{ icon('flag') }}Data flags</a>
     {% if g.staff.role != 'superadmin' %}
     <a href="{{ url_for('admin_storage_risk') }}" class="{{ 'active' if request.endpoint == 'admin_storage_risk' }}">{{ icon('cloud-rain') }}Storage risk</a>
@@ -114,9 +120,21 @@
 
   <main class="page {{ '' if staff_layout else 'wrap' }}" id="main">
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
+      {% for category, message in messages if not category.startswith('toast-') %}
         <div class="notice {{ category if category in ['success','warning','error','info'] else 'info' }}" role="status">{{ message }}</div>
       {% endfor %}
+      {# toasts pop up in a corner and go away by themselves (toast.js):
+         for something that just happened, like a slot being booked #}
+      <div class="toasts">
+        {% for category, message in messages if category.startswith('toast-') %}
+        {% set kind = category[6:] %}
+        <div class="toast {{ kind }}" role="status">
+          {{ icon('check' if kind == 'success' else 'alert-triangle') }}
+          <span class="toast-text">{{ message }}</span>
+          <button type="button" class="toast-close" title="{{ t('Close') }}" hidden>{{ icon('x') }}<span class="sr">{{ t("Close") }}</span></button>
+        </div>
+        {% endfor %}
+      </div>
     {% endwith %}
 
     {% block content %}{% endblock %}
@@ -164,6 +182,9 @@
           <li>Smart India Hackathon 2026<br>{{ t("Problem statement") }} 26032</li>
           <li>{{ t("Last updated on") }} <strong>{{ last_updated.strftime('%d-%m-%Y') }}</strong></li>
           <li>{{ t("Visitors") }} <span class="counter">{{ '%08d'|format(visits) }}</span></li>
+          {% if not g.farmer and not g.staff %}
+          <li><a href="{{ url_for('super_login') }}">District supervisor sign in</a></li>
+          {% endif %}
         </ul>
       </div>
     </div>
@@ -184,7 +205,9 @@
     <div class="demo-note">{{ t("Prototype. All data shown is sample data.") }}</div>
   </div>
 </footer>
+{% if not g.staff %}{% include "_assistant.html" %}{% endif %}
 {# per-page scripts go last, so nothing waits on them #}
+<script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

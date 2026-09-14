@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import payment_badge, grade_badge, crop %}
+{% from "_macros.html" import stage_badge, grade_badge, crop %}
 {% block title %}{{ t("Payments") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
@@ -7,9 +7,9 @@
   <div class="ph-text"><h1 class="page-title">{{ t("Payments") }}</h1></div>
 </div>
 
-{% set received = rows|selectattr('payment_status', 'equalto', 'completed')|map(attribute='total_amount')|select|sum %}
-{% set waiting = rows|selectattr('payment_status', 'in', ['pending', 'processing'])|map(attribute='total_amount')|select|sum %}
-{% set held = rows|selectattr('payment_status', 'equalto', 'failed')|list|length %}
+{% set received = rows|selectattr('pay_stage', 'equalto', 'credited')|map(attribute='total_amount')|select|sum %}
+{% set waiting = rows|selectattr('pay_stage', 'in', ['weighed', 'billed', 'sent'])|map(attribute='total_amount')|select|sum %}
+{% set held = rows|selectattr('pay_stage', 'in', ['held', 'returned'])|list|length %}
 
 <div class="stat-row">
   <div class="stat {{ 'good' if received else 'zero' }}">
@@ -19,7 +19,7 @@
     <div><div class="n">{{ waiting|rupee if waiting else t("Nothing yet") }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
   </div>
   <div class="stat {{ 'bad' if held else 'zero' }}">
-    <div><div class="n">{{ held }}</div><div class="l">{{ t("Payments held") }}</div></div>
+    <div><div class="n">{{ held }}</div><div class="l">{{ t("Held or returned") }}</div></div>
   </div>
   <div class="stat {{ 'info' if rows else 'zero' }}">
     <div><div class="n">{{ rows|length }}</div><div class="l">{{ t("Transactions") }}</div></div>
@@ -32,21 +32,20 @@
     <table class="data">
       <thead>
         <tr><th>{{ t("Date") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Crop") }}</th><th class="num">{{ t("Quantity") }}</th>
-            <th>{{ t("Grade") }}</th><th class="num">{{ t("Rate") }}</th><th class="num">{{ t("Amount") }}</th>
-            <th>{{ t("Status") }}</th><th>{{ t("Credited") }}</th></tr>
+            <th>{{ t("Grade") }}</th><th class="num">{{ t("Amount") }}</th><th>{{ t("Status") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for r in rows %}
-        <tr>
+        <tr class="{{ 'row-high' if r.pay_stage in ('held', 'returned') }}">
           <td class="nowrap">{{ r.date|nicedate }}</td>
           <td><strong>{{ t(r.centre_name) }}</strong><span class="sub-line mono">{{ r.token_no }}</span></td>
           <td>{{ crop(r.crop_type) }}</td>
-          <td class="num nowrap">{{ '%.1f'|format(r.actual_quantity or 0) }} {{ t("qtl") }}</td>
+          <td class="num nowrap">{{ '%.2f'|format(r.actual_quantity or 0) }} {{ t("qtl") }}</td>
           <td>{{ grade_badge(r.quality_grade) }}</td>
-          <td class="num nowrap">{{ r.price_per_unit|rupee }}</td>
           <td class="num nowrap money">{{ r.total_amount|rupee }}</td>
-          <td>{{ payment_badge(r.payment_status) }}</td>
-          <td class="small muted nowrap">{{ r.payment_date|stamp if r.payment_date else '—' }}</td>
+          <td>{{ stage_badge(r.pay_stage) }}
+            {% if r.utr %}<span class="sub-line mono">UTR {{ r.utr }}</span>{% endif %}</td>
+          <td><a class="btn small secondary" href="{{ url_for('farmer_payment', txn_id=r.id) }}">{{ t("Details") }}{{ icon('chevron-right') }}</a></td>
         </tr>
         {% endfor %}
       </tbody>

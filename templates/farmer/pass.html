@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Pass") }} {{ b.token_no }}{% endblock %}
+
+{# The gate pass on the farmer's own phone: the code as big as the screen
+   allows, on white, so a gate scanner reads it in sunlight. #}
+{% block content %}
+<div class="phone-pass">
+  <p class="pp-say">{{ t("Show this at the gate") }}</p>
+  <div class="pp-qr">{{ qr_svg|safe }}</div>
+  <div class="pp-token">{{ b.token_no }}</div>
+  <div class="pp-when">{{ t(b.centre_name) }}<br>{{ b.date|nicedate }} ({{ b.date|dayname }}) &middot; {{ b.time_window }}</div>
+  <p class="pp-hint">{{ t("Turn your screen brightness up. If the code will not scan, read out the token number.") }}</p>
+  <div class="btn-row center no-print">
+    <a class="btn secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ icon('arrow-left') }}{{ t("Back to booking") }}</a>
+    <a class="btn ghost" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ icon('printer') }}{{ t("Print instead") }}</a>
+  </div>
+</div>
+{% endblock %}

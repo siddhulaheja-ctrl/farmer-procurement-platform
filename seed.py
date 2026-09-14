@@ -18,6 +18,7 @@ from datetime import date, datetime, timedelta
 import core
 import db
 import env
+import payments
 import weather
 from accounts import DEMO_PASSWORD, DEMO_STAFF, hash_password
 from alerts import hi
@@ -42,8 +43,10 @@ CASES = """
   2  Ravi Kumar              clean, slot 9 days out           -> storage risk + rain call
   3  Mayank Verma            warning flags (name, land id)    -> payment still clears
   4  Vivek Kumar             blocking flags (aadhaar, ifsc)   -> payment HELD, documents call
-  5  Aayush Raj              registered at a CSC counter      -> arrived, grade B price cut
-  6  Siddharth Laheja        history: paid, cancelled, upcoming
+  5  Aayush Raj              registered at a CSC counter      -> in at the gate, weighed, grade B -> close,
+                                                                 send batch, credited with a UTR 30s later
+  6  Siddharth Laheja        history: bill waiting 4 days (late), cancelled, upcoming
+  2  Ravi Kumar (again)      aadhaar not linked to his bank   -> payment RETURNED; tick "linked", send again
 """
 
 # name, env var holding the phone, village, district, how they registered
@@ -127,13 +130,104 @@ class Seeder:
                          ("PC%02d-S%03d-%03d" % (self.centres[centre], sid, seq), bid))
 
         if grade is not None:
-            rate, total = core.compute_amount(crop, actual, grade)
-            paid = datetime.now().isoformat(timespec="seconds") if payment == "completed" else None
-            self.cur.execute(
-                "INSERT INTO transactions (booking_id, actual_quantity, quality_grade,"
-                " price_per_unit, total_amount, payment_status, payment_date)"
-                " VALUES (?,?,?,?,?,?,?)", (bid, actual, grade, rate, total, payment, paid))
+            self.transaction(bid, centre, day, window, crop, actual, grade, payment)
         return bid
+
+    def transaction(self, bid, centre, day, window, crop, net, grade, stage, moisture=None):
+        """The weighbridge record, the gate, and however far the money got.
+        `stage` is one of payments.STAGES."""
+        cur = self.cur
+        rate, total = core.compute_amount(crop, net, grade)
+        bags = int(round(net * 2))              # 50 kg bags
+        gross = round(net + bags * 0.6 / 100, 2)
+        limit = core.MOISTURE_MAX.get(crop, 14.0)
+        if moisture is None:
+            moisture = {"A": limit - 2.5, "FAQ": limit - 0.8, "B": limit + 1.2, "Rejected": limit + 3.4}[grade]
+        foreign = {"A": 0.2, "FAQ": 0.5, "B": 0.9, "Rejected": 2.6}[grade]
+
+        start = datetime.combine(workday(day), datetime.strptime(TIME_WINDOWS[window][:5], "%H:%M").time())
+        latest = datetime.now() - timedelta(minutes=20)
+
+        def when(minutes):
+            # today's history can't have happened later than now, or before
+            # midnight either when the seed is run in the small hours
+            t = start + timedelta(minutes=minutes)
+            if day != 0:
+                return t
+            t = min(t, latest - timedelta(minutes=60 - minutes))
+            midnight = datetime.combine(date.today(), datetime.min.time())
+            return max(t, midnight + timedelta(minutes=minutes / 10.0))
+
+        def iso(t):
+            return t.isoformat(timespec="seconds") if t else None
+
+        gate_in, weighed = when(5), when(38)
+        closed = when(56) if stage != "weighed" else None
+        centre_id = self.centres[centre]
+        staff = cur.execute("SELECT id FROM staff WHERE centre_id = ? ORDER BY id LIMIT 1",
+                            (centre_id,)).fetchone()
+        staff_id = staff["id"] if staff else None
+
+        queue = cur.execute("SELECT COUNT(*) c FROM bookings b JOIN slots s ON s.id = b.slot_id"
+                            " WHERE s.centre_id = ? AND substr(b.gate_in_at, 1, 10) = ?",
+                            (centre_id, gate_in.date().isoformat())).fetchone()["c"] + 1
+        cur.execute("UPDATE bookings SET gate_in_at = ?, gate_queue = ? WHERE id = ?", (iso(gate_in), queue, bid))
+        cur.execute("INSERT INTO booking_events (booking_id, kind, detail, staff_id, centre_id, at)"
+                    " VALUES (?, 'gate_in', ?, ?, ?, ?)", (bid, "Queue no. %d" % queue, staff_id, centre_id, iso(gate_in)))
+
+        cur.execute(
+            "INSERT INTO transactions (booking_id, actual_quantity, quality_grade, price_per_unit, total_amount,"
+            " payment_status, gross_weight, bags, bag_weight_kg, moisture, foreign_matter, pay_stage,"
+            " weighed_at, closed_at) VALUES (?,?,?,?,?,?,?,?,0.6,?,?,?,?,?)",
+            (bid, net, grade, rate, total, payments.status_for(stage), gross, bags, round(moisture, 1), foreign,
+             stage, iso(weighed), iso(closed)))
+        tid = cur.lastrowid
+
+        def event(stage_name, detail, at, who=staff_id):
+            cur.execute("INSERT INTO payment_events (transaction_id, stage, detail, staff_id, at) VALUES (?,?,?,?,?)",
+                        (tid, stage_name, detail, who, iso(at)))
+
+        event("weighed", "%.2f q gross, %d bags, %.2f q net, moisture %.1f%%, grade %s"
+              % (gross, bags, net, moisture, grade), weighed)
+        if closed is None:
+            return tid
+
+        receipt = "KS/PC%02d/%d/%06d" % (centre_id, start.year, tid)
+        bill = "BL-%s-%06d" % (closed.strftime("%y%m%d"), tid) if total else None
+        cur.execute("UPDATE transactions SET receipt_no = ?, bill_no = ? WHERE id = ?", (receipt, bill, tid))
+        event("closed", "Receipt %s issued" % receipt, closed)
+        gate_out = closed + timedelta(minutes=9)
+        cur.execute("UPDATE bookings SET gate_out_at = ? WHERE id = ?", (iso(gate_out), bid))
+        cur.execute("INSERT INTO booking_events (booking_id, kind, staff_id, centre_id, at) VALUES (?, 'gate_out', ?, ?, ?)",
+                    (bid, staff_id, centre_id, iso(gate_out)))
+
+        if stage == "nil":
+            event("nil", "Rejected at grade check, nothing payable", closed)
+        elif stage == "held":
+            event("held", "Held: aadhaar, bank to be fixed first", closed)
+        elif stage == "billed":
+            event("billed", "Bill ready for the bank", closed)
+        elif stage == "credited":
+            # marked paid by hand, no bank reference - the override the supervisor should notice
+            event("billed", "Bill ready for the bank", closed)
+            settled = closed + timedelta(days=1, hours=7)
+            event("credited", "Set by hand: bank confirmed the credit on the phone", settled)
+            cur.execute("UPDATE transactions SET settled_at = ?, payment_date = ? WHERE id = ?",
+                        (iso(settled), iso(settled), tid))
+        elif stage == "returned":
+            event("billed", "Bill ready for the bank", closed)
+            sent = closed + timedelta(hours=3)
+            cur.execute("INSERT INTO payment_batches (batch_no, centre_id, staff_id, items, amount, created_at)"
+                        " VALUES ('', ?, ?, 1, ?, ?)", (centre_id, staff_id, total, iso(sent)))
+            batch_id = cur.lastrowid
+            batch_no = "B-%s-%04d" % (sent.strftime("%y%m%d"), batch_id)
+            cur.execute("UPDATE payment_batches SET batch_no = ? WHERE id = ?", (batch_no, batch_id))
+            event("sent", "Sent to bank in batch %s" % batch_no, sent)
+            back = sent + timedelta(seconds=payments.CREDIT_SECONDS)
+            event("returned", payments.RETURNS["AADHAAR_NOT_SEEDED"][0], back, who=None)
+            cur.execute("UPDATE transactions SET batch_id = ?, sent_at = ?, settled_at = ?, attempts = 1,"
+                        " return_code = 'AADHAAR_NOT_SEEDED' WHERE id = ?", (batch_id, iso(sent), iso(back), tid))
+        return tid
 
     def alert(self, who, kind, channel, message, booking_id=None, days_ago=0, hi=None):
         self.cur.execute(
@@ -187,6 +281,9 @@ def build_farmers(cur, s, now):
             " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (name, phone, aadhaar, acct, ifsc, on_acct, land, village, district, via, now))
         s.farmers[name] = cur.lastrowid
+    # nothing the portal checks can see this one - only the bank's answer does
+    if "Ravi Kumar" in s.farmers:
+        cur.execute("UPDATE farmers SET aadhaar_seeded = 0 WHERE id = ?", (s.farmers["Ravi Kumar"],))
     return missing
 
 
@@ -220,17 +317,26 @@ def build_bookings(s):
             booking_id=b, days_ago=1,
             hi="स्लॉट पक्का: रुद्रपुर मंडी समिति। गेट पास और आधार कार्ड साथ लाएं।")
     s.booking("Chandra Bhushan Kumar", "Rudrapur Mandi Samiti", -3, "Paddy", 18, window=2,
-              status="completed", grade="Rejected", actual=17.4, payment="failed")
+              status="completed", grade="Rejected", actual=17.4, payment="nil")
 
     # 2. ravi - far enough out for the weather check to matter
     b = s.booking("Ravi Kumar", "Kichha Kharid Kendra", 9, "Paddy", 60, window=1)
     s.alert("Ravi Kumar", "booking_confirmed", "app",
             "Slot confirmed at Kichha Kharid Kendra.", booking_id=b, days_ago=2,
             hi="स्लॉट पक्का: किच्छा खरीद केंद्र।")
+    # and yesterday's load, whose payment the bank sent back: his aadhaar
+    # isn't linked to the account. every check the portal runs passed
+    b = s.booking("Ravi Kumar", "Kichha Kharid Kendra", -1, "Paddy", 40, window=0,
+                  status="completed", grade="A", actual=39.6, payment="returned")
+    s.alert("Ravi Kumar", "payment_update", "app",
+            "Your payment of Rs 91,080 came back from the bank: Aadhaar is not linked to this bank account. "
+            "Ask your bank branch to link your Aadhaar to the account. Tell the centre once it is done.",
+            booking_id=b, days_ago=0,
+            hi="₹91080 का भुगतान बैंक से वापस आ गया: आधार इस बैंक खाते से जुड़ा नहीं है। अपने खरीद केंद्र से संपर्क करें।")
 
-    # 3. mayank - warnings only, money still went out
+    # 3. mayank - warnings only, money still went out (marked by hand, see build_history)
     b = s.booking("Mayank Verma", "Haridwar Kharid Kendra", -2, "Wheat", 35,
-                  status="completed", grade="FAQ", actual=34.2, payment="completed")
+                  status="completed", grade="FAQ", actual=34.2, payment="credited")
     s.alert("Mayank Verma", "payment_update", "app",
             "Payment of 82935.00 has been credited to your bank account.",
             booking_id=b, days_ago=1, hi="₹82935 आपके बैंक खाते में जमा हो गए।")
@@ -238,7 +344,7 @@ def build_bookings(s):
 
     # 4. vivek - blocking flags, so the payment got held
     b = s.booking("Vivek Kumar", "Haridwar Kharid Kendra", -3, "Paddy", 48, window=3,
-                  status="completed", grade="A", actual=47.1, payment="failed")
+                  status="completed", grade="A", actual=47.1, payment="held")
     s.alert("Vivek Kumar", "payment_update", "app",
             "Procurement completed but PAYMENT HELD: 2 unresolved detail(s) - aadhaar, bank. "
             "Visit the centre with correct documents to release the payment.",
@@ -248,7 +354,7 @@ def build_bookings(s):
 
     # 5. aayush - booked at a csc counter, weighed in this morning
     b = s.booking("Aayush Raj", "Rudrapur Mandi Samiti", 0, "Wheat", 28, window=1,
-                  status="arrived", grade="B", actual=26.8, payment="pending")
+                  status="arrived", grade="B", actual=26.8, payment="weighed")
     s.alert("Aayush Raj", "payment_update", "app",
             "Produce weighed at the centre: 26.8 quintals of Wheat, grade B. "
             "Provisional value 61090.60. Awaiting transaction completion.", booking_id=b,
@@ -256,11 +362,11 @@ def build_bookings(s):
 
     # 6. siddharth - some history
     b = s.booking("Siddharth Laheja", "Vikasnagar Grain Market", -4, "Wheat", 25,
-                  status="completed", grade="A", actual=25.6, payment="processing")
+                  status="completed", grade="A", actual=25.6, payment="billed")
     s.alert("Siddharth Laheja", "payment_update", "app",
-            "Transaction complete. 62080.00 is being credited to your registered bank account. "
-            "Expect credit within 48-72 hours.", booking_id=b, days_ago=3,
-            hi="लेनदेन पूरा। ₹62080 आपके बैंक खाते में 2-3 दिन में जमा होगा।")
+            "Transaction complete. Rs 62,080 will be sent to your registered bank account in the centre's next "
+            "payment batch.", booking_id=b, days_ago=3,
+            hi="लेनदेन पूरा। ₹62080 केंद्र के अगले भुगतान बैच में आपके बैंक खाते में भेजे जाएंगे।")
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", -1, "Gram", 12, status="cancelled")
     s.booking("Siddharth Laheja", "Vikasnagar Grain Market", 6, "Gram", 20, window=2)
 
@@ -269,7 +375,7 @@ def build_bookings(s):
     # land behind him and Chandra ends up last with the full picture.
     shared = ("Rudrapur Mandi Samiti", 0, 1)     # centre, today, second window
     s.booking("Vivek Kumar", shared[0], shared[1], "Paddy", 32, window=shared[2],
-              status="arrived", grade="FAQ", actual=31.5, payment="pending")
+              status="arrived", grade="FAQ", actual=31.5, payment="weighed")
     s.booking("Mayank Verma", shared[0], shared[1], "Wheat", 22, window=shared[2])
     s.booking("Chandra Bhushan Kumar", shared[0], shared[1], "Wheat", 26, window=shared[2])
 
@@ -344,8 +450,8 @@ def build_history(cur, s):
     b, txn = booking("Mayank Verma", "Haridwar Kharid Kendra", "completed")
     log("HAR01", "weigh", 2, "08:42", "Mayank Verma", b, detail="34.2 quintals of Wheat, grade FAQ")
     log("HAR01", "close", 2, "08:57", "Mayank Verma", b, detail="Rs 82,935 to be paid")
-    log("HAR01", "payment_manual", 1, "16:05", "Mayank Verma", b, ref=txn, detail="Rs 82,935",
-        before="processing", after="completed")
+    log("HAR01", "payment_manual", 1, "16:05", "Mayank Verma", b, ref=txn,
+        detail="Rs 82,935 - bank confirmed the credit on the phone", before="Bill ready", after="Credited")
     for days_ago, hhmm, who, field, detail, sev in (
             (6, "11:20", "Mayank Verma", "land", "Land record ID 'UK/1102' does not match the state format.", "warning"),
             (4, "13:45", "Vivek Kumar", "name_match", "Registered name does not match bank account holder (61% match).", "warning"),

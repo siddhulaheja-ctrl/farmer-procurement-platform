@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crop_name %}
+{% block title %}{{ t("Purchase receipt") }} {{ x.receipt_no }}{% endblock %}
+
+{# The purchase receipt (kharid parchi) the farmer takes home. Printed like the
+   gate pass. The QR lets anyone check it is genuine and the amount untouched. #}
+{% block content %}
+<nav class="breadcrumb no-print" aria-label="Breadcrumb">
+  <a href="{{ back }}">{{ icon('arrow-left') }}{{ x.token_no }}</a>{{ icon('chevron-right') }}<span>{{ t("Purchase receipt") }}</span>
+</nav>
+
+<div class="gatepass receipt">
+  <header class="gp-head">
+    <img class="gp-crest" src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="48" height="48" alt="">
+    <div class="gp-title">
+      <div class="gp-org">{{ t("Government procurement centre") }} &middot; {{ t(x.centre_name) }}</div>
+      <h2>{{ t("Purchase receipt") }}</h2>
+    </div>
+    <div class="gp-ref">
+      <div>{{ t("Form") }} KS-PR-1</div>
+      <div>{{ t("Receipt no.") }} <b>{{ x.receipt_no }}</b></div>
+      <div>{{ x.closed_at|stamp if x.closed_at else '' }}</div>
+    </div>
+  </header>
+
+  <section class="gp-main">
+    <div class="gp-token">
+      <div class="k">{{ t("Amount payable") }}</div>
+      <div class="t">{{ x.total_amount|rupee }}</div>
+      <div class="gp-when">{{ t("To") }} {{ bank }} &middot; {{ t("Token") }} {{ x.token_no }}</div>
+    </div>
+    <div class="qr-box">
+      {{ qr_svg|safe }}
+      <div class="k">{{ t("Scan to check it is genuine") }}</div>
+    </div>
+  </section>
+
+  <table class="gp-form">
+    <caption>{{ t("Seller") }}</caption>
+    <tbody>
+      <tr><th>{{ t("Farmer") }}</th><td>{{ x.farmer_name }}</td>
+          <th>{{ t("Registration no.") }}</th><td class="mono">{{ reg_no(x.farmer_id) }}</td></tr>
+      <tr><th>{{ t("Village / district") }}</th><td>{{ t(x.village) }}, {{ t(x.district) }}</td>
+          <th>{{ t("Slot") }}</th><td>{{ x.date|nicedate }}, {{ x.time_window }}</td></tr>
+    </tbody>
+  </table>
+
+  <table class="gp-form">
+    <caption>{{ t("Weighbridge and quality check") }}</caption>
+    <tbody>
+      <tr><th>{{ t("Crop") }}</th><td>{{ crop_name(x.crop_type) }}</td>
+          <th>{{ t("Gross weight") }}</th><td>{{ '%.2f'|format(x.gross_weight or x.actual_quantity or 0) }} {{ t("quintals") }}</td></tr>
+      <tr><th>{{ t("Bags") }}</th><td>{{ x.bags if x.bags is not none else '—' }}{% if x.bags %} &times; {{ '%.2f'|format(x.bag_weight_kg or 0) }} kg{% endif %}</td>
+          <th>{{ t("Net weight") }}</th><td><b>{{ '%.2f'|format(x.actual_quantity or 0) }} {{ t("quintals") }}</b></td></tr>
+      <tr><th>{{ t("Moisture") }}</th><td>{{ '%.1f%%'|format(x.moisture) if x.moisture is not none else '—' }}</td>
+          <th>{{ t("Foreign matter") }}</th><td>{{ '%.2f%%'|format(x.foreign_matter) if x.foreign_matter is not none else '—' }}</td></tr>
+      <tr><th>{{ t("Quality grade") }}</th><td><b>{{ t(x.quality_grade) }}</b></td>
+          <th>{{ t("Rate applied") }}</th><td>{{ x.price_per_unit|rupee }} {{ t("per quintal") }}</td></tr>
+      <tr><th>{{ t("Amount payable") }}</th><td colspan="3"><b>{{ x.total_amount|rupee }}</b>
+          &middot; {{ t("paid by the government directly into the bank account above (DBT)") }}</td></tr>
+    </tbody>
+  </table>
+
+  <table class="gp-form gp-fill">
+    <tbody>
+      <tr class="gp-sign"><th>{{ t("Farmer signature or thumb impression") }}</th><td></td>
+          <th>{{ t("Weighbridge clerk") }}</th><td></td></tr>
+    </tbody>
+  </table>
+  <p class="gp-note">{{ t("Keep this receipt until the money reaches your account.") }}
+    {% if x.bill_no %}{{ t("Bill") }} {{ x.bill_no }}.{% endif %}</p>
+</div>
+
+<div class="btn-row center no-print mt">
+  <button class="btn large" type="button" onclick="window.print()">{{ icon('printer') }}{{ t("Print receipt") }}</button>
+  <a class="btn secondary large" href="{{ back }}">{{ icon('arrow-left') }}{{ t("Back") }}</a>
+</div>
+{% endblock %}

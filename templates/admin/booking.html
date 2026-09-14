@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, grade_badge, track, crop, flag_list %}
+{% from "_macros.html" import status_badge, stage_badge, risk_badge, grade_badge, track, crop, flag_list %}
 {% block title %}Verify {{ b.token_no }}{% endblock %}
 
 {% block content %}
@@ -15,6 +15,7 @@
       <span>{{ icon('building') }}{{ b.centre_name }}</span>
       <span>{{ icon('calendar') }}{{ b.date|nicedate }}, {{ b.time_window }}</span>
       <span>{{ status_badge(b.status) }}</span>
+      {% if b.gate_in_at %}<span>{{ icon('scan') }}In at {{ b.gate_in_at[11:16] }}, queue no. {{ b.gate_queue }}</span>{% endif %}
       {% if b.storage_risk != 'none' %}<span>{{ risk_badge(b.storage_risk) }}</span>{% endif %}
     </div>
   </div>
@@ -35,90 +36,223 @@
 
 <div class="grid side">
   <div class="stack">
+    {# 1. the weighbridge #}
     <div class="card stepcard">
-      <div class="card-head"><h2 class="card-title"><span class="stepnum">1</span>Record arriving produce</h2>{{ crop(b.crop_type) }}</div>
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">1</span>Weigh and grade</h2>{{ crop(b.crop_type) }}</div>
       <div class="card-body">
         {% if b.status == 'booked' %}
-        <form method="post" action="{{ url_for('admin_arrive', booking_id=b.id) }}">
-          <div class="field-row two">
+        {% if not b.gate_in_at %}
+        <p class="notice info small">Not scanned in at the gate yet. Weighing now marks them as arrived.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('admin_arrive', booking_id=b.id) }}" id="weigh-form"
+              data-msp="{{ msp.get(b.crop_type, 2000) }}" data-limit="{{ moisture_max }}"
+              data-faq="{{ foreign_faq }}" data-b="{{ foreign_b }}">
+          <div class="field-row three">
             <div class="field">
-              <label for="actual_quantity">Weighed quantity (quintals) <span class="req">*</span></label>
-              <input type="number" id="actual_quantity" name="actual_quantity" step="0.1" min="0"
-                     value="{{ '%.1f'|format(b.estimated_quantity) }}" required>
+              <label for="gross_weight">Gross weight (quintals) <span class="req">*</span></label>
+              <input type="number" id="gross_weight" name="gross_weight" step="0.01" min="0"
+                     value="{{ '%.2f'|format(b.estimated_quantity + b.estimated_quantity * 2 * 0.6 / 100) }}" required>
             </div>
             <div class="field">
-              <label for="quality_grade">Quality grade <span class="req">*</span></label>
+              <label for="bags">Bags <span class="req">*</span></label>
+              <input type="number" id="bags" name="bags" step="1" min="0" value="{{ (b.estimated_quantity * 2)|round|int }}" required>
+            </div>
+            <div class="field">
+              <label for="bag_weight_kg">Empty bag (kg each)</label>
+              <input type="number" id="bag_weight_kg" name="bag_weight_kg" step="0.05" min="0" max="5" value="0.60" required>
+            </div>
+          </div>
+          <div class="field-row three">
+            <div class="field">
+              <label for="moisture">Moisture (%) <span class="req">*</span></label>
+              <input type="number" id="moisture" name="moisture" step="0.1" min="0" max="40" required>
+              <div class="hint">Up to {{ moisture_max }}% is fair average quality for {{ b.crop_type }}.</div>
+            </div>
+            <div class="field">
+              <label for="foreign_matter">Foreign matter (%) <span class="req">*</span></label>
+              <input type="number" id="foreign_matter" name="foreign_matter" step="0.05" min="0" max="30" value="0.20" required>
+            </div>
+            <div class="field">
+              <label for="quality_grade">Grade <span class="req">*</span></label>
               <select id="quality_grade" name="quality_grade" required>
                 {% for gr in grades %}<option value="{{ gr }}">{{ gr }}</option>{% endfor %}
               </select>
-              <div class="hint">MSP for {{ b.crop_type }}: {{ msp.get(b.crop_type, 0)|rupee }} per quintal.
-                Grade B is paid at 94%, rejected produce at nil.</div>
+              <div class="hint" id="suggested">Enter moisture for a suggested grade.</div>
             </div>
           </div>
-          <button class="btn" type="submit">{{ icon('scale') }}Mark as arrived and record</button>
+          <div class="field" id="grade-note-field" hidden>
+            <label for="grade_note">Why a different grade from the readings? <span class="req">*</span></label>
+            <input type="text" id="grade_note" name="grade_note" placeholder="e.g. broken grains over the limit, checked by hand">
+            <div class="hint">Goes in the activity log for the supervisor.</div>
+          </div>
+          <div class="weigh-preview" id="weigh-preview" aria-live="polite">
+            <span>Net <b data-out="net">—</b> q</span>
+            <span>Rate <b data-out="rate">—</b></span>
+            <span>Amount <b data-out="amount">—</b></span>
+          </div>
+          <button class="btn" type="submit">{{ icon('scale') }}Record weighing</button>
         </form>
+        {% elif txn %}
+          <div class="facts four">
+            <div class="fact"><div class="k">Gross</div><div class="v">{{ '%.2f'|format(txn.gross_weight or txn.actual_quantity or 0) }} <small>q</small></div></div>
+            <div class="fact"><div class="k">Bags</div><div class="v">{{ txn.bags if txn.bags is not none else '—' }}{% if txn.bags %} <small>&times; {{ '%.2f'|format(txn.bag_weight_kg or 0) }} kg</small>{% endif %}</div></div>
+            <div class="fact"><div class="k">Moisture / foreign</div><div class="v">{{ '%.1f'|format(txn.moisture) if txn.moisture is not none else '—' }}<small>%</small> / {{ '%.2f'|format(txn.foreign_matter) if txn.foreign_matter is not none else '—' }}<small>%</small></div></div>
+            <div class="fact"><div class="k">Net, grade</div><div class="v">{{ '%.2f'|format(txn.actual_quantity or 0) }} <small>q</small> {{ grade_badge(txn.quality_grade) }}</div></div>
+          </div>
+          {% if txn.grade_note %}<p class="small muted mt mb0">Grade picked by hand: {{ txn.grade_note }}</p>{% endif %}
         {% else %}
-          <p class="small muted mb0">
-            Recorded: {{ '%.1f'|format(txn.actual_quantity or 0) if txn else '—' }} quintals,
-            {{ grade_badge(txn.quality_grade) if txn else '—' }}.
-          </p>
+          <p class="small muted mb0">Nothing recorded.</p>
         {% endif %}
       </div>
     </div>
 
+    {# 2. closing: the receipt #}
     <div class="card stepcard">
-      <div class="card-head"><h2 class="card-title"><span class="stepnum">2</span>Close the transaction</h2>
-        {% if txn %}{{ payment_badge(txn.payment_status) }}{% endif %}</div>
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">2</span>Close and give the receipt</h2></div>
       <div class="card-body">
         {% if txn %}
           <div class="facts four">
-            <div class="fact"><div class="k">Weighed</div><div class="v">{{ '%.1f'|format(txn.actual_quantity or 0) }} <small>quintals</small></div></div>
+            <div class="fact"><div class="k">Net weight</div><div class="v">{{ '%.2f'|format(txn.actual_quantity or 0) }} <small>quintals</small></div></div>
             <div class="fact"><div class="k">Grade</div><div class="v">{{ grade_badge(txn.quality_grade) }}</div></div>
             <div class="fact"><div class="k">Rate</div><div class="v">{{ txn.price_per_unit|rupee }} <small>per quintal</small></div></div>
             <div class="fact"><div class="k">Total payable</div><div class="v money">{{ txn.total_amount|rupee }}</div></div>
           </div>
           {% if b.status == 'arrived' %}
           <form method="post" action="{{ url_for('admin_complete', booking_id=b.id) }}" class="mt">
-            <button class="btn go large" type="submit">{{ icon('check-circle') }}Complete transaction and release payment</button>
+            <button class="btn go large" type="submit">{{ icon('check-circle') }}Close transaction and issue receipt</button>
           </form>
-          {% elif b.status == 'completed' %}
-          <form method="post" action="{{ url_for('admin_payment', txn_id=txn.id) }}" class="mt">
-            <div class="field">
-              <label for="payment_status">Update payment status</label>
-              <select id="payment_status" name="payment_status">
-                {% for s in ['pending','processing','completed','failed'] %}
-                  <option value="{{ s }}" {{ 'selected' if txn.payment_status == s }}>{{ s|title }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <button class="btn secondary" type="submit">{{ icon('refresh') }}Update</button>
-          </form>
+          {% elif txn.receipt_no %}
+          <div class="btn-row mt">
+            <span class="mono small">Receipt {{ txn.receipt_no }}</span>
+            <a class="btn secondary small" href="{{ url_for('admin_receipt', booking_id=b.id) }}">{{ icon('printer') }}Print receipt</a>
+          </div>
           {% endif %}
         {% else %}
-          <p class="small muted mb0">Record the weighed quantity first.</p>
+          <p class="small muted mb0">Weigh the load first.</p>
         {% endif %}
       </div>
     </div>
+
+    {# 3. the money #}
+    {% if txn and b.status == 'completed' %}
+    <div class="card stepcard">
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">3</span>Payment</h2>{{ stage_badge(txn.pay_stage) }}</div>
+      <div class="card-body">
+        {% if late %}<div class="notice warning small">Closed {{ txn.closed_at|stamp }} and still not in the farmer's account - past the 72-hour promise.</div>{% endif %}
+
+        {% if txn.pay_stage == 'billed' %}
+          <p>Bill <span class="mono">{{ txn.bill_no }}</span> is ready. Send it now, or it goes with the next batch from the Payments screen.</p>
+          <form method="post" action="{{ url_for('admin_payment_send', txn_id=txn.id) }}">
+            <button class="btn go" type="submit">{{ icon('send') }}Send {{ txn.total_amount|rupee }} to the bank now</button>
+          </form>
+        {% elif txn.pay_stage == 'sent' %}
+          <div class="notice info small" data-wait="{{ wait }}">With the bank (attempt {{ txn.attempts }}). Answer in <b data-wait-left>{{ wait }}</b> s - this page updates by itself.</div>
+        {% elif txn.pay_stage == 'credited' %}
+          <dl class="kv">
+            <dt>Credited to</dt><dd class="mono">{{ bank }}</dd>
+            <dt>UTR</dt><dd class="mono">{{ txn.utr or 'none - set by hand' }}</dd>
+            <dt>When</dt><dd>{{ (txn.settled_at or txn.payment_date)|stamp }}</dd>
+          </dl>
+        {% elif txn.pay_stage == 'returned' %}
+          <div class="notice error small">
+            <h3>Returned: {{ returns[txn.return_code][0] }}</h3>
+            <p>{{ returns[txn.return_code][1] }}</p>
+          </div>
+        {% elif txn.pay_stage == 'held' %}
+          <div class="notice error small"><p>Held because the farmer's record has blocking problems. Fix the record, then release it.</p></div>
+          <form method="post" action="{{ url_for('admin_payment_release', txn_id=txn.id) }}">
+            <button class="btn" type="submit" {{ 'disabled' if flags|selectattr('severity','equalto','blocking')|list }}>{{ icon('check-circle') }}Release payment</button>
+          </form>
+        {% elif txn.pay_stage == 'nil' %}
+          <p class="small muted">Rejected produce. Nothing to pay.</p>
+        {% endif %}
+
+        {% if txn.pay_stage in ('billed', 'returned', 'held') %}
+        <h3 class="sub-head">What the bank will check</h3>
+        <ul class="bank-checks">
+          {% for c in bank_checks %}
+          <li class="{{ 'ok' if c.ok else 'bad' }}">{{ icon('check' if c.ok else 'x') }}<span>{{ c.label }}</span><small>{{ c.detail }}</small></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if txn.pay_stage == 'returned' %}
+        <form method="post" action="{{ url_for('admin_payment_send', txn_id=txn.id) }}" class="btn-row mt">
+          <a class="btn secondary" href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">{{ icon('id-card') }}Fix the record</a>
+          <button class="btn go" type="submit">{{ icon('refresh') }}Send again</button>
+        </form>
+        {% endif %}
+
+        <details class="override mt">
+          <summary>Change the stage by hand</summary>
+          <form method="post" action="{{ url_for('admin_payment', txn_id=txn.id) }}">
+            <div class="field-row two">
+              <div class="field">
+                <label for="stage">Stage</label>
+                <select id="stage" name="stage">
+                  {% for key, s in stages.items() %}<option value="{{ key }}" {{ 'selected' if txn.pay_stage == key }}>{{ s[1] }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label for="reason">Reason <span class="req">*</span></label>
+                <input type="text" id="reason" name="reason" placeholder="e.g. bank confirmed credit by phone" required minlength="8">
+              </div>
+            </div>
+            <button class="btn secondary small" type="submit">Set by hand</button>
+            <p class="hint">Shows in the supervisor's activity log and Needs attention.</p>
+          </form>
+        </details>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
-  <div class="card">
-    <div class="card-head"><h2 class="card-title">Farmer record</h2>
-      <span class="badge grey plain">{{ farmer.registered_via|upper }}</span></div>
-    <div class="card-body">
-      <dl class="kv">
-        <dt>Mobile</dt><dd>{{ farmer.phone_number }}</dd>
-        <dt>Village</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
-        <dt>Aadhaar</dt><dd class="mono">{{ farmer.aadhaar_number or '—' }}</dd>
-        <dt>Bank account</dt><dd class="mono">{{ farmer.bank_account or '—' }}</dd>
-        <dt>IFSC</dt><dd class="mono">{{ farmer.ifsc_code or '—' }}</dd>
-        <dt>Name on account</dt><dd>{{ farmer.bank_name_on_account or '—' }}</dd>
-        <dt>Land record</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
-      </dl>
-      <form method="post" action="{{ url_for('admin_call', booking_id=b.id) }}" class="mt">
-        <button class="btn block" type="submit">{{ icon('phone-call') }}Call farmer about this booking</button>
-      </form>
-      <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">{{ icon('eye') }}Open full record</a>
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">Farmer record</h2>
+        <span class="badge grey plain">{{ farmer.registered_via|upper }}</span></div>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Mobile</dt><dd>{{ farmer.phone_number }}</dd>
+          <dt>Village</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
+          <dt>Aadhaar</dt><dd class="mono">{{ farmer.aadhaar_number or '—' }}</dd>
+          <dt>Bank account</dt><dd class="mono">{{ farmer.bank_account or '—' }} <span class="sub-line">{{ bank }}</span></dd>
+          <dt>IFSC</dt><dd class="mono">{{ farmer.ifsc_code or '—' }}</dd>
+          <dt>Name on account</dt><dd>{{ farmer.bank_name_on_account or '—' }}</dd>
+          <dt>Aadhaar linked to bank</dt><dd>{{ 'Yes' if farmer.aadhaar_seeded else 'No' }}</dd>
+          <dt>Land record</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
+        </dl>
+        <form method="post" action="{{ url_for('admin_call', booking_id=b.id) }}" class="mt">
+          <button class="btn block" type="submit">{{ icon('phone-call') }}Call farmer about this booking</button>
+        </form>
+        <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">{{ icon('eye') }}Open full record</a>
+      </div>
     </div>
+
+    {% if visit %}
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">{{ icon('clock') }}This visit</h2></div>
+      <div class="card-body">
+        <ol class="timeline compact-tl">
+          {% for s in visit %}
+          <li>
+            <span class="tl-ic {{ 'green' if s.kind in ('gate_in', 'pay_credited') else ('red' if s.kind in ('pay_returned', 'pay_held') else ('blue' if s.kind == 'pay_sent' else 'grey')) }}">{{ icon({'gate_in': 'log-in', 'gate_out': 'log-out', 'weighed': 'scale', 'pay_sent': 'send', 'pay_credited': 'check', 'pay_returned': 'alert-triangle', 'pay_held': 'alert-triangle'}.get(s.kind, 'receipt')) }}</span>
+            <div class="tl-body">
+              <div class="tl-meta"><strong>{{ {'gate_in': 'In at the gate', 'gate_out': 'Out at the gate', 'weighed': 'Weighed', 'pay_weighed': 'Weighbridge record', 'pay_closed': 'Closed', 'pay_billed': 'Bill ready', 'pay_sent': 'Sent to bank', 'pay_credited': 'Credited', 'pay_returned': 'Returned by bank', 'pay_held': 'Held', 'pay_nil': 'Nothing payable'}.get(s.kind, s.kind) }}</strong>
+                <span>{{ s.at|stamp }}</span>{% if s.who %}<span class="mono">{{ s.who }}</span>{% endif %}</div>
+              {% if s.detail %}<div class="tl-msg small">{{ s.detail }}</div>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/weigh.js') }}"></script>
+<script src="{{ url_for('static', filename='js/wait.js') }}"></script>
 {% endblock %}

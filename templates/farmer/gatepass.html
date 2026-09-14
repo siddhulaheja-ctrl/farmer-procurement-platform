@@ -31,11 +31,11 @@
       <div class="t">{{ b.token_no }}</div>
       <div class="gp-when">{{ b.date|nicedate }} ({{ b.date|dayname }}) &middot; {{ b.time_window }}</div>
     </div>
-    {# the clerk scans this to open the booking. the token beside it is still
-       what identifies the farmer, so it gets read out if the code will not scan #}
+    {# scanned at the gate to check the farmer in, and checked for being
+       genuine. the token beside it still gets read out if the code will not scan #}
     <div class="qr-box">
       {{ qr_svg|safe }}
-      <div class="k">{{ t("For centre staff") }}</div>
+      <div class="k">{{ t("Get this scanned at the gate") }}</div>
     </div>
   </section>
 

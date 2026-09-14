@@ -12,3 +12,8 @@ qrcode==8.2
 
 # Only needed if you serve it with gunicorn instead of the flask dev server
 gunicorn==26.2.0
+
+# Speech to text for browsers without their own (Firefox). Optional: without it
+# the voice page still works in Chrome, Edge and Safari. After installing, fetch
+# the model once with `python speech_to_text.py download` (about 480 MB).
+faster-whisper==1.2.1

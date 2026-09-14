@@ -58,7 +58,66 @@ def migrate():
     if [r[1] for r in conn.execute("PRAGMA table_info(staff)")]:
         _migrate_staff(conn)
         conn.commit()
+    if [r[1] for r in conn.execute("PRAGMA table_info(transactions)")]:
+        _migrate_payments(conn)
+        conn.commit()
     conn.close()
+
+
+PAYMENTS_SQL = """CREATE TABLE IF NOT EXISTS payment_batches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, batch_no TEXT NOT NULL, centre_id INTEGER,
+    staff_id INTEGER, items INTEGER NOT NULL, amount REAL NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS payment_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, transaction_id INTEGER NOT NULL, stage TEXT NOT NULL,
+    detail TEXT, staff_id INTEGER, at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_payment_events_txn ON payment_events(transaction_id);
+CREATE TABLE IF NOT EXISTS booking_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, booking_id INTEGER, kind TEXT NOT NULL, result TEXT,
+    detail TEXT, staff_id INTEGER, centre_id INTEGER, at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_booking_events_booking ON booking_events(booking_id);
+CREATE INDEX IF NOT EXISTS idx_booking_events_at ON booking_events(centre_id, at);
+"""
+
+# old payment_status -> the stage it most likely was
+_STAGE_FROM_STATUS = (
+    "CASE WHEN payment_status = 'completed' THEN 'credited'"
+    " WHEN payment_status = 'processing' THEN 'billed'"
+    " WHEN payment_status = 'failed' AND IFNULL(total_amount, 0) = 0 THEN 'nil'"
+    " WHEN payment_status = 'failed' THEN 'held' ELSE 'weighed' END")
+
+
+def _add_columns(conn, table, columns):
+    have = [r[1] for r in conn.execute("PRAGMA table_info(%s)" % table)]
+    added = []
+    for name, decl in columns:
+        if name not in have:
+            conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table, name, decl))
+            added.append(name)
+    return added
+
+
+def _migrate_payments(conn):
+    """The weighbridge record, the payment stages and the gate - added when
+    payments stopped being a status picked from a dropdown."""
+    _add_columns(conn, "farmers", [("aadhaar_seeded", "INTEGER NOT NULL DEFAULT 1")])
+    _add_columns(conn, "bookings", [("gate_in_at", "TEXT"), ("gate_queue", "INTEGER"),
+                                    ("gate_out_at", "TEXT")])
+    added = _add_columns(conn, "transactions", [
+        ("gross_weight", "REAL"), ("bags", "INTEGER"), ("bag_weight_kg", "REAL"),
+        ("moisture", "REAL"), ("foreign_matter", "REAL"), ("grade_note", "TEXT"),
+        ("pay_stage", "TEXT NOT NULL DEFAULT 'weighed'"), ("receipt_no", "TEXT"),
+        ("bill_no", "TEXT"), ("batch_id", "INTEGER"), ("utr", "TEXT"),
+        ("attempts", "INTEGER NOT NULL DEFAULT 0"), ("return_code", "TEXT"),
+        ("weighed_at", "TEXT"), ("closed_at", "TEXT"), ("sent_at", "TEXT"), ("settled_at", "TEXT")])
+    conn.executescript(PAYMENTS_SQL)
+    if "pay_stage" in added:
+        conn.execute("UPDATE transactions SET pay_stage = " + _STAGE_FROM_STATUS)
+        # closed ones get the receipt they would have been given
+        conn.execute(
+            "UPDATE transactions SET receipt_no = 'KS/PC' || printf('%02d', (SELECT s.centre_id FROM bookings b"
+            " JOIN slots s ON s.id = b.slot_id WHERE b.id = transactions.booking_id))"
+            " || '/' || strftime('%Y') || '/' || printf('%06d', id)"
+            " WHERE pay_stage != 'weighed'")
 
 
 AUDIT_SQL = """CREATE TABLE IF NOT EXISTS audit_log (
