@@ -49,15 +49,15 @@
 
 <header class="topbar">
   <div class="wrap topbar-in">
-    {# the whole lockup is the way home, which is what people try first #}
-    <a class="brand" href="{{ url_for('home') }}">
+    {# the name only, not a link - Home is in the menu #}
+    <div class="brand">
       {# alt is empty on purpose, the name is written right next to it #}
       <img src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="44" height="44" alt="">
       <span>
         <span class="brand-name">{{ t("Krishi Sutra") }}</span>
         <span class="brand-sub">{{ t("Slot Booking & Procurement Management System") }}</span>
       </span>
-    </a>
+    </div>
 
     {% if not g.staff %}
     <nav class="mainnav" id="mainnav" aria-label="{{ t('Main menu') }}">
@@ -81,25 +81,24 @@
     <div class="account">
       {% set who = g.farmer or g.staff %}
       {% if g.staff %}<span class="acc-id">{{ g.staff.staff_code }}</span>{% endif %}
-      <span class="acc-name">{{ who.name }}<small>{{ t("Farmer") if g.farmer else (g.staff.centre_name or 'District supervisor') }}</small></span>
+      <span class="acc-name">{{ who.name }}<small>{{ t("Farmer") if g.farmer else (g.staff.centre_name or 'District superadmin') }}</small></span>
       <a class="iconbtn" href="{{ url_for('logout') if g.farmer else url_for('admin_logout') }}" title="{{ t('Sign out') }}">{{ icon('log-out') }}<span class="sr">{{ t("Sign out") }}</span></a>
     </div>
     {% endif %}
 
-    {# phones only: the menu folds behind this. a11y.js opens it; without
-       script the menu just stays open on its own row #}
-    {% if not g.staff %}
+    {# phones only: the menu folds behind this - the top menu, or a member's
+       side menu. a11y.js opens it; without script the menu just stays out #}
     <button type="button" class="navtoggle" aria-controls="mainnav" aria-expanded="false"
             data-open="{{ t('Menu') }}" data-close="{{ t('Close') }}">{{ icon('menu') }}<span class="sr">{{ t("Menu") }}</span></button>
-    {% endif %}
   </div>
 </header>
 
 <div class="frame {{ 'console' if staff_layout }}">
   {% if staff_layout %}
-  <nav class="sidenav" aria-label="Members menu">
+  {# same id as the public menu (never both on one page), so one hamburger works for either #}
+  <nav class="sidenav" id="mainnav" aria-label="Members menu">
     {% if g.staff.role == 'superadmin' %}
-    <span class="side-label">Supervisor</span>
+    <span class="side-label">Superadmin</span>
     <a href="{{ url_for('super_overview') }}" class="{{ 'active' if request.endpoint == 'super_overview' }}">{{ icon('trending-up') }}Overview</a>
     <a href="{{ url_for('super_attention') }}" class="{{ 'active' if request.endpoint == 'super_attention' }}">{{ icon('alert-triangle') }}Needs attention{% if attention_count %}<span class="pill">{{ attention_count }}</span>{% endif %}</a>
     <a href="{{ url_for('super_staff') }}" class="{{ 'active' if request.endpoint in ('super_staff', 'super_staff_detail') }}">{{ icon('users') }}Members</a>
@@ -119,7 +118,7 @@
     <a href="{{ url_for('admin_farmers') }}" class="{{ 'active' if request.endpoint in ('admin_farmers','admin_farmer') }}">{{ icon('users') }}All farmers</a>
     <a href="{{ url_for('admin_register_farmer') }}" class="{{ 'active' if request.endpoint == 'admin_register_farmer' }}">{{ icon('user-plus') }}Register farmer</a>
     <div class="side-card">
-      <strong>{{ g.staff.centre_name or 'Supervisor, every centre' }}</strong>
+      <strong>{{ g.staff.centre_name or 'Superadmin, every centre' }}</strong>
       Signed in as {{ g.staff.staff_code }}
     </div>
   </nav>
@@ -190,7 +189,7 @@
           <li>{{ t("Last updated on") }} <strong>{{ last_updated.strftime('%d-%m-%Y') }}</strong></li>
           <li>{{ t("Visitors") }} <span class="counter">{{ '%08d'|format(visits) }}</span></li>
           {% if not g.farmer and not g.staff %}
-          <li><a href="{{ url_for('super_login') }}">District supervisor sign in</a></li>
+          <li><a href="{{ url_for('super_login') }}">District superadmin sign in</a></li>
           {% endif %}
         </ul>
       </div>

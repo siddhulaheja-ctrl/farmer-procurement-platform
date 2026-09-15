@@ -1,0 +1,12 @@
+{# a farmer's land records: one Aadhaar, as many parcels as they farm.
+   Expects: lands (a list of land dicts). There is always one empty row at the
+   end, so a record can be added without script; stepper.js adds more rows. #}
+<div class="lands" data-lands data-registry-label="{{ t('From Farmer ID') }}">
+  {% for l in lands %}{% with n = loop.index %}{% include "_land_row.html" %}{% endwith %}{% endfor %}
+  {% with l = {}, n = (lands|length) + 1 %}{% include "_land_row.html" %}{% endwith %}
+</div>
+<template data-land-template>{% with l = {}, n = '__N__' %}{% include "_land_row.html" %}{% endwith %}</template>
+<div class="land-foot" data-js hidden>
+  <button type="button" class="btn secondary" data-add-land>{{ icon('plus') }}{{ t("Add another land record") }}</button>
+</div>
+<div class="hint">{{ t("Land record ID as on your khatauni, for example USN-104238-12.") }}</div>

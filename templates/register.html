@@ -6,18 +6,19 @@
   <div class="ph-text"><h1 class="page-title">{{ t("Farmer registration") }}</h1></div>
 </div>
 
+{# for anyone who would rather talk than type #}
+<a class="voice-banner" href="{{ url_for('register_voice') }}">
+  <span class="vb-mic">{{ icon('mic') }}</span>
+  <span class="vb-text">
+    <strong>{{ t("Register by speaking") }}</strong>
+    <span>{{ t("Answer a few questions out loud. Your details are read back before anything is saved.") }}</span>
+  </span>
+</a>
+
 <div class="grid side">
   <div class="card">
     <div class="card-body">
-      <form method="post">
-        {% with f = form, show_phone = true %}
-          {% include "_farmer_fields.html" %}
-        {% endwith %}
-        <div class="btn-row mt">
-          <button class="btn large" type="submit">{{ icon('check') }}{{ t("Register") }}</button>
-          <a class="btn secondary large" href="{{ url_for('home') }}">{{ t("Cancel") }}</a>
-        </div>
-      </form>
+      {% with admin = false %}{% include "_register_steps.html" %}{% endwith %}
     </div>
   </div>
 
@@ -25,6 +26,7 @@
     <div class="card-head"><h2 class="card-title">{{ icon('clipboard-check') }}{{ t("Keep these ready") }}</h2></div>
     <div class="card-body">
       <ul class="checklist">
+        <li>{{ icon('ticket') }}{{ t("Farmer ID, if you have one") }}</li>
         <li>{{ icon('id-card') }}{{ t("Aadhaar card") }}</li>
         <li>{{ icon('landmark') }}{{ t("Bank passbook") }}</li>
         <li>{{ icon('map-pin') }}{{ t("Land record extract") }}</li>
@@ -33,3 +35,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/stepper.js') }}"></script>{% endblock %}

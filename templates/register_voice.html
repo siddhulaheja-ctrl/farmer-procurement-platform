@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ t("Register by speaking") }} - {{ t("Krishi Sutra") }}{% endblock %}
+
+{# the conversation runs on voice.js, the same as booking by speaking: the page
+   says the question, listens, sends the answer and says the next one #}
+{% block content %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{{ url_for('register') }}">{{ icon('arrow-left') }}{{ t("Back to the form") }}</a>
+</nav>
+
+<div class="pagehead">
+  <div class="ph-text">
+    <h1 class="page-title">{{ t("Register by speaking") }}</h1>
+    <p class="page-sub">{{ t("One question at a time. Speak, type, or tap a button. Nothing is saved until you say yes at the end.") }}</p>
+  </div>
+</div>
+
+<div class="grid side">
+  <div class="card">
+    <div class="card-body">
+      <div id="voice-result" aria-live="polite">
+        {% include "_voice_register_step.html" %}
+      </div>
+
+      <form method="post" id="voice-form" class="voice-form" data-clear
+            data-step="{{ url_for('register_voice_step') }}"
+            data-transcribe="{{ url_for('register_voice_transcribe') }}"
+            data-warm="{{ url_for('register_voice_warm') }}">
+        <button type="button" class="btn go large block" data-voice-start hidden>{{ icon('volume') }}{{ t("Start: hear the question") }}</button>
+        <label for="said" class="mt">{{ t("Your answer") }}</label>
+        <textarea id="said" name="said" maxlength="300" rows="2" placeholder="{{ t('Speak with the microphone, or type here') }}"></textarea>
+        <textarea name="alternatives" id="alternatives" hidden></textarea>
+        <div class="voice-row">
+          <div class="voice-mic" id="mic-controls" hidden>
+            <button type="button" class="btn large mic" id="mic" aria-pressed="false"
+                    data-start="{{ t('Tap and speak') }}" data-stop="{{ t('Stop') }}">{{ icon('mic') }}<span>{{ t("Tap and speak") }}</span></button>
+            <label class="voice-lang"><span>{{ t("Speaking in") }}</span>
+              <select id="mic-lang">
+                <option value="hi-IN" lang="hi">हिन्दी / Hinglish</option>
+                <option value="en-IN" lang="en">English</option>
+                <option value="bn-IN" lang="bn">বাংলা</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit" class="btn secondary large">{{ icon('send') }}{{ t("Send") }}</button>
+        </div>
+        <p class="mic-status" id="mic-status" role="status" aria-live="polite"
+           data-listening="{{ t('Listening. Speak slowly, and tap Stop when you finish.') }}"
+           data-answer="{{ t('Listening for your answer...') }}"
+           data-thinking="{{ t('Working out what you said...') }}"
+           data-buttons="{{ t('Tap a button to answer.') }}"
+           data-nospeech="{{ t('Nothing was heard. Tap and try again, or type it.') }}"
+           data-denied="{{ t('The microphone is blocked. Allow it in the browser, or type instead.') }}"
+           data-failed="{{ t('Voice did not work in this browser. Type instead.') }}"
+           data-unavailable="{{ t('Voice is not set up on this server. Type instead.') }}"
+           data-unsupported="{{ t('This browser cannot use the microphone. You can type instead.') }}"></p>
+        <p class="small muted" id="voice-note" hidden>{{ t("This device has no voice for this language. Read the screen or tap the buttons.") }}</p>
+      </form>
+    </div>
+  </div>
+
+  <div id="voice-side">{% include "_voice_register_summary.html" %}</div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/voice.js') }}"></script>{% endblock %}

@@ -29,10 +29,6 @@
   </div>
   <div class="field-row two">
     <div class="field">
-      <label for="village">{{ t("Village / town") }}</label>
-      <input type="text" id="village" name="village" value="{{ f.village or '' }}">
-    </div>
-    <div class="field">
       <label for="district">{{ t("District") }} <span class="req">*</span></label>
       <select id="district" name="district" required>
         <option value="">{{ t("-- Select district --") }}</option>
@@ -40,6 +36,10 @@
           <option value="{{ d }}" {{ 'selected' if f.district == d }}>{{ t(d) }}</option>
         {% endfor %}
       </select>
+    </div>
+    <div class="field">
+      <label for="village">{{ t("Village / town") }} <span class="req">*</span></label>
+      {% with vid = "village", vname = "village", vvalue = f.village or '', vrequired = true %}{% include "_village_select.html" %}{% endwith %}
     </div>
   </div>
 </fieldset>
@@ -81,10 +81,8 @@
     <span class="fs-num">{{ icon('map-pin') }}</span>
     <h3>{{ t("Land") }}</h3>
   </div>
-  <div class="field">
-    <label for="land_record_id">{{ t("Land record ID") }}</label>
-    <input type="text" id="land_record_id" name="land_record_id" class="mono"
-           value="{{ f.land_record_id or '' }}" style="text-transform:uppercase">
-    <div class="hint">{{ t("For example USN-104238-12") }}</div>
-  </div>
+  {% if not (lands is defined and lands) %}
+    {% set lands = [{'land_record_id': f.land_record_id, 'source': 'manual'}] if f.land_record_id else [] %}
+  {% endif %}
+  {% include "_lands.html" %}
 </fieldset>

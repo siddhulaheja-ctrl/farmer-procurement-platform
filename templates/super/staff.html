@@ -4,7 +4,7 @@
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">District supervisor</p>
+    <p class="eyebrow">District superadmin</p>
     <h1 class="page-title">Member accounts</h1>
     <p class="page-sub">Who can sign in, which centre they're locked to, and what each person has done today.</p>
   </div>
@@ -34,7 +34,7 @@
               </div>
             </td>
             <td>{{ s.centre_name or 'Every centre' }}</td>
-            <td>{% if s.role == 'superadmin' %}<span class="badge blue">Supervisor</span>{% else %}<span class="badge grey">Centre member</span>{% endif %}</td>
+            <td>{% if s.role == 'superadmin' %}<span class="badge blue">Superadmin</span>{% else %}<span class="badge grey">Centre member</span>{% endif %}</td>
             <td class="num">{{ s.weighed or 0 }}</td>
             <td class="num">{{ s.closed or 0 }}</td>
             <td class="num">{{ s.flags or 0 }}</td>
@@ -70,13 +70,13 @@
           <label for="role">Role</label>
           <select id="role" name="role">
             <option value="staff" {{ 'selected' if form.get('role') != 'superadmin' }}>Centre member</option>
-            <option value="superadmin" {{ 'selected' if form.get('role') == 'superadmin' }}>Supervisor</option>
+            <option value="superadmin" {{ 'selected' if form.get('role') == 'superadmin' }}>Superadmin</option>
           </select>
         </div>
         <div class="field">
           <label for="centre_id">Centre</label>
           <select id="centre_id" name="centre_id">
-            <option value="">None &ndash; supervisors see every centre</option>
+            <option value="">None &ndash; superadmins see every centre</option>
             {% for c in centres %}
               <option value="{{ c.id }}" {{ 'selected' if form.get('centre_id') == c.id|string }}>{{ c.name }}</option>
             {% endfor %}

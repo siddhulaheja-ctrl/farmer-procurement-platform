@@ -83,7 +83,7 @@
           <div class="field" id="grade-note-field" hidden>
             <label for="grade_note">Why a different grade from the readings? <span class="req">*</span></label>
             <input type="text" id="grade_note" name="grade_note" placeholder="e.g. broken grains over the limit, checked by hand">
-            <div class="hint">Goes in the activity log for the supervisor.</div>
+            <div class="hint">Goes in the activity log for the superadmin.</div>
           </div>
           <div class="weigh-preview" id="weigh-preview" aria-live="polite">
             <span>Net <b data-out="net">—</b> q</span>
@@ -105,6 +105,8 @@
         {% endif %}
       </div>
     </div>
+
+    {% include "admin/_grade_rules.html" %}
 
     {# 2. closing: the receipt #}
     <div class="card stepcard">
@@ -199,7 +201,7 @@
               </div>
             </div>
             <button class="btn secondary small" type="submit">Set by hand</button>
-            <p class="hint">Shows in the supervisor's activity log and Needs attention.</p>
+            <p class="hint">Shows in the superadmin's activity log and Needs attention.</p>
           </form>
         </details>
       </div>

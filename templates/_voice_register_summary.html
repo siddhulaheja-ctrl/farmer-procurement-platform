@@ -1,0 +1,28 @@
+{# what has been collected so far, beside the conversation. updated after every answer #}
+{% set d = state.data %}
+<div class="card voice-reg-summary">
+  <div class="card-head"><h2 class="card-title">{{ icon('clipboard-check') }}{{ t("Your details so far") }}</h2></div>
+  <div class="card-body">
+    <dl class="kv">
+      <dt>{{ t("Farmer ID") }}</dt>
+      <dd><span class="mono">{{ state.farmer_id or '—' }}</span>{% if state.registry %} <span class="badge green">{{ t("Found") }}</span>{% endif %}</dd>
+      <dt>{{ t("Name") }}</dt><dd>{{ d.name or '—' }}</dd>
+      <dt>{{ t("Mobile number") }}</dt><dd class="mono">{{ d.phone or '—' }}</dd>
+      <dt>{{ t("Village / district") }}</dt>
+      <dd>{{ t(d.village) if d.village else '—' }}{% if d.district %}, {{ t(d.district) }}{% endif %}</dd>
+      {% if state.registry %}
+      <dt>{{ t("Aadhaar and bank") }}</dt><dd>{{ t("From your Farmer ID") }}</dd>
+      {% else %}
+      <dt>{{ t("Aadhaar number") }}</dt><dd class="mono">{{ d.aadhaar|mask if d.aadhaar else '—' }}</dd>
+      <dt>{{ t("Bank account number") }}</dt><dd class="mono">{{ d.bank_account|mask if d.bank_account else '—' }}</dd>
+      <dt>{{ t("IFSC code") }}</dt><dd class="mono">{{ d.ifsc or '—' }}</dd>
+      {% endif %}
+      <dt>{{ t("Land records") }}</dt>
+      <dd>{% if state.lands %}{% for l in state.lands %}<span class="mono">{{ l.land_record_id }}</span>{{ '' if loop.last else ', ' }}{% endfor %}{% else %}—{% endif %}</dd>
+    </dl>
+    <div class="btn-row mt">
+      <a class="btn secondary small" href="{{ url_for('register_voice', restart=1) }}">{{ icon('refresh') }}{{ t("Start over") }}</a>
+      <a class="btn ghost small" href="{{ url_for('register') }}">{{ t("Use the form instead") }}</a>
+    </div>
+  </div>
+</div>

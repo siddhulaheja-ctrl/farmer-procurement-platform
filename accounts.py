@@ -12,7 +12,7 @@ DEMO_PASSWORD = "demo123"
 # code, name, centre (by name, None for the supervisor), role.
 # One supervisor who sees every centre, and counter staff locked to theirs.
 DEMO_STAFF = [
-    ("ADMIN", "District Supervisor", None, "superadmin"),
+    ("ADMIN", "District Superadmin", None, "superadmin"),
     ("RUD01", "Suresh Rawat", "Rudrapur Mandi Samiti", "staff"),
     ("RUD02", "Meena Bisht", "Rudrapur Mandi Samiti", "staff"),
     ("KIC01", "Deepak Pant", "Kichha Kharid Kendra", "staff"),

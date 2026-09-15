@@ -3,6 +3,7 @@
 -- inspected with any sqlite browser during the presentation.
 -- TODO: migrate to PostgreSQL for production (see spec section 2).
 
+DROP TABLE IF EXISTS farmer_lands;
 DROP TABLE IF EXISTS booking_events;
 DROP TABLE IF EXISTS payment_events;
 DROP TABLE IF EXISTS payment_batches;
@@ -25,7 +26,8 @@ CREATE TABLE farmers (
     bank_account    TEXT,              -- mock
     ifsc_code       TEXT,              -- mock
     bank_name_on_account TEXT,         -- mock: used by the name-match validation rule
-    land_record_id  TEXT,              -- mock
+    land_record_id  TEXT,              -- mock. the first of farmer_lands, for the screens that show one
+    agristack_id    TEXT,              -- Farmer ID (AgriStack), when they registered with one
     -- mock of the NPCI mapper: is Aadhaar linked to this account. A DBT
     -- payment to an account that isn't comes back, whatever else is right
     aadhaar_seeded  INTEGER NOT NULL DEFAULT 1,
@@ -34,6 +36,20 @@ CREATE TABLE farmers (
     registered_via  TEXT    NOT NULL DEFAULT 'self',   -- self | csc | staff
     created_at      TEXT    NOT NULL
 );
+
+-- every land parcel a farmer farms. one Aadhaar, one account, as many as they have
+CREATE TABLE farmer_lands (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    farmer_id      INTEGER NOT NULL,
+    land_record_id TEXT NOT NULL,
+    village        TEXT,
+    district       TEXT,
+    area_acres     REAL,
+    source         TEXT NOT NULL DEFAULT 'manual',   -- manual | registry (came with the Farmer ID)
+    added_at       TEXT NOT NULL,
+    FOREIGN KEY (farmer_id) REFERENCES farmers(id)
+);
+CREATE INDEX idx_farmer_lands_farmer ON farmer_lands(farmer_id);
 
 CREATE TABLE staff (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,

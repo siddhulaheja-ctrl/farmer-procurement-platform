@@ -15,6 +15,8 @@
       <span>{{ icon('phone') }}{{ farmer.phone_number }}</span>
       <span>{{ icon('map-pin') }}{{ farmer.village }}, {{ farmer.district }}</span>
       <span>{{ icon('user-plus') }}Registered via {{ farmer.registered_via|upper }} on {{ farmer.created_at|nicedate }}</span>
+      {% if farmer.agristack_id %}<span>{{ icon('id-card') }}Farmer ID <b class="mono">{{ farmer.agristack_id }}</b></span>{% endif %}
+      <span>{{ icon('map-pin') }}{{ lands|length }} land record{{ '' if lands|length == 1 else 's' }}</span>
     </div>
   </div>
 </div>
@@ -74,3 +76,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/stepper.js') }}"></script>{% endblock %}

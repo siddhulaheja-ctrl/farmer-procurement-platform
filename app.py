@@ -23,6 +23,7 @@ env.load()          # has to run before the modules below read os.environ
 
 import alerts as alerts_mod  # noqa: E402
 import accounts
+import agristack
 import audit
 import core
 import db
@@ -30,6 +31,7 @@ import gate
 import payments
 import qr
 import supervisor
+import villages
 import voice
 import weather
 from core import BookingError
@@ -38,6 +40,7 @@ from i18n import t, get_lang, LANGUAGES
 import voicebook
 import speech_to_text
 import voice_ai
+import voice_register
 import assistant
 from urllib.parse import quote_plus
 from validation import unresolved_flags, validate_and_flag
@@ -138,6 +141,9 @@ def create_app():
     app.jinja_env.globals["lang"] = get_lang
     app.jinja_env.globals["languages"] = LANGUAGES
     app.jinja_env.globals["icon"] = icon
+    # {district: [[village, its name in the page's language], ...]} for _village_select.html
+    app.jinja_env.globals["village_options"] = lambda: {
+        d: [[v, t(v)] for v in names] for d, names in villages.VILLAGES.items()}
     # only base.html calls this, so a fragment rendered in between can't use it up
     app.jinja_env.globals["take_celebration"] = lambda: session.pop("celebrate", None)
     register_routes(app)
@@ -252,7 +258,7 @@ def superadmin_required(fn):
     def wrapper(*a, **kw):
         if not g.get("staff"):
             session.pop("staff_id", None)
-            flash("Supervisor sign-in required.", "warning")
+            flash("Superadmin sign-in required.", "warning")
             return redirect(url_for("super_login"))
         if g.staff["role"] != "superadmin":
             abort(403)
@@ -413,25 +419,70 @@ def register_routes(app):
                 return redirect(request.args.get("next") or url_for("farmer_dashboard"))
         return render_template("otp.html", phone=phone, demo_otp=DEMO_OTP, farmer=farmer)
 
+    def _registration(admin):
+        """The registration stepper for a farmer (register.html) or at a counter
+        (admin/register_farmer.html). Returns (result, None) once a farmer is
+        created, or (None, the page) - first visit, a Farmer ID lookup without
+        script, or a form to fix."""
+        template = "admin/register_farmer.html" if admin else "register.html"
+        values, lands, registry, lookup_failed, start = {}, [], None, False, 1
+        if request.method == "POST":
+            values = request.form.to_dict()
+            lands = _lands_from(request.form)
+            code = agristack.clean(values.get("agristack_id"))
+            if request.form.get("lookup"):
+                record = agristack.lookup(code) if code else None
+                if record:
+                    registry = agristack.public(record)
+                    values.update(use_registry="1", agristack_id=record["farmer_id"])
+                    for key in ("name", "village", "district"):
+                        values[key] = values.get(key) or record[key]
+                    known = {x["land_record_id"] for x in record["lands"]}
+                    lands = ([dict(x, source="registry") for x in record["lands"]]
+                             + [x for x in lands if x["source"] != "registry" and x["land_record_id"] not in known])
+                    start = 2
+                else:
+                    lookup_failed = bool(code)
+                    values["use_registry"] = ""
+            else:
+                via = (values.get("registered_via") or "staff") if admin else "self"
+                result = _create_farmer(request.form, registered_via=via)
+                if not result["error"]:
+                    return result, None
+                flash(result["error"], "error")
+                start = {"farmer_id": 1, "name": 2, "phone": 2, "district": 2, "village": 2,
+                         "aadhaar": 3, "land": 4}.get(result["field"], 5)
+                record = agristack.lookup(code) if code and values.get("use_registry") == "1" else None
+                registry = agristack.public(record) if record else None
+        return None, render_template(template, form=values, lands=lands, registry=registry,
+                                     lookup_failed=lookup_failed, start_step=start, districts=_districts())
+
     @app.route("/register", methods=["GET", "POST"])
     def register():
         """Self-service registration (the assisted/CSC path is /admin/register-farmer)."""
-        if request.method == "POST":
-            result = _create_farmer(request.form, registered_via="self")
-            if result["error"]:
-                flash(result["error"], "error")
-                return render_template("register.html", form=request.form,
-                                       districts=_districts(), crops=core.CROPS)
-            session["farmer_id"] = result["farmer_id"]
-            problems = result["problems"]
-            if problems:
-                flash(t("Registered, but we found %d issue(s) in your details. "
-                        "See the notice on your dashboard.") % len(problems), "warning")
-            else:
-                flash(t("Registration complete. Your details passed all verification checks."),
-                      "success")
-            return redirect(url_for("farmer_dashboard"))
-        return render_template("register.html", form={}, districts=_districts(), crops=core.CROPS)
+        result, page = _registration(admin=False)
+        if page is not None:
+            return page
+        session["farmer_id"] = result["farmer_id"]
+        problems = result["problems"]
+        if problems:
+            flash(t("Registered, but we found %d issue(s) in your details. "
+                    "See the notice on your dashboard.") % len(problems), "warning")
+        else:
+            flash(t("Registration complete. Your details passed all verification checks."),
+                  "success")
+        return redirect(url_for("farmer_dashboard"))
+
+    @app.route("/register/lookup")
+    def registry_lookup():
+        """A Farmer ID, looked up for the stepper. Never the full Aadhaar or account number."""
+        record = agristack.lookup(request.args.get("farmer_id"))
+        if record is None:
+            return jsonify(found=False)
+        if query("SELECT 1 FROM farmers WHERE agristack_id = ?", (record["farmer_id"],), one=True):
+            return jsonify(found=False, message=t("This Farmer ID is already registered. Please sign in instead."))
+        return jsonify(found=True, farmer=agristack.public(record),
+                       shown={"village": t(record["village"]), "district": t(record["district"])})
 
     @app.route("/lang/<code>")
     def set_lang(code):
@@ -839,6 +890,9 @@ def register_routes(app):
     @app.route("/farmer/voice/transcribe", methods=["POST"])
     @farmer_required
     def farmer_voice_transcribe():
+        return _transcribe_upload()
+
+    def _transcribe_upload():
         # a recording from a browser with no speech recognition of its own
         audio = request.files.get("audio")
         if audio is None:
@@ -861,6 +915,84 @@ def register_routes(app):
     @app.route("/farmer/voice/warm", methods=["POST"])
     @farmer_required
     def farmer_voice_warm():
+        speech_to_text.warm()
+        return "", 204
+
+    # registering by speaking. public: whoever is registering isn't signed in yet
+
+    VOICE_REG_LIMIT = 80    # answers per browser per 10 minutes - each one can cost an AI call
+
+    def _voice_reg_allowed():
+        now = datetime.now().timestamp()
+        recent = [x for x in session.get("vr_times", []) if now - x < 600]
+        if len(recent) >= VOICE_REG_LIMIT:
+            return False
+        session["vr_times"] = recent + [now]
+        return True
+
+    def _voice_reg_turn(text, guesses):
+        state = session.get("voice_reg")
+        if not isinstance(state, dict):
+            state = voice_register.fresh()
+        step = voice_register.advance(state, text, guesses)
+        if step["stage"] == "done":
+            result = _create_farmer(voice_register.as_form(state), registered_via="voice")
+            if result["error"]:
+                step = voice_register.failed(state, result)
+            else:
+                session.pop("voice_reg", None)
+                session["farmer_id"] = result["farmer_id"]
+                n = len(result["problems"])
+                flash(t("Registered, but we found %d issue(s) in your details. See the notice on your dashboard.") % n
+                      if n else t("Registration complete. Your details passed all verification checks."),
+                      "warning" if n else "success")
+                step.update(say=t("You are registered. Opening your dashboard."), listen=None, buttons=[],
+                            url=url_for("farmer_dashboard"))
+                return step, state
+        session["voice_reg"] = state
+        session.modified = True
+        return step, state
+
+    @app.route("/register/voice", methods=["GET", "POST"])
+    def register_voice():
+        if g.farmer:
+            return redirect(url_for("farmer_dashboard"))
+        if request.args.get("restart") or not isinstance(session.get("voice_reg"), dict):
+            session["voice_reg"] = voice_register.fresh()
+        voice_ai.warm()
+        state = session["voice_reg"]
+        step = voice_register.current(state)
+        said = (request.form.get("said") or "").strip()[:300]
+        if request.method == "POST" and said and _voice_reg_allowed():
+            # the same turn as a plain form post, for typing without script
+            step, state = _voice_reg_turn(said, [])
+            if step["url"]:
+                return redirect(step["url"])
+        return render_template("register_voice.html", step=step, state=state)
+
+    @app.route("/register/voice/step", methods=["POST"])
+    def register_voice_step():
+        data = request.get_json(silent=True) or {}
+        turns = [str(x).strip()[:300] for x in (data.get("turns") or []) if str(x).strip()]
+        if not turns:
+            return jsonify(error="nothing was said"), 400
+        if not _voice_reg_allowed():
+            return jsonify(error="too many answers, wait a few minutes"), 429
+        guesses = [str(x).strip()[:300] for x in (data.get("guesses") or []) if str(x).strip()][:5]
+        step, state = _voice_reg_turn(turns[-1], guesses if len(turns) == 1 else [])
+        return jsonify(stage=step["stage"], say=step["say"], listen=step["listen"], repeat=step["repeat"],
+                       url=step["url"], slot_id=None, source=step["source"] or "parser",
+                       html=render_template("_voice_register_step.html", step=step),
+                       side=render_template("_voice_register_summary.html", state=state))
+
+    @app.route("/register/voice/transcribe", methods=["POST"])
+    def register_voice_transcribe():
+        if not _voice_reg_allowed():
+            return jsonify(error="too many answers, wait a few minutes"), 429
+        return _transcribe_upload()
+
+    @app.route("/register/voice/warm", methods=["POST"])
+    def register_voice_warm():
         speech_to_text.warm()
         return "", 204
 
@@ -1018,6 +1150,10 @@ def register_routes(app):
     def farmer_profile():
         fid = g.farmer["id"]
         if request.method == "POST":
+            place = _place_error(request.form)
+            if place:
+                flash(place[0], "error")
+                return redirect(url_for("farmer_profile"))
             execute(
                 "UPDATE farmers SET name=?, aadhaar_number=?, bank_account=?, ifsc_code=?,"
                 " bank_name_on_account=?, land_record_id=?, village=?, district=? WHERE id=?",
@@ -1029,6 +1165,7 @@ def register_routes(app):
                  (request.form.get("land_record_id") or "").strip().upper(),
                  (request.form.get("village") or "").strip(),
                  (request.form.get("district") or "").strip(), fid))
+            _save_lands(fid, _lands_from(request.form))
             problems = validate_and_flag(fid)
             if problems:
                 flash(t("Saved. %d issue(s) still need attention.") % len(problems), "warning")
@@ -1036,7 +1173,7 @@ def register_routes(app):
                 flash(t("Saved. All verification checks passed - your payment will not be held up."),
                       "success")
             return redirect(url_for("farmer_profile"))
-        return render_template("farmer/profile.html", farmer=g.farmer,
+        return render_template("farmer/profile.html", farmer=g.farmer, lands=_lands_of(fid),
                                flags=unresolved_flags(fid), districts=_districts())
 
     # admin
@@ -1051,22 +1188,22 @@ def register_routes(app):
             # account, so the form can't be used to find out which codes exist
             if s is None or not s["active"] or not accounts.check_password(s["password"], pwd):
                 flash("Invalid member code or password.", "error")
-                return render_template(template, code=code)
+                return render_template(template, roster=accounts.DEMO_STAFF, demo_password=accounts.DEMO_PASSWORD, code=code)
             if s["role"] != role:
                 # right password, wrong door. only said once the password is
                 # right, so it gives nothing away
-                other = (("super_login", "supervisor sign in") if s["role"] == "superadmin"
+                other = (("super_login", "superadmin sign in") if s["role"] == "superadmin"
                          else ("admin_login", "centre member sign in"))
                 flash(Markup('This account signs in on the <a href="%s">%s</a> page.')
                       % (url_for(other[0]), other[1]), "warning")
-                return render_template(template, code=code)
+                return render_template(template, roster=accounts.DEMO_STAFF, demo_password=accounts.DEMO_PASSWORD, code=code)
             session["staff_id"] = s["id"]
             execute("UPDATE staff SET last_login = ? WHERE id = ?",
                     (datetime.now().isoformat(timespec="seconds"), s["id"]))
             audit.record(s, "sign_in")
             flash("Signed in as %s." % s["name"], "success")
             return redirect(url_for(landing))
-        return render_template(template, code="")
+        return render_template(template, roster=accounts.DEMO_STAFF, demo_password=accounts.DEMO_PASSWORD, code="")
 
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
@@ -1130,6 +1267,7 @@ def register_routes(app):
                                grades=core.GRADES, msp=core.MSP,
                                moisture_max=core.MOISTURE_MAX.get(b["crop_type"], 14.0),
                                foreign_faq=core.FOREIGN_FAQ, foreign_b=core.FOREIGN_B,
+                               moisture_table=core.MOISTURE_MAX, grade_factor=core.GRADE_FACTOR,
                                bank_checks=payments.checks(farmer), bank=payments.bank_label(farmer),
                                stages=payments.STAGES, wait=payments.seconds_left(txn) if txn else None,
                                late=payments.is_late(txn) if txn else False,
@@ -1441,7 +1579,7 @@ def register_routes(app):
         audit.record(g.staff, "payment_manual", farmer_id=x["farmer_id"], booking_id=x["booking_id"],
                      ref_id=txn_id, centre_id=x["centre_id"], detail="Rs %s - %s" % (format(amount, ","), reason),
                      before=payments.STAGES[x["pay_stage"]][1], after=payments.STAGES[new][1])
-        flash("Stage set to '%s' by hand. This shows in the supervisor's activity log." % payments.STAGES[new][1],
+        flash("Stage set to '%s' by hand. This shows in the superadmin's activity log." % payments.STAGES[new][1],
               "warning")
         return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
 
@@ -1537,6 +1675,10 @@ def register_routes(app):
         if farmer is None or not _farmer_visible(farmer_id):
             abort(404)
         if request.method == "POST":
+            place = _place_error(request.form)
+            if place:
+                flash(place[0], "error")
+                return redirect(url_for("admin_farmer", farmer_id=farmer_id))
             execute(
                 "UPDATE farmers SET name=?, aadhaar_number=?, bank_account=?, ifsc_code=?,"
                 " bank_name_on_account=?, land_record_id=?, village=?, district=? WHERE id=?",
@@ -1553,6 +1695,7 @@ def register_routes(app):
                 execute("UPDATE farmers SET aadhaar_seeded = ? WHERE id = ?", (seeded, farmer_id))
                 audit.record(g.staff, "id_edit", farmer_id=farmer_id, detail="Aadhaar linked to bank account",
                              before="yes" if farmer["aadhaar_seeded"] else "no", after="yes" if seeded else "no")
+            _save_lands(farmer_id, _lands_from(request.form))
             changed, before, after = audit.farmer_diff(farmer, request.form)
             if changed:
                 audit.record(g.staff, "id_edit" if audit.touches_id(changed) else "record_edit",
@@ -1565,7 +1708,7 @@ def register_routes(app):
             return redirect(url_for("admin_farmer", farmer_id=farmer_id))
         bookings = query(_BOOKING_SELECT + " WHERE b.farmer_id = ? ORDER BY s.date DESC",
                          (farmer_id,))
-        return render_template("admin/farmer.html", farmer=farmer, bookings=bookings,
+        return render_template("admin/farmer.html", farmer=farmer, bookings=bookings, lands=_lands_of(farmer_id),
                                flags=unresolved_flags(farmer_id), districts=_districts())
 
     @app.route("/admin/farmers")
@@ -1592,23 +1735,18 @@ def register_routes(app):
     @app.route("/admin/register-farmer", methods=["GET", "POST"])
     @staff_required
     def admin_register_farmer():
-        """Assisted / CSC registration path (spec 4.1)."""
-        if request.method == "POST":
-            result = _create_farmer(request.form,
-                                    registered_via=request.form.get("registered_via") or "staff")
-            if result["error"]:
-                flash(result["error"], "error")
-                return render_template("admin/register_farmer.html", form=request.form,
-                                       districts=_districts())
-            audit.record(g.staff, "register_farmer", farmer_id=result["farmer_id"],
-                         detail="CSC operator" if request.form.get("registered_via") == "csc"
-                         else "At the counter")
-            n = len(result["problems"])
-            flash("Farmer registered. %s" % ("%d verification issue(s) flagged for follow-up." % n
-                                             if n else "All verification checks passed."),
-                  "warning" if n else "success")
-            return redirect(url_for("admin_farmer", farmer_id=result["farmer_id"]))
-        return render_template("admin/register_farmer.html", form={}, districts=_districts())
+        """Assisted / CSC registration path (spec 4.1), the same stepper as a farmer's."""
+        result, page = _registration(admin=True)
+        if page is not None:
+            return page
+        audit.record(g.staff, "register_farmer", farmer_id=result["farmer_id"],
+                     detail="CSC operator" if request.form.get("registered_via") == "csc"
+                     else "At the counter")
+        n = len(result["problems"])
+        flash("Farmer registered. %s" % ("%d verification issue(s) flagged for follow-up." % n
+                                         if n else "All verification checks passed."),
+              "warning" if n else "success")
+        return redirect(url_for("admin_farmer", farmer_id=result["farmer_id"]))
 
     @app.route("/admin/slots", methods=["GET", "POST"])
     @staff_required
@@ -1776,7 +1914,7 @@ def register_routes(app):
                            "active": 1 if request.form.get("active") else 0}
                     names = {r["id"]: r["name"] for r in query("SELECT id, name FROM procurement_centres")}
                     shown = {"centre_id": lambda v: names.get(v, "No centre"),
-                             "role": lambda v: "Supervisor" if v == "superadmin" else "Centre member",
+                             "role": lambda v: "Superadmin" if v == "superadmin" else "Centre member",
                              "active": lambda v: "On" if v else "Off"}
                     labels = {"centre_id": "Centre", "role": "Role", "active": "Account"}
                     before = {labels[k]: shown[k](person[k]) for k in new if person[k] != new[k]}
@@ -1964,7 +2102,7 @@ def _staff_form_error(form, new, person=None):
     elif person is not None and person["id"] == g.staff["id"]:
         # nobody locks themselves out of the only screen that can let them back in
         if role != "superadmin" or not form.get("active"):
-            return "You can't remove your own supervisor access or switch off your own account."
+            return "You can't remove your own superadmin access or switch off your own account."
     return None
 
 
@@ -1975,37 +2113,127 @@ def _owned_booking(booking_id):
     return b
 
 
+def _lands_from(form):
+    """The land rows a form posted. One farmer, one Aadhaar, as many parcels as they farm."""
+    ids, villages = form.getlist("land_record_id"), form.getlist("land_village")
+    areas, sources = form.getlist("land_area"), form.getlist("land_source")
+    out, seen = [], set()
+    for i, raw in enumerate(ids):
+        record = (raw or "").strip().upper()
+        if not record or record in seen:
+            continue
+        seen.add(record)
+        try:
+            area = round(float(areas[i]), 2) if i < len(areas) and str(areas[i]).strip() else None
+        except ValueError:
+            area = None
+        out.append({"land_record_id": record,
+                    "village": (villages[i] if i < len(villages) else "").strip(),
+                    "area_acres": area,
+                    "source": sources[i] if i < len(sources) and sources[i] in ("registry", "manual") else "manual"})
+    return out
+
+
+def _lands_of(farmer_id):
+    return [dict(r) for r in query("SELECT * FROM farmer_lands WHERE farmer_id = ? ORDER BY id", (farmer_id,))]
+
+
+def _save_lands(farmer_id, lands):
+    """Replace a farmer's land rows. The first one also goes on the farmer
+    record, for the screens that show a single land record."""
+    now = datetime.now().isoformat(timespec="seconds")
+    farmer = query("SELECT district FROM farmers WHERE id = ?", (farmer_id,), one=True)
+    execute("DELETE FROM farmer_lands WHERE farmer_id = ?", (farmer_id,))
+    for land in lands:
+        execute("INSERT INTO farmer_lands (farmer_id, land_record_id, village, district, area_acres, source, added_at)"
+                " VALUES (?,?,?,?,?,?,?)",
+                (farmer_id, land["land_record_id"], land.get("village") or "",
+                 land.get("district") or (farmer["district"] if farmer else ""), land.get("area_acres"),
+                 land.get("source") or "manual", now))
+    execute("UPDATE farmers SET land_record_id = ? WHERE id = ?",
+            (lands[0]["land_record_id"] if lands else "", farmer_id))
+
+
+def _place_error(form):
+    """(message, field) when the district, the village or a land record's
+    village isn't one from the lists, else None. The page only offers listed
+    ones; this stops a hand-made post."""
+    district = (form.get("district") or "").strip()
+    if district not in villages.VILLAGES:
+        return t("Select your district."), "district"
+    if not villages.valid(district, (form.get("village") or "").strip()):
+        return t("Select your village from the list for %s.") % t(district), "village"
+    for land in _lands_from(form):
+        if land["village"] and not villages.valid(district, land["village"]):
+            return t("Select the village of land record %s from the list.") % land["land_record_id"], "land"
+    return None
+
+
 def _create_farmer(form, registered_via):
-    """Shared by self-registration and staff-assisted registration.
-    Returns {error, farmer_id, problems}."""
+    """Shared by the registration stepper, a counter's assisted registration
+    and registering by voice. Returns {error, field, farmer_id, problems} -
+    field names the step an error belongs to.
+
+    With a Farmer ID and use_registry=1, the Aadhaar and bank details come
+    from the registry itself, not from the form: the page only ever saw the
+    last four digits."""
+    def fail(message, field):
+        return {"error": message, "field": field, "farmer_id": None, "problems": []}
+
     name = (form.get("name") or "").strip()
     phone = (form.get("phone_number") or "").strip()
     if not name or len(name) < 3:
-        return {"error": "Enter the farmer's full name.", "farmer_id": None, "problems": []}
+        return fail(t("Enter the farmer's full name."), "name")
     if not phone.isdigit() or len(phone) != 10:
-        return {"error": "Enter a valid 10-digit mobile number.", "farmer_id": None,
-                "problems": []}
+        return fail(t("Enter a valid 10-digit mobile number."), "phone")
     if query("SELECT id FROM farmers WHERE phone_number = ?", (phone,), one=True):
-        return {"error": "%s is already registered. Please sign in instead." % phone,
-                "farmer_id": None, "problems": []}
+        return fail(t("%s is already registered. Please sign in instead.") % phone, "phone")
+    place = _place_error(form)
+    if place:
+        return fail(*place)
 
+    code = agristack.clean(form.get("agristack_id"))
+    record = None
+    if code:
+        record = agristack.lookup(code)
+        if record is None:
+            return fail(t("No farmer record found for Farmer ID %s. Check the number, or leave it empty "
+                          "and fill in the details yourself.") % code, "farmer_id")
+        if query("SELECT 1 FROM farmers WHERE agristack_id = ?", (code,), one=True):
+            return fail(t("Farmer ID %s is already registered. Please sign in instead.") % code, "farmer_id")
+
+    if record is not None and form.get("use_registry") == "1":
+        aadhaar, account, ifsc = record["aadhaar"], record["bank_account"], record["ifsc"]
+        on_account, seeded = record["name_on_account"], record["aadhaar_seeded"]
+    else:
+        aadhaar = (form.get("aadhaar_number") or "").replace(" ", "").strip()
+        account = (form.get("bank_account") or "").strip()
+        ifsc = (form.get("ifsc_code") or "").strip().upper()
+        on_account, seeded = (form.get("bank_name_on_account") or "").strip() or name, 1
+
+    # one Aadhaar is one farmer. more land goes on the account they already have
+    if aadhaar:
+        other = query("SELECT phone_number FROM farmers WHERE aadhaar_number = ?", (aadhaar,), one=True)
+        if other:
+            return fail(t("This Aadhaar number is already registered, with the mobile number ending %s. Sign in "
+                          "with that number - you can add more land records on My Details.")
+                        % other["phone_number"][-2:], "aadhaar")
+
+    lands = _lands_from(form)
     farmer_id = execute(
         "INSERT INTO farmers (name, phone_number, aadhaar_number, bank_account, ifsc_code,"
-        " bank_name_on_account, land_record_id, village, district, registered_via, created_at)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        (name, phone,
-         (form.get("aadhaar_number") or "").replace(" ", "").strip(),
-         (form.get("bank_account") or "").strip(),
-         (form.get("ifsc_code") or "").strip().upper(),
-         (form.get("bank_name_on_account") or "").strip() or name,
-         (form.get("land_record_id") or "").strip().upper(),
+        " bank_name_on_account, land_record_id, agristack_id, aadhaar_seeded, village, district,"
+        " registered_via, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (name, phone, aadhaar, account, ifsc, on_account,
+         lands[0]["land_record_id"] if lands else "", code or None, seeded,
          (form.get("village") or "").strip(),
          (form.get("district") or "").strip(),
          registered_via, datetime.now().isoformat(timespec="seconds")))
+    _save_lands(farmer_id, lands)
 
     # the checks run here, at registration - not weeks later at payout
     problems = validate_and_flag(farmer_id)
-    return {"error": None, "farmer_id": farmer_id, "problems": problems}
+    return {"error": None, "field": None, "farmer_id": farmer_id, "problems": problems}
 
 
 app = create_app()

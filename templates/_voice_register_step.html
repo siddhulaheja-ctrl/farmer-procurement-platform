@@ -1,0 +1,26 @@
+{# one question of registering by speaking. sent back after every answer, so
+   the page never reloads mid-conversation (a reload stops it speaking) #}
+<div class="voice-say" data-say="{{ step.say }}" data-listen="{{ step.listen or '' }}">
+  <p class="voice-said">{{ step.say }}</p>
+  <button type="button" class="btn secondary" data-replay data-js hidden>{{ icon('volume') }}{{ t("Hear it again") }}</button>
+</div>
+
+{% if step.heard %}
+<p class="small muted voice-heard">{{ t("heard") }}: &ldquo;{{ step.heard }}&rdquo;
+  {% if step.source == 'ai' %}<span class="badge blue">{{ t("Understood by AI") }}</span>{% endif %}</p>
+{% endif %}
+
+{% if step.buttons %}
+<div class="voice-choices{{ ' two' if step.buttons|length == 2 }}" data-js hidden>
+  {% for value, label, kind in step.buttons %}
+  <button type="button" class="btn {{ kind }}" data-answer="{{ value }}">{% if kind == 'yes-btn' %}{{ icon('check') }}{% elif kind == 'no-btn' %}{{ icon('x') }}{% endif %}{{ label }}</button>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if step.url %}
+<div class="notice success">
+  <h3>{{ t("You are registered.") }}</h3>
+  <a class="btn" href="{{ step.url }}">{{ t("Open my dashboard") }}</a>
+</div>
+{% endif %}

@@ -281,6 +281,14 @@ def build_farmers(cur, s, now):
             " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (name, phone, aadhaar, acct, ifsc, on_acct, land, village, district, via, now))
         s.farmers[name] = cur.lastrowid
+        if land:
+            cur.execute("INSERT INTO farmer_lands (farmer_id, land_record_id, village, district, source, added_at)"
+                        " VALUES (?,?,?,?,'manual',?)", (cur.lastrowid, land, village, district, now))
+    # aayush farms a second parcel under the same aadhaar
+    if "Aayush Raj" in s.farmers:
+        cur.execute("INSERT INTO farmer_lands (farmer_id, land_record_id, village, district, area_acres, source,"
+                    " added_at) VALUES (?, 'USN-410255-06', 'Dineshpur', 'Udham Singh Nagar', 1.2, 'manual', ?)",
+                    (s.farmers["Aayush Raj"], now))
     # nothing the portal checks can see this one - only the bank's answer does
     if "Ravi Kumar" in s.farmers:
         cur.execute("UPDATE farmers SET aadhaar_seeded = 0 WHERE id = ?", (s.farmers["Ravi Kumar"],))
@@ -553,7 +561,7 @@ def main():
         print("  %-22s %d" % (t, counts[t]))
     print("\n  Staff logins, all with password %s:" % DEMO_PASSWORD)
     for code, name, centre, role in DEMO_STAFF:
-        print("    %-6s %-20s %s" % (code, name, "supervisor, every centre" if role == "superadmin" else centre))
+        print("    %-6s %-20s %s" % (code, name, "superadmin, every centre" if role == "superadmin" else centre))
     print(CASES)
     print("  Storage risk, from the forecast just now:")
     for name, village, r in risks:

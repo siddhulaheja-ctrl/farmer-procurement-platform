@@ -4,7 +4,9 @@
 
 {% block content %}
 <div class="pagehead">
-  <div class="ph-text"><h1 class="page-title">{{ t("My details") }}</h1></div>
+  <div class="ph-text"><h1 class="page-title">{{ t("My details") }}</h1>
+    {% if farmer.agristack_id %}<div class="meta-row"><span>{{ icon('id-card') }}{{ t("Farmer ID") }} <b class="mono">{{ farmer.agristack_id }}</b></span></div>{% endif %}
+  </div>
 </div>
 
 {# one tile per check. the words say the result, the colour only repeats it #}
@@ -50,3 +52,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/stepper.js') }}"></script>{% endblock %}

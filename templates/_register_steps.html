@@ -1,0 +1,156 @@
+{# Registration as a stepper: Farmer ID, about you, Aadhaar and bank, land,
+   check. stepper.js shows one step at a time and fills things in from a
+   Farmer ID; without script every step is on the page at once and it still
+   posts, Fetch included.
+   Expects: form (values), lands, registry (agristack.public() or None),
+   lookup_failed, start_step, districts, admin (bool) #}
+{% set f = form %}
+<form method="post" class="stepper" data-stepper data-start="{{ start_step or 1 }}"
+      data-lookup="{{ url_for('registry_lookup') }}"
+      data-notfound="{{ t('No record for this Farmer ID. Check the number, or leave it empty and fill in your details yourself.') }}"
+      data-checking="{{ t('Looking up your Farmer ID...') }}"
+      data-failed="{{ t('Could not reach the registry. Fill in your details yourself.') }}"
+      data-found="{{ t('Your details are filled in from your Farmer ID. Check them in the next steps.') }}">
+  {# Enter in a field registers, not "Fetch my details" - the browser presses the first submit button #}
+  <button type="submit" class="sr" tabindex="-1" aria-hidden="true">{{ t("Register") }}</button>
+
+  <ol class="stepper-head" data-js hidden>
+    <li><span>{{ t("Farmer ID") }}</span></li>
+    <li><span>{{ t("About you") }}</span></li>
+    <li><span>{{ t("Aadhaar and bank") }}</span></li>
+    <li><span>{{ t("Land") }}</span></li>
+    <li><span>{{ t("Check") }}</span></li>
+  </ol>
+
+  <fieldset class="fieldset reg-step">
+    <div class="fs-head"><span class="fs-num">{{ icon('id-card') }}</span>
+      <div><h3>{{ t("Farmer ID") }}</h3><p>{{ t("Step %(n)d of %(total)d")|format(n=1, total=5) }}</p></div></div>
+    <p class="step-lede">{{ t("Have a Farmer ID (Kisan Pehchaan Patra)? Enter it and we fill in your Aadhaar, bank and land details from the farmer registry.") }}</p>
+    <div class="field">
+      <label for="agristack_id">{{ t("Farmer ID") }}</label>
+      <div class="type-row">
+        <input type="text" id="agristack_id" name="agristack_id" class="mono" inputmode="numeric" maxlength="14"
+               pattern="[0-9 ]{11,14}" autocomplete="off" value="{{ f.agristack_id or '' }}">
+        <button class="btn" type="submit" name="lookup" value="1" data-lookup-btn formnovalidate>{{ icon('search') }}{{ t("Fetch my details") }}</button>
+      </div>
+      <div class="hint">{{ t("11 digits. Demo Farmer IDs: 10025000101, 10025000102, 10025000103, 10025000104.") }}</div>
+    </div>
+    <input type="hidden" name="use_registry" id="use_registry" value="{{ f.use_registry or '' }}">
+    <div id="registry-result" aria-live="polite">
+      {% if registry %}
+      <div class="notice success small"><h3>{{ registry.name }}</h3>
+        <p>{{ t(registry.village) }}, {{ t(registry.district) }} &middot; {{ t("Your details are filled in from your Farmer ID. Check them in the next steps.") }}</p></div>
+      {% elif lookup_failed %}
+      <div class="notice error small"><p>{{ t("No record for this Farmer ID. Check the number, or leave it empty and fill in your details yourself.") }}</p></div>
+      {% endif %}
+    </div>
+    <p class="small muted mb0">{{ t("No Farmer ID? Leave this empty and continue. You can type everything in.") }}</p>
+  </fieldset>
+
+  <fieldset class="fieldset reg-step">
+    <div class="fs-head"><span class="fs-num">{{ icon('user') }}</span>
+      <div><h3>{{ t("About you") }}</h3><p>{{ t("Step %(n)d of %(total)d")|format(n=2, total=5) }}</p></div></div>
+    <div class="field-row two">
+      <div class="field">
+        <label for="name">{{ t("Full name (as printed on the bank passbook)") }} <span class="req">*</span></label>
+        <input type="text" id="name" name="name" value="{{ f.name or '' }}" autocomplete="name" required minlength="3">
+      </div>
+      <div class="field">
+        <label for="phone_number">{{ t("Mobile number") }} <span class="req">*</span></label>
+        <div class="phone-field">
+          <span class="cc">+91</span>
+          <input type="tel" id="phone_number" name="phone_number" value="{{ f.phone_number or '' }}"
+                 maxlength="10" inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel" required>
+        </div>
+      </div>
+    </div>
+    <div class="field-row two">
+      <div class="field">
+        <label for="district">{{ t("District") }} <span class="req">*</span></label>
+        <select id="district" name="district" required>
+          <option value="">{{ t("-- Select district --") }}</option>
+          {% for d in districts %}<option value="{{ d }}" {{ 'selected' if f.district == d }}>{{ t(d) }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="village">{{ t("Village / town") }} <span class="req">*</span></label>
+        {% with vid = "village", vname = "village", vvalue = f.village or '', vrequired = true %}{% include "_village_select.html" %}{% endwith %}
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="fieldset reg-step">
+    <div class="fs-head"><span class="fs-num">{{ icon('landmark') }}</span>
+      <div><h3>{{ t("Aadhaar and bank") }}</h3><p>{{ t("Step %(n)d of %(total)d")|format(n=3, total=5) }}</p></div></div>
+    <div class="registry-box" data-registry-box{{ '' if registry else ' hidden' }}>
+      <span class="badge green">{{ icon('check') }}{{ t("From your Farmer ID") }}</span>
+      <dl class="kv">
+        <dt>{{ t("Aadhaar number") }}</dt><dd class="mono" data-fill="aadhaar_masked">{{ registry.aadhaar_masked if registry }}</dd>
+        <dt>{{ t("Bank account number") }}</dt><dd class="mono" data-fill="account_masked">{{ registry.account_masked if registry }}</dd>
+        <dt>{{ t("IFSC code") }}</dt><dd class="mono" data-fill="ifsc">{{ registry.ifsc if registry }}</dd>
+        <dt>{{ t("Name printed on the bank account") }}</dt><dd data-fill="name_on_account">{{ registry.name_on_account if registry }}</dd>
+      </dl>
+      <p class="small muted">{{ t("Only the last digits are shown. The full numbers come straight from the registry. In the live system the registry first asks for your consent with an OTP.") }}</p>
+      <button type="button" class="btn small secondary" data-manual data-js hidden>{{ icon('sliders') }}{{ t("Enter them myself instead") }}</button>
+    </div>
+    <div data-manual-box{{ ' hidden' if registry }}>
+      <div class="field">
+        <label for="aadhaar_number">{{ t("Aadhaar number") }} <span class="req">*</span></label>
+        <input type="text" id="aadhaar_number" name="aadhaar_number" class="mono" value="{{ f.aadhaar_number or '' }}"
+               maxlength="12" inputmode="numeric" pattern="[0-9]{12}" autocomplete="off">
+        <div class="hint">{{ t("12 digits") }}</div>
+      </div>
+      <div class="field-row two">
+        <div class="field">
+          <label for="bank_account">{{ t("Bank account number") }} <span class="req">*</span></label>
+          <input type="text" id="bank_account" name="bank_account" class="mono" value="{{ f.bank_account or '' }}"
+                 maxlength="18" inputmode="numeric" pattern="[0-9]{9,18}" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="ifsc_code">{{ t("IFSC code") }} <span class="req">*</span></label>
+          <input type="text" id="ifsc_code" name="ifsc_code" class="mono" value="{{ f.ifsc_code or '' }}"
+                 maxlength="11" pattern="[A-Za-z]{4}0[A-Za-z0-9]{6}" style="text-transform:uppercase" autocomplete="off">
+          <div class="hint">{{ t("For example PUNB0123456.") }}</div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="bank_name_on_account">{{ t("Name printed on the bank account") }}</label>
+        <input type="text" id="bank_name_on_account" name="bank_name_on_account" value="{{ f.bank_name_on_account or '' }}">
+        <div class="hint">{{ t("As printed in the passbook") }}</div>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="fieldset reg-step">
+    <div class="fs-head"><span class="fs-num">{{ icon('map-pin') }}</span>
+      <div><h3>{{ t("Land") }}</h3><p>{{ t("Step %(n)d of %(total)d")|format(n=4, total=5) }}</p></div></div>
+    <p class="step-lede">{{ t("Add every land record you farm. Land in more than one place, under the same Aadhaar, is fine - add each one.") }}</p>
+    {% include "_lands.html" %}
+  </fieldset>
+
+  <fieldset class="fieldset reg-step">
+    <div class="fs-head"><span class="fs-num">{{ icon('clipboard-check') }}</span>
+      <div><h3>{{ t("Check and register") }}</h3><p>{{ t("Step %(n)d of %(total)d")|format(n=5, total=5) }}</p></div></div>
+    <div class="review" data-review data-js hidden data-l-farmer-id="{{ t('Farmer ID') }}" data-l-land="{{ t('Land record') }}"
+         data-acres="{{ t('acres') }}" data-edit="{{ t('Edit') }}" data-none="{{ t('Not given') }}"></div>
+    {% if admin %}
+    <div class="field mt">
+      <label for="registered_via">Registration channel</label>
+      <select id="registered_via" name="registered_via">
+        <option value="staff" {{ 'selected' if f.registered_via != 'csc' }}>Procurement centre counter</option>
+        <option value="csc" {{ 'selected' if f.registered_via == 'csc' }}>Common Service Centre operator</option>
+      </select>
+    </div>
+    {% endif %}
+    <p class="small muted">{{ t("Your Aadhaar, bank and land details are checked as soon as you register, so a mistake can be fixed before your payment.") }}</p>
+  </fieldset>
+
+  <div class="step-nav" data-js hidden>
+    <button type="button" class="btn secondary large" data-back>{{ icon('arrow-left') }}{{ t("Back") }}</button>
+    <button type="button" class="btn large" data-next>{{ t("Next") }}{{ icon('arrow-right') }}</button>
+  </div>
+  <div class="btn-row mt step-submit">
+    <button class="btn large go" type="submit">{{ icon('check') }}{{ t("Register") }}</button>
+    <a class="btn secondary large" href="{{ url_for('admin_farmers') if admin else url_for('home') }}">{{ t("Cancel") }}</a>
+  </div>
+</form>

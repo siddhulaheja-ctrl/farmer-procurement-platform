@@ -540,6 +540,11 @@ HINDI = {
     "Haldwani": "हल्द्वानी",
     "Dineshpur": "दिनेशपुर",
     "Manglaur": "मंगलौर",
+    "-- Select village --": "-- गांव चुनें --",
+    "Select the district first": "पहले ज़िला चुनें",
+    "Select your district.": "अपना ज़िला चुनें।",
+    "Select your village from the list for %s.": "%s की सूची से अपना गांव चुनें।",
+    "Select the village of land record %s from the list.": "भूमि रिकॉर्ड %s का गांव सूची से चुनें।",
     "Gadarpur": "गदरपुर",
     "Udham Singh Nagar": "उधम सिंह नगर",
     "Haridwar": "हरिद्वार",
@@ -796,6 +801,92 @@ HINDI = {
     "Slot booked": "स्लॉट बुक हो गया",
     "Rain is expected before your slot. Keep your crop covered.": "आपके स्लॉट से पहले बारिश का अनुमान है। फसल ढककर रखें।",
     "Menu": "मेनू",
+    # registration stepper, Farmer ID and land records
+    "Farmer ID": "किसान आईडी",
+    "About you": "आपके बारे में",
+    "Check": "जांचें",
+    "Step %(n)d of %(total)d": "चरण %(n)d / %(total)d",
+    "Have a Farmer ID (Kisan Pehchaan Patra)? Enter it and we fill in your Aadhaar, bank and land details from the farmer registry.": "क्या आपके पास किसान आईडी (किसान पहचान पत्र) है? उसे डालें, हम आपका आधार, बैंक और ज़मीन का विवरण किसान रजिस्ट्री से भर देंगे।",
+    "Fetch my details": "मेरा विवरण लाएं",
+    "11 digits. Demo Farmer IDs: 10025000101, 10025000102, 10025000103, 10025000104.": "11 अंक। डेमो किसान आईडी: 10025000101, 10025000102, 10025000103, 10025000104।",
+    "Your details are filled in from your Farmer ID. Check them in the next steps.": "आपकी किसान आईडी से विवरण भर दिया गया है। अगले चरणों में जांच लें।",
+    "No record for this Farmer ID. Check the number, or leave it empty and fill in your details yourself.": "इस किसान आईडी का कोई रिकॉर्ड नहीं मिला। नंबर जांचें, या इसे खाली छोड़कर अपना विवरण खुद भरें।",
+    "No Farmer ID? Leave this empty and continue. You can type everything in.": "किसान आईडी नहीं है? इसे खाली छोड़ें और आगे बढ़ें। सब कुछ आप खुद लिख सकते हैं।",
+    "Looking up your Farmer ID...": "आपकी किसान आईडी खोज रहे हैं...",
+    "Could not reach the registry. Fill in your details yourself.": "रजिस्ट्री से संपर्क नहीं हो सका। अपना विवरण खुद भरें।",
+    "From your Farmer ID": "आपकी किसान आईडी से",
+    "Only the last digits are shown. The full numbers come straight from the registry. In the live system the registry first asks for your consent with an OTP.": "केवल आखिरी अंक दिखाए गए हैं। पूरे नंबर सीधे रजिस्ट्री से आते हैं। असली प्रणाली में रजिस्ट्री पहले OTP से आपकी सहमति लेती है।",
+    "Enter them myself instead": "इसके बजाय मैं खुद भरूंगा",
+    "Add every land record you farm. Land in more than one place, under the same Aadhaar, is fine - add each one.": "जिस-जिस ज़मीन पर आप खेती करते हैं, उसका रिकॉर्ड जोड़ें। एक ही आधार पर अलग-अलग जगह ज़मीन हो सकती है - हर एक जोड़ें।",
+    "Check and register": "जांचें और पंजीकरण करें",
+    "Your Aadhaar, bank and land details are checked as soon as you register, so a mistake can be fixed before your payment.": "पंजीकरण होते ही आपके आधार, बैंक और ज़मीन के विवरण की जांच होती है, ताकि भुगतान से पहले गलती ठीक हो सके।",
+    "Next": "आगे",
+    "Edit": "बदलें",
+    "Not given": "नहीं दिया",
+    "acres": "एकड़",
+    "Land record": "ज़मीन रिकॉर्ड",
+    "Land records": "ज़मीन रिकॉर्ड",
+    "This Farmer ID is already registered. Please sign in instead.": "यह किसान आईडी पहले से पंजीकृत है। कृपया साइन इन करें।",
+    "Area (acres)": "रकबा (एकड़)",
+    "From Farmer ID": "किसान आईडी से",
+    "Remove": "हटाएं",
+    "Add another land record": "एक और ज़मीन रिकॉर्ड जोड़ें",
+    "Land record ID as on your khatauni, for example USN-104238-12.": "खतौनी में लिखा ज़मीन रिकॉर्ड नंबर, जैसे USN-104238-12।",
+    "Farmer ID, if you have one": "किसान आईडी, अगर है",
+    "Village": "गांव",
+    "Name": "नाम",
+    "Enter the farmer's full name.": "किसान का पूरा नाम लिखें।",
+    "Enter a valid 10-digit mobile number.": "सही 10 अंकों का मोबाइल नंबर लिखें।",
+    "%s is already registered. Please sign in instead.": "%s पहले से पंजीकृत है। कृपया साइन इन करें।",
+    "No farmer record found for Farmer ID %s. Check the number, or leave it empty and fill in the details yourself.": "किसान आईडी %s का कोई रिकॉर्ड नहीं मिला। नंबर जांचें, या इसे खाली छोड़कर विवरण खुद भरें।",
+    "Farmer ID %s is already registered. Please sign in instead.": "किसान आईडी %s पहले से पंजीकृत है। कृपया साइन इन करें।",
+    "This Aadhaar number is already registered, with the mobile number ending %s. Sign in with that number - you can add more land records on My Details.": "यह आधार नंबर पहले से पंजीकृत है, मोबाइल नंबर के आखिरी अंक %s। उसी नंबर से साइन इन करें - मेरी जानकारी में और ज़मीन रिकॉर्ड जोड़ सकते हैं।",
+    # registering by speaking
+    "Register by speaking": "बोलकर पंजीकरण करें",
+    "Answer a few questions out loud. Your details are read back before anything is saved.": "कुछ सवालों के जवाब बोलकर दें। कुछ भी सहेजने से पहले आपका विवरण पढ़कर सुनाया जाएगा।",
+    "One question at a time. Speak, type, or tap a button. Nothing is saved until you say yes at the end.": "एक बार में एक सवाल। बोलें, लिखें या बटन दबाएं। आखिर में हां कहने तक कुछ भी सहेजा नहीं जाएगा।",
+    "Start: hear the question": "शुरू करें: सवाल सुनें",
+    "Your answer": "आपका जवाब",
+    "Speak with the microphone, or type here": "माइक से बोलें, या यहां लिखें",
+    "Send": "भेजें",
+    "Back to the form": "फॉर्म पर वापस",
+    "You are registered.": "आपका पंजीकरण हो गया।",
+    "Open my dashboard": "मेरा डैशबोर्ड खोलें",
+    "Your details so far": "अब तक का आपका विवरण",
+    "Found": "मिल गई",
+    "Start over": "फिर से शुरू करें",
+    "Use the form instead": "इसके बजाय फॉर्म भरें",
+    "Yes": "हां",
+    "I don't have one": "मेरे पास नहीं है",
+    "Later": "बाद में",
+    "Aadhaar": "आधार",
+    "Bank account": "बैंक खाता",
+    "Do you have a Farmer ID? Say its number, or say no.": "क्या आपके पास किसान आईडी है? उसका नंबर बोलिए, या नहीं बोलिए।",
+    "Your Farmer ID belongs to %(name)s of %(village)s. Is that you? Say yes or no.": "यह किसान आईडी %(village)s के %(name)s की है। क्या यह आप हैं? हां या नहीं बोलिए।",
+    "Say your full name, the way it is written in your bank passbook.": "अपना पूरा नाम बोलिए, जैसा बैंक पासबुक में लिखा है।",
+    "Say your 10 digit mobile number.": "अपना 10 अंकों का मोबाइल नंबर बोलिए।",
+    "Which district is your land in: Udham Singh Nagar, Haridwar, Dehradun or Nainital?": "आपकी ज़मीन किस जिले में है: उधम सिंह नगर, हरिद्वार, देहरादून या नैनीताल?",
+    "Say the name of your village.": "अपने गांव का नाम बोलिए।",
+    "Say your 12 digit Aadhaar number.": "अपना 12 अंकों का आधार नंबर बोलिए।",
+    "Say your bank account number.": "अपना बैंक खाता नंबर बोलिए।",
+    "Say the IFSC code from your passbook, one letter at a time. Or say later.": "पासबुक में लिखा IFSC कोड एक-एक अक्षर करके बोलिए। या 'बाद में' बोलिए।",
+    "Say the land record number from your khatauni. Or say later.": "खतौनी से ज़मीन का रिकॉर्ड नंबर बोलिए। या 'बाद में' बोलिए।",
+    "Do you have land anywhere else too? Say yes or no.": "क्या आपकी कहीं और भी ज़मीन है? हां या नहीं बोलिए।",
+    "We found %(n)d land record(s) under your Farmer ID. Do you have any other land? Say yes or no.": "आपकी किसान आईडी में %(n)d ज़मीन रिकॉर्ड मिले। क्या इसके अलावा भी ज़मीन है? हां या नहीं बोलिए।",
+    "%(name)s, mobile ending %(phone)s, %(lands)d land record(s). Shall I register you? Say yes or no.": "%(name)s, मोबाइल के आखिरी अंक %(phone)s, %(lands)d ज़मीन रिकॉर्ड। क्या पंजीकरण कर दूं? हां या नहीं बोलिए।",
+    "What should I change? Say name, mobile, village, Aadhaar, bank, IFSC or land.": "क्या बदलना है? नाम, मोबाइल, गांव, आधार, बैंक, IFSC या ज़मीन बोलिए।",
+    "Registering you now.": "पंजीकरण कर रहे हैं।",
+    "You are registered. Opening your dashboard.": "आपका पंजीकरण हो गया। आपका डैशबोर्ड खोल रहे हैं।",
+    "Sorry, I did not catch that.": "माफ़ कीजिए, समझ नहीं आया।",
+    "That Farmer ID was not found.": "यह किसान आईडी नहीं मिली।",
+    "A mobile number has 10 digits.": "मोबाइल नंबर 10 अंकों का होता है।",
+    "This mobile number is already registered. You can sign in with it instead.": "यह मोबाइल नंबर पहले से पंजीकृत है। आप इससे साइन इन कर सकते हैं।",
+    "That Aadhaar number does not look right.": "यह आधार नंबर सही नहीं लग रहा।",
+    "This Aadhaar number is already registered. Sign in with that account and add your land on My Details.": "यह आधार नंबर पहले से पंजीकृत है। उस खाते से साइन इन करके मेरी जानकारी में ज़मीन जोड़ें।",
+    "An account number has 9 to 18 digits.": "खाता नंबर 9 से 18 अंकों का होता है।",
+    "That IFSC code did not sound right.": "यह IFSC कोड सही नहीं लगा।",
+    "That land record number did not sound right.": "यह ज़मीन रिकॉर्ड नंबर सही नहीं लगा।",
+    "That district is not one of ours.": "यह जिला हमारी सूची में नहीं है।",
 }
 
 
@@ -806,10 +897,17 @@ from lang.bn import BENGALI  # noqa: E402
 LANGUAGES = {"en": "English", "hi": "हिन्दी", "bn": "বাংলা"}
 TABLES = {"hi": HINDI, "bn": BENGALI}
 
+# village names live with the village list
+from villages import NAMES as _VILLAGE_NAMES  # noqa: E402
+for _code, _names in _VILLAGE_NAMES.items():
+    for _english, _local in _names.items():
+        TABLES[_code].setdefault(_english, _local)
+
 
 def get_lang():
-    code = session.get("lang", "en")
-    return code if code in LANGUAGES else "en"
+    # hindi until the visitor picks another language from the switcher
+    code = session.get("lang", "hi")
+    return code if code in LANGUAGES else "hi"
 
 
 def t(text):

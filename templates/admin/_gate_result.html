@@ -32,7 +32,7 @@
       {% elif v.action == 'checkin_anyway' %}
         <div class="field gc-note">
           <label for="gate-note">Why let them in anyway?</label>
-          <input type="text" id="gate-note" name="note" placeholder="e.g. centre has room, supervisor agreed">
+          <input type="text" id="gate-note" name="note" placeholder="e.g. centre has room, superadmin agreed">
         </div>
         <button type="button" class="btn large" data-action="checkin_anyway">{{ icon('log-in') }}Let in anyway</button>
       {% elif v.action == 'checkout' %}

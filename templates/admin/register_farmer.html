@@ -12,29 +12,7 @@
 <div class="grid side">
   <div class="card">
     <div class="card-body">
-      <form method="post">
-        {% with f = form, show_phone = true %}
-          {% include "_farmer_fields.html" %}
-        {% endwith %}
-
-        <fieldset class="fieldset">
-          <div class="fs-head">
-            <h3>Where this is happening</h3>
-          </div>
-          <div class="field">
-            <label for="registered_via">Registration channel</label>
-            <select id="registered_via" name="registered_via">
-              <option value="staff">Procurement centre counter</option>
-              <option value="csc">Common Service Centre operator</option>
-            </select>
-          </div>
-        </fieldset>
-
-        <div class="btn-row mt">
-          <button class="btn large" type="submit">{{ icon('check') }}Register farmer</button>
-          <a class="btn secondary large" href="{{ url_for('admin_farmers') }}">Cancel</a>
-        </div>
-      </form>
+      {% with admin = true %}{% include "_register_steps.html" %}{% endwith %}
     </div>
   </div>
 
@@ -43,12 +21,15 @@
       <div class="card-head"><h2 class="card-title">Check the documents in front of you</h2></div>
       <div class="card-body">
         <ul class="checklist">
+          <li>{{ icon('ticket') }}Farmer ID card &mdash; fills in the rest</li>
           <li>{{ icon('id-card') }}Aadhaar card &mdash; all 12 digits</li>
           <li>{{ icon('landmark') }}Bank passbook &mdash; account, IFSC and the name as printed</li>
-          <li>{{ icon('map-pin') }}Khasra / khatauni extract &mdash; land record ID</li>
+          <li>{{ icon('map-pin') }}Khasra / khatauni extract &mdash; every land record they farm</li>
         </ul>
       </div>
     </div>
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/stepper.js') }}"></script>{% endblock %}

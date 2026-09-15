@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Supervisor Sign In{% endblock %}
+{% block title %}Superadmin Sign In{% endblock %}
 
 {% block content %}
-{# its own door: supervisors see every centre and every staff account, so they
+{# its own door: superadmins see every centre and every member account, so they
    don't share a sign-in page with the counter #}
 <div class="auth">
   <div class="auth-art staff">
@@ -11,12 +11,12 @@
   </div>
 
   <div class="auth-form">
-    <p class="eyebrow">District supervisor</p>
-    <h1>Supervisor sign in</h1>
+    <p class="eyebrow">District superadmin</p>
+    <h1>Superadmin sign in</h1>
     <p class="muted">Every centre in the district, member activity, and anything that needs a decision.</p>
     <form method="post">
       <div class="field">
-        <label for="staff_code">Supervisor code <span class="req">*</span></label>
+        <label for="staff_code">Superadmin code <span class="req">*</span></label>
         <input type="text" id="staff_code" name="staff_code" value="{{ code }}"
                style="text-transform:uppercase" autocomplete="username" required autofocus>
       </div>
@@ -27,7 +27,7 @@
       <button class="btn block large" type="submit">{{ icon('log-in') }}Sign in</button>
     </form>
     <p class="small mt">Work at a procurement centre counter? <a href="{{ url_for('admin_login') }}">Centre member sign in</a></p>
-    <div class="notice warning small">Demo: supervisor <strong>ADMIN</strong>, password <strong>demo123</strong></div>
+    <div class="notice warning small">Demo: superadmin <strong>ADMIN</strong>, password <strong>demo123</strong></div>
   </div>
 </div>
 {% endblock %}

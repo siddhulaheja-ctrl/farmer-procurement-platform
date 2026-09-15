@@ -39,7 +39,7 @@ moves to 5001 by itself. If you run it manually use `PORT=5001 python app.py`.
 
 ## Logins
 
-Members: `RUD01` at a centre counter, `ADMIN` as the district supervisor, both with `demo123`.
+Members: `RUD01` at a centre counter, `ADMIN` as the district superadmin, both with `demo123`.
 
 Farmers sign in with their own mobile number. Nothing is actually sent, so any
 six digits work as the OTP.

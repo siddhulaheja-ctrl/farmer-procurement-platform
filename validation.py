@@ -117,14 +117,18 @@ def run_checks(farmer: dict) -> list:
                           % (farmer.get("name"), on_acct, round(score * 100)),
             })
 
-    # Land record
-    land = (farmer.get("land_record_id") or "").strip().upper()
-    if not land:
+    # Land records - a farmer can farm several parcels, and every one is checked
+    lands = farmer.get("lands")
+    records = ([(x.get("land_record_id") or "") for x in lands] if lands is not None
+               else [farmer.get("land_record_id") or ""])
+    records = [r.strip().upper() for r in records if r and r.strip()]
+    if not records:
         problems.append({"field": "land", "severity": "warning",
                          "detail": "Land record ID is missing - quantity limit cannot be verified."})
-    elif not LAND_RE.match(land):
-        problems.append({"field": "land", "severity": "warning",
-                         "detail": "Land record ID '%s' does not match the state format (e.g. PNB-104238-12)." % land})
+    for land in records:
+        if not LAND_RE.match(land):
+            problems.append({"field": "land", "severity": "warning",
+                             "detail": "Land record ID '%s' does not match the state format (e.g. PNB-104238-12)." % land})
 
     return problems
 
@@ -136,6 +140,9 @@ def validate_and_flag(farmer_id: int) -> list:
     if row is None:
         return []
     farmer = dict(row)
+    lands = query("SELECT land_record_id FROM farmer_lands WHERE farmer_id = ?", (farmer_id,))
+    if lands:
+        farmer["lands"] = [dict(x) for x in lands]
     problems = run_checks(farmer)
 
     execute("DELETE FROM data_validation_flags WHERE farmer_id = ? AND status = 'unresolved'", (farmer_id,))

@@ -61,7 +61,29 @@ def migrate():
     if [r[1] for r in conn.execute("PRAGMA table_info(transactions)")]:
         _migrate_payments(conn)
         conn.commit()
+    if [r[1] for r in conn.execute("PRAGMA table_info(farmers)")]:
+        _migrate_lands(conn)
+        conn.commit()
     conn.close()
+
+
+LANDS_SQL = """CREATE TABLE IF NOT EXISTS farmer_lands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, farmer_id INTEGER NOT NULL, land_record_id TEXT NOT NULL,
+    village TEXT, district TEXT, area_acres REAL, source TEXT NOT NULL DEFAULT 'manual', added_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_farmer_lands_farmer ON farmer_lands(farmer_id);
+"""
+
+
+def _migrate_lands(conn):
+    """Farmer IDs, and more than one land record per farmer. A farmer's old
+    single land record becomes their first row."""
+    _add_columns(conn, "farmers", [("agristack_id", "TEXT")])
+    conn.executescript(LANDS_SQL)
+    conn.execute(
+        "INSERT INTO farmer_lands (farmer_id, land_record_id, village, district, source, added_at)"
+        " SELECT f.id, f.land_record_id, f.village, f.district, 'manual', f.created_at FROM farmers f"
+        " WHERE IFNULL(f.land_record_id, '') != ''"
+        " AND NOT EXISTS (SELECT 1 FROM farmer_lands l WHERE l.farmer_id = f.id)")
 
 
 PAYMENTS_SQL = """CREATE TABLE IF NOT EXISTS payment_batches (
@@ -166,6 +188,8 @@ def _migrate_staff(conn):
         conn.execute("INSERT INTO staff (name, staff_code, password, centre_id, role)"
                      " VALUES (?,?,?,?,?)",
                      (name, code, hash_password(DEMO_PASSWORD), centres.get(centre), role))
+    # the demo account was renamed when "supervisor" became "superadmin"
+    conn.execute("UPDATE staff SET name = 'District Superadmin' WHERE name = 'District Supervisor'")
 
 
 def init_db(conn=None):

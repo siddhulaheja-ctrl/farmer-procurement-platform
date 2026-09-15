@@ -23,8 +23,27 @@
       </div>
       <button class="btn block large" type="submit">{{ icon('log-in') }}Sign in</button>
     </form>
-    <p class="small mt">District supervisor? <a href="{{ url_for('super_login') }}">Supervisor sign in</a></p>
-    <div class="notice warning small">Demo: Rudrapur counter <strong>RUD01</strong>, password <strong>demo123</strong></div>
+    <p class="small mt">District superadmin? <a href="{{ url_for('super_login') }}">Superadmin sign in</a></p>
+    <div class="roster">
+      <h2 class="roster-h">Demo accounts <span class="muted">&middot; password <b class="mono">{{ demo_password }}</b> for all</span></h2>
+      <ul class="roster-list">
+      {% for code_, name_, centre_, role_ in roster %}
+        <li>
+          <b class="mono roster-code">{{ code_ }}</b>
+          <span class="roster-who">{{ centre_ or 'All centres' }}<small class="muted">{{ name_ }}</small></span>
+          {% if role_ == 'superadmin' %}
+          <a class="btn small secondary" href="{{ url_for('super_login') }}">Superadmin page</a>
+          {% else %}
+          <form method="post">
+            <input type="hidden" name="staff_code" value="{{ code_ }}">
+            <input type="hidden" name="password" value="{{ demo_password }}">
+            <button class="btn small secondary" type="submit">{{ icon('log-in') }}Sign in</button>
+          </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
   </div>
 </div>
 {% endblock %}

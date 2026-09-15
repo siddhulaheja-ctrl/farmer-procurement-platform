@@ -456,6 +456,10 @@
             lastStep = step;
             slotId = step.slot_id || null;
             result.innerHTML = step.html;
+            // registering by speaking: a summary beside the conversation, and the answer box emptied
+            var side = document.getElementById('voice-side');
+            if (step.side && side) { side.innerHTML = step.side; }
+            if (form.hasAttribute('data-clear')) { box.value = ''; }
             wire();
             status.textContent = step.say;
             retries = step.repeat ? retries + 1 : 0;
@@ -586,10 +590,29 @@
         // a page that arrived with a result already in it (typed, script-free post)
         var existing = result.querySelector('[data-say]');
         if (existing) {
-            lastStep = { say: existing.dataset.say, listen: result.querySelector('[data-decision]') ? 'answer' : null };
+            lastStep = { say: existing.dataset.say,
+                         listen: existing.dataset.listen || (result.querySelector('[data-decision]') ? 'answer' : null) };
             slotId = existing.dataset.slot || null;
             turns = box.value.trim() ? [box.value.trim()] : [];
             wire();
+        }
+
+        // a page that starts by asking (registering by speaking): say the
+        // question, then listen. it needs this tap - a page may only speak
+        // after the person has touched it
+        var start = form.querySelector('[data-voice-start]');
+        if (start && lastStep && lastStep.say) {
+            start.hidden = false;
+            start.addEventListener('click', function () {
+                quiet();
+                retries = 0;
+                start.hidden = true;
+                var mine = generation;
+                status.textContent = lastStep.say;
+                speak(lastStep.say, function () {
+                    if (mine === generation && canListen && lastStep.listen) { hearAnswer(true); }
+                });
+            });
         }
 
         mic.addEventListener('click', function () {

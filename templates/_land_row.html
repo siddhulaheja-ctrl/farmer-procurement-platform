@@ -1,0 +1,22 @@
+{# one land parcel. Expects: l (a land dict, or {} for an empty row), n (a unique suffix for ids) #}
+<div class="land-row{{ ' from-registry' if l.source == 'registry' }}">
+  <div class="field">
+    <label for="land_record_id-{{ n }}">{{ t("Land record ID") }}</label>
+    <input type="text" id="land_record_id-{{ n }}" name="land_record_id" class="mono" autocomplete="off"
+           value="{{ l.land_record_id or '' }}" style="text-transform:uppercase"{{ ' readonly' if l.source == 'registry' }}>
+  </div>
+  <div class="field">
+    <label for="land_village-{{ n }}">{{ t("Village") }}</label>
+    {% with vid = "land_village-" ~ n, vname = "land_village", vvalue = l.village or '', vrequired = false %}{% include "_village_select.html" %}{% endwith %}
+  </div>
+  <div class="field">
+    <label for="land_area-{{ n }}">{{ t("Area (acres)") }}</label>
+    <input type="number" id="land_area-{{ n }}" name="land_area" min="0" step="0.01" inputmode="decimal"
+           value="{{ l.area_acres if l.area_acres is not none and l.area_acres is defined else '' }}">
+  </div>
+  <input type="hidden" name="land_source" value="{{ l.source or 'manual' }}">
+  <div class="land-side">
+    {% if l.source == 'registry' %}<span class="badge green">{{ t("From Farmer ID") }}</span>{% endif %}
+    <button type="button" class="btn small ghost" data-remove-land data-js hidden title="{{ t('Remove') }}">{{ icon('x') }}<span class="sr">{{ t("Remove") }}</span></button>
+  </div>
+</div>
