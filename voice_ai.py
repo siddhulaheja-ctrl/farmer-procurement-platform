@@ -43,7 +43,8 @@ CENTRES = ["Rudrapur Mandi Samiti", "Kichha Kharid Kendra", "Haridwar Kharid Ken
 DISTRICTS = ["Udham Singh Nagar", "Haridwar", "Dehradun", "Nainital"]
 CROPS = ["Wheat", "Paddy", "Mustard", "Gram", "Maize", "Bajra"]
 WINDOWS = (8, 10, 12, 14)
-QUESTION_TOPICS = ["directions", "travel_time", "distance", "documents", "timings", "price", "payment", "other"]
+QUESTION_TOPICS = ["directions", "travel_time", "distance", "documents", "timings", "price", "payment",
+                   "weather", "other"]
 
 INSTRUCTIONS = """You understand what an Indian farmer says to book a weighing slot at a government grain procurement centre in Uttarakhand. They usually speak Hindi or Hinglish (Hindi written in Latin letters), sometimes Bengali or English. The words come from speech recognition, so expect misspellings and misheard words, and work out what was meant.
 
@@ -67,14 +68,14 @@ Slots start at 8, 10, 12 and 14 hours. subah or savere: [8, 10]. dopahar: [12, 1
 
 heard_centre, heard_day, heard_time, heard_crop, heard_quantity: the farmer's own few words for that detail, or "".
 
-Sometimes the farmer asks something instead of booking or answering: how to reach the centre (kaise pahunchein, rasta, address, kahan hai), how far it is (kitni door), how long it takes to get there (kitna time lagega), what to bring (kya kagaz lana hai), when the centre opens (kitne baje khulta hai), the price (bhav, MSP), or when they will be paid (paisa kab aayega). Then intent is "question" and question_topic says which; still fill centre or crop if the question names one. Any other question not about booking is question_topic "other". question_topic is "none" when there is no question.
+Sometimes the farmer asks something instead of booking or answering: how to reach the centre (kaise pahunchein, rasta, address, kahan hai), how far it is (kitni door), how long it takes to get there (kitna time lagega), what to bring (kya kagaz lana hai), when the centre opens (kitne baje khulta hai), the price (bhav, MSP), when they will be paid (paisa kab aayega), or the weather (mausam kaisa rahega, barish hogi kya, us din mausam kaisa hoga - "us din" means the day being booked). Then intent is "question" and question_topic says which; still fill centre or crop if the question names one. Any other question not about booking is question_topic "other". question_topic is "none" when there is no question.
 
-intent: "booking" for a request. When you are told the portal has just read a slot back or asked something, the reply is "yes" (haan, ha ji, theek hai, kar do, book karo) or "no" (nahi, mat karo, cancel) only when nothing is being changed; "change" when they give a new or missing detail, with only those details filled in; "question" as above; otherwise "unclear"."""
+intent: "cancel" when they want to undo a booking they already have. They rarely use the word cancel: "booking hata do", "slot nahi chahiye", "ab nahi aa paunga", "mujhe ab nahi aana hai", "meri booking radd kar do", "स्लॉट नहीं चाहिए" are all cancel. A sentence with no crop, no quantity and no new day, that asks for something to be removed or says they cannot come, is cancel, never booking - then still fill centre or date if they say which booking. "booking" for a request. When you are told the portal has just read a slot back or asked something, the reply is "yes" (haan, ha ji, theek hai, kar do, book karo) or "no" (nahi, mat karo, cancel) only when nothing is being changed; "change" when they give a new or missing detail, with only those details filled in; "question" as above; otherwise "unclear"."""
 
 SCHEMA = {
     "type": "OBJECT",
     "properties": {
-        "intent": {"type": "STRING", "enum": ["booking", "yes", "no", "change", "question", "unclear"]},
+        "intent": {"type": "STRING", "enum": ["booking", "cancel", "yes", "no", "change", "question", "unclear"]},
         "question_topic": {"type": "STRING", "enum": QUESTION_TOPICS + ["none"]},
         "centre": {"type": "STRING", "enum": CENTRES + ["none"]},
         "district": {"type": "STRING", "enum": DISTRICTS + ["none"]},

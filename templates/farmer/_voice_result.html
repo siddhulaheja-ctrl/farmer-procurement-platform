@@ -25,6 +25,69 @@
   <h3>{{ t("Token number") }}: <span class="mono">{{ step.token }}</span></h3>
   <a class="btn" href="{{ step.url }}">{{ t("Open my booking") }}</a>
 </div>
+{% elif step.stage == 'nothing_to_cancel' %}
+<div class="notice info">
+  <p>{{ t("You have no upcoming booking to cancel.") }}</p>
+  <a class="btn secondary" href="{{ url_for('farmer_centres') }}">{{ t("Book a Slot") }}</a>
+</div>
+
+{% elif step.cancel %}
+  {% set cb = step.cancel.booking %}
+  {% if step.stage == 'which_booking' %}
+  <div class="card mt">
+    <div class="card-head"><h2 class="card-title">{{ t("Which booking should I cancel?") }}</h2></div>
+    <div class="card-body">
+      <ol class="cancel-list">
+        {% for b in step.cancel.bookings %}
+        <li>
+          <div>
+            <strong>{{ t(b.centre_name) }}</strong>
+            <span class="muted">{{ b.date|dayname }}, {{ b.date|nicedate }} &middot; {{ b.time_window }}
+              &middot; {{ t(b.crop_type) }} {{ '%g'|format(b.estimated_quantity) }} {{ t("quintals") }}</span>
+            <span class="mono small">{{ b.token_no }}</span>
+          </div>
+          <button type="button" class="btn secondary" data-answer="{{ loop.index }}" data-js hidden>{{ t("This one") }}</button>
+          <a class="btn secondary" href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ t("Open") }}</a>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+
+  {% elif step.stage == 'confirm_cancel' %}
+  <div class="notice warning">
+    <h3>{{ t("Cancel this booking?") }}</h3>
+    <p><strong>{{ t(cb.centre_name) }}</strong> &middot; {{ cb.date|dayname }}, {{ cb.date|nicedate }}
+       &middot; {{ cb.time_window }} &middot; {{ t(cb.crop_type) }} {{ '%g'|format(cb.estimated_quantity) }} {{ t("quintals") }}
+       &middot; <span class="mono">{{ cb.token_no }}</span></p>
+    <p class="small">{{ t("The slot goes back to other farmers straight away. Nothing is cancelled until you answer.") }}</p>
+  </div>
+  <div class="voice-answer" data-js hidden>
+    <button type="button" class="btn no-btn" data-decision="yes">{{ icon('x') }}{{ t("Yes, cancel it") }}</button>
+    <button type="button" class="btn yes-btn" data-decision="no">{{ icon('check') }}{{ t("No, keep it") }}</button>
+  </div>
+  <div class="btn-row mt">
+    <a class="btn secondary" href="{{ url_for('farmer_booking', booking_id=cb.id) }}">{{ t("Change the day instead") }}</a>
+  </div>
+
+  {% elif step.stage == 'cancelled_booking' %}
+  <div class="notice success">
+    <h3>{{ t("Booking cancelled") }}</h3>
+    <p>{{ t(cb.centre_name) }} &middot; {{ cb.date|dayname }}, {{ cb.date|nicedate }}
+       &middot; <span class="mono">{{ cb.token_no }}</span></p>
+    <div class="btn-row">
+      <a class="btn" href="{{ url_for('farmer_centres') }}">{{ t("Book another slot") }}</a>
+      <a class="btn secondary" href="{{ step.url }}">{{ t("Dashboard") }}</a>
+    </div>
+  </div>
+
+  {% elif step.stage == 'kept_booking' %}
+  <div class="notice info">
+    <p>{{ t("Nothing has been cancelled. Your booking stays as it is.") }}</p>
+    <a class="btn secondary" href="{{ step.url }}">{{ t("Open my booking") }}</a>
+  </div>
+  {% endif %}
+
 {% elif p and p.heard and step.stage != 'cancelled' %}
 
   {% if r and r.slot %}

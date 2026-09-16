@@ -541,6 +541,59 @@ HINDI = {
     "Dineshpur": "दिनेशपुर",
     "Manglaur": "मंगलौर",
     "-- Select village --": "-- गांव चुनें --",
+    "%(centre)s, %(day)s, %(time)s, %(crop)s %(qty)s quintals":
+        "%(centre)s, %(day)s, %(time)s, %(crop)s %(qty)s क्विंटल",
+    "You have no upcoming booking to cancel.":
+        "आपकी कोई आने वाली बुकिंग नहीं है जिसे रद्द किया जा सके।",
+    "You have %d bookings. Which one should I cancel?":
+        "आपकी %d बुकिंग हैं। कौन सी रद्द करनी है?",
+    "Your booking: %s. Shall I cancel it? Say yes or no.":
+        "आपकी बुकिंग: %s। इसे रद्द कर दूं? हां या ना बोलिए।",
+    "Cancelled. The slot is free for other farmers again.":
+        "रद्द कर दी गई। स्लॉट दूसरे किसानों के लिए खाली हो गया।",
+    "You can book another day whenever you are ready.":
+        "आप जब चाहें दूसरे दिन की बुकिंग कर सकते हैं।",
+    "Nothing has been cancelled. Your booking stays as it is.":
+        "कुछ भी रद्द नहीं किया गया। आपकी बुकिंग वैसी ही रहेगी।",
+    "Which booking should I cancel?":
+        "कौन सी बुकिंग रद्द करनी है?",
+    "Cancel this booking?":
+        "यह बुकिंग रद्द करें?",
+    "The slot goes back to other farmers straight away. Nothing is cancelled until you answer.":
+        "स्लॉट तुरंत दूसरे किसानों के लिए खुल जाएगा। जब तक आप जवाब न दें, कुछ रद्द नहीं होगा।",
+    "Yes, cancel it":
+        "हां, रद्द करें",
+    "No, keep it":
+        "नहीं, रहने दें",
+    "Change the day instead":
+        "इसके बजाय दिन बदलें",
+    "Booking cancelled":
+        "बुकिंग रद्द हो गई",
+    "Book another slot":
+        "दूसरा स्लॉट बुक करें",
+    "Open my booking":
+        "मेरी बुकिंग खोलें",
+    "This one":
+        "यही",
+    "Open":
+        "खोलें",
+    "You can also cancel a booking here - we read it back before anything is cancelled.":
+        "आप यहां बुकिंग रद्द भी कर सकते हैं - रद्द करने से पहले हम उसे पढ़कर सुनाते हैं।",
+    "Weather at %s for the next three days:": "%s में अगले तीन दिन का मौसम:",
+    "Keep the grain covered and off the ground.": "अनाज को ढककर, ज़मीन से ऊपर रखें।",
+    "I only have the weather for the next five days.": "मेरे पास सिर्फ अगले पांच दिन का मौसम है।",
+    "Heavy rain is expected before then, so keep the grain covered and off the ground.":
+        "उससे पहले तेज़ बारिश का अनुमान है, इसलिए अनाज ढककर और ज़मीन से ऊपर रखें।",
+    "%(day)s at %(place)s: %(sky)s, about %(mm)s mm of rain, humidity %(hum)d percent.":
+        "%(day)s, %(place)s: %(sky)s, करीब %(mm)s मिमी बारिश, नमी %(hum)d प्रतिशत।",
+    "%(day)s at %(place)s: %(sky)s, no rain expected, humidity %(hum)d percent.":
+        "%(day)s, %(place)s: %(sky)s, बारिश का अनुमान नहीं, नमी %(hum)d प्रतिशत।",
+    "A warning. Heavy rain is expected while your grain waits at home. Keep it covered and off the ground, or pick an earlier day.":
+        "चेतावनी। जब तक आपका अनाज घर पर रहेगा, तेज़ बारिश का अनुमान है। उसे ढककर ज़मीन से ऊपर रखें, या पहले का दिन चुनें।",
+    "One thing. Rain is expected at %(place)s that day, so cover the load.":
+        "एक बात। उस दिन %(place)s में बारिश का अनुमान है, इसलिए माल ढककर लाएं।",
+    "Light rain is possible before that day. Keep the grain covered.":
+        "उस दिन से पहले हल्की बारिश हो सकती है। अनाज ढककर रखें।",
     "Select the district first": "पहले ज़िला चुनें",
     "Select your district.": "अपना ज़िला चुनें।",
     "Select your village from the list for %s.": "%s की सूची से अपना गांव चुनें।",

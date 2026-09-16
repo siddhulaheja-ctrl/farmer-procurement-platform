@@ -305,6 +305,23 @@ def assess_risk(district, slot_date_str, village=None):
     return dict(meta, level=level, lead_days=lead_days, reason=reason, forecast=forecast)
 
 
+def day_card(district, day_iso, village=None):
+    """The forecast for one date, or None when it is past the five days we get."""
+    forecast, source, point = get_forecast(district, 6, village)
+    card = next((d for d in forecast if d["date"] == str(day_iso)[:10]), None)
+    if not card:
+        return None
+    return dict(card, source=source, place=point["place"] if point else district)
+
+
+def outlook(district, days=5, village=None):
+    """(one plain line per day, the place they describe). For the help chat's facts."""
+    forecast, source, point = get_forecast(district, days, village)
+    lines = ["%s: %s, rain %.1f mm, humidity %d%%"
+             % (d["date"], d["description"], d["rain_mm"], d["humidity"]) for d in forecast]
+    return lines, (point["place"] if point else district)
+
+
 def evaluate_booking(booking_id: int):
     """Assess one booking, persist the risk level, and alert the farmer if high."""
     row = query(

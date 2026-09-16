@@ -604,25 +604,31 @@ def register_routes(app):
     def _voice_request(text, guesses):
         """The booking request: Gemini first, the parser filling in what it missed.
 
-        Returns (fields, question topic or None) - None unless the farmer asked
-        something instead of booking. The parser runs every time; it takes
-        milliseconds and needs no internet, so when Gemini can't answer,
-        nothing is lost.
+        Returns (fields, question topic or None, "cancel" or None). The topic
+        is None unless the farmer asked something instead of booking. The
+        parser runs every time; it takes milliseconds and needs no internet,
+        so when Gemini can't answer, nothing is lost.
         """
         backup = voicebook.best_parse([text] + list(guesses))
+        asks_cancel = voicebook.wants_cancel(text)
         try:
             ai, intent, topic = voice_ai.understand(text, guesses, district=g.farmer["district"])
         except voice_ai.Unavailable:
             topic = voicebook.question_topic(text)
-            return backup, topic if topic and not _is_booking(backup) else None
+            return (backup, topic if topic and (topic == "weather" or not _is_booking(backup)) else None,
+                    "cancel" if asks_cancel else None)
+        if intent == "cancel" or asks_cancel:
+            merged = voicebook.fill_gaps(ai, backup) if ai["heard"] else backup
+            merged["text"] = backup["text"]
+            return merged, None, "cancel"
         if intent == "question":
             ai["text"] = backup["text"]
-            return voicebook.fill_gaps(ai, backup), topic
+            return voicebook.fill_gaps(ai, backup), topic, None
         if not ai["heard"]:
-            return backup, None
+            return backup, None, None
         merged = voicebook.fill_gaps(ai, backup)
         merged["text"] = backup["text"]
-        return merged, None
+        return merged, None, None
 
     def _voice_reply(said, parsed):
         """A reply to what was read out: (details it gives, "yes"/"no"/None, question topic or None)."""
@@ -640,7 +646,7 @@ def register_routes(app):
                 district=g.farmer["district"])
         except voice_ai.Unavailable:
             topic = voicebook.question_topic(said)
-            if topic and not _is_booking(quick):
+            if topic and (topic == "weather" or not _is_booking(quick)):
                 return quick, None, topic
             return quick, kind, None
         if intent == "question":
@@ -649,7 +655,7 @@ def register_routes(app):
             return quick, intent if intent in ("yes", "no") else kind, None
         return voicebook.fill_gaps(ai, quick), None, None
 
-    def _voice_question_answer(topic, centre_name, crop):
+    def _voice_question_answer(topic, centre_name, crop, day=None):
         """A short spoken answer to a question asked while booking, from real data.
 
         Returns (words to say, a map link or None). Distances come from where
@@ -681,6 +687,32 @@ def register_routes(app):
             elif topic != "directions":
                 say += " " + t("I could not work out the exact distance from your village.")
             return say, directions
+        if topic == "weather":
+            # where the grain is, unless they asked about the centre they are going to
+            district = centre["district"] if centre else g.farmer["district"]
+            village = centre["location"] if centre else g.farmer["village"]
+            card = weather.day_card(district, day or date.today().isoformat(), village)
+            if card is None:
+                # further off than the forecast reaches: say so, but not nothing -
+                # the wait itself is what matters for grain sitting at home
+                say = t("I only have the weather for the next five days.")
+                risk = weather.assess_risk(g.farmer["district"], day, g.farmer["village"]) if day else None
+                if risk and risk["level"] == "high":
+                    say += " " + t("Heavy rain is expected before then, so keep the grain covered and off the ground.")
+                elif risk and risk["level"] == "low":
+                    say += " " + t("Light rain is possible before that day. Keep the grain covered.")
+                return say, None
+            when = voicebook.spoken_day(card["date"])
+            if card["rain_mm"] >= 0.5:
+                say = t("%(day)s at %(place)s: %(sky)s, about %(mm)s mm of rain, humidity %(hum)d percent.") % {
+                    "day": when, "place": t(card["place"]), "sky": t(card["description"]),
+                    "mm": "%g" % card["rain_mm"], "hum": int(card["humidity"])}
+                say += " " + t("Keep the grain covered and off the ground.")
+            else:
+                say = t("%(day)s at %(place)s: %(sky)s, no rain expected, humidity %(hum)d percent.") % {
+                    "day": when, "place": t(card["place"]), "sky": t(card["description"]),
+                    "hum": int(card["humidity"])}
+            return say, None
         if topic == "documents":
             return t("Bring your Aadhaar card, bank passbook and land record, and your token number or gate pass."), None
         if topic == "timings":
@@ -706,7 +738,11 @@ def register_routes(app):
         centre_name = details.get("centre") or parsed.get("centre")
         if not centre_name and step and step.get("proposal") and step["proposal"].get("slot"):
             centre_name = step["proposal"]["slot"]["centre_name"]
-        answer, directions = _voice_question_answer(topic, centre_name, details.get("crop") or parsed.get("crop"))
+        # "us din" is the day being booked: the slot read out, else the day they named
+        day = details.get("day") or parsed.get("day")
+        if step and step.get("proposal") and step["proposal"].get("slot"):
+            day = day or step["proposal"]["slot"]["date"]
+        answer, directions = _voice_question_answer(topic, centre_name, details.get("crop") or parsed.get("crop"), day)
         if step is None:
             step = {"parsed": details, "proposal": None, "stage": "answered", "say": "", "listen": "request",
                     "repeat": False, "url": None, "slot_id": None, "token": None,
@@ -717,6 +753,114 @@ def register_routes(app):
                     repeat=False, question=topic)
         return step
 
+    def _upcoming_bookings():
+        """The farmer's bookings that could still be cancelled, soonest first."""
+        return query(_BOOKING_SELECT + " WHERE b.farmer_id = ? AND b.status = 'booked' AND s.date >= ?"
+                     " ORDER BY s.date, s.time_window",
+                     (g.farmer["id"], date.today().isoformat()))
+
+    def _spoken_booking(b):
+        return t("%(centre)s, %(day)s, %(time)s, %(crop)s %(qty)s quintals") % {
+            "centre": t(b["centre_name"]), "day": voicebook.spoken_day(b["date"]),
+            "time": voicebook.spoken_window(b["time_window"]), "crop": t(b["crop_type"]),
+            "qty": "%g" % b["estimated_quantity"]}
+
+    def _pick_booking(rows, turns):
+        """Which booking they mean: the only one there is, the centre or day
+        they named, or the number they answered with. None when not certain."""
+        if len(rows) == 1:
+            return rows[0]
+        for said in turns:
+            p = voicebook.parse(said)
+            for b in rows:
+                if p["centre"] and p["centre"] == b["centre_name"]:
+                    return b
+                if p["day"] and p["day"] == b["date"]:
+                    return b
+        for said in turns[1:]:          # "dusri wali" only means anything as a reply
+            n = voicebook.which_one(said, len(rows))
+            if n:
+                return rows[n - 1]
+        return None
+
+    def _voice_cancel_step(turns, parsed, decision):
+        """Cancelling by voice.
+
+        The booking is always read back first and only a clear yes cancels it:
+        the slot goes straight back into the pool and another farmer can take
+        it within seconds, so a misheard word must never be enough.
+        """
+        step = {"parsed": parsed, "proposal": None, "stage": None, "say": "", "listen": None,
+                "repeat": False, "url": None, "slot_id": None, "token": None, "cancel": None}
+        rows = _upcoming_bookings()
+        if not rows:
+            step.update(stage="nothing_to_cancel", say=t("You have no upcoming booking to cancel."))
+            return step
+
+        picked = _pick_booking(rows, turns)
+        if picked is None:
+            step.update(stage="which_booking", listen="answer", cancel={"bookings": rows},
+                        say=t("You have %d bookings. Which one should I cancel?") % len(rows) + " "
+                            + " ".join("%d. %s." % (i, _spoken_booking(b)) for i, b in enumerate(rows, 1)))
+            return step
+
+        # yes and no are only ever read from a reply: in the opening sentence
+        # "cancel" is what they are asking for, not an answer to anything
+        answer = decision if decision in ("yes", "no") else (
+            voicebook.answer_kind(turns[-1]) if len(turns) > 1 else None)
+
+        if answer == "yes":
+            try:
+                core.cancel_booking(picked["id"], g.farmer["id"])
+            except BookingError as e:
+                step.update(stage="problem", say=t(str(e)))
+                return step
+            execute("INSERT INTO booking_events (booking_id, kind, result, detail, at) VALUES (?,?,?,?,?)",
+                    (picked["id"], "cancelled", "by the farmer", "Cancelled by voice",
+                     datetime.now().isoformat(timespec="seconds")))
+            alerts_mod.raise_alert(
+                g.farmer["id"], "booking_confirmed", "app",
+                "Your booking %s at %s on %s was cancelled. The slot is open for other farmers again."
+                % (picked["token_no"], picked["centre_name"], picked["date"]),
+                booking_id=picked["id"],
+                message_hi="आपकी बुकिंग %s (%s, %s) रद्द कर दी गई। स्लॉट दूसरे किसानों के लिए खुल गया।"
+                           % (picked["token_no"], alerts_mod.hi(picked["centre_name"]),
+                              voice.spoken_date(picked["date"])))
+            step.update(stage="cancelled_booking", cancel={"booking": picked},
+                        url=url_for("farmer_dashboard"),
+                        say=t("Cancelled. The slot is free for other farmers again.") + " "
+                            + t("You can book another day whenever you are ready."))
+            return step
+
+        if answer == "no":
+            step.update(stage="kept_booking", cancel={"booking": picked},
+                        url=url_for("farmer_booking", booking_id=picked["id"]),
+                        say=t("Nothing has been cancelled. Your booking stays as it is."))
+            return step
+
+        step.update(stage="confirm_cancel", listen="answer", cancel={"booking": picked},
+                    slot_id=picked["slot_id"],
+                    say=t("Your booking: %s. Shall I cancel it? Say yes or no.") % _spoken_booking(picked))
+        return step
+
+    def _voice_weather_warning(slot):
+        """What to say out loud about the weather for a slot, or "".
+
+        Two different worries: rain while the grain waits at home for a far-off
+        slot (the storage risk), and rain on the day itself.
+        """
+        risk = weather.assess_risk(g.farmer["district"], slot["date"], g.farmer["village"])
+        card = weather.day_card(slot["centre_district"], slot["date"], slot["location"])
+        if risk["level"] == "high":
+            return t("A warning. Heavy rain is expected while your grain waits at home. Keep it covered and "
+                     "off the ground, or pick an earlier day.") + " "
+        if card and card["rain_mm"] >= 0.5:
+            return t("One thing. Rain is expected at %(place)s that day, so cover the load.") % {
+                "place": t(card["place"])} + " "
+        if risk["level"] == "low":
+            return t("Light rain is possible before that day. Keep the grain covered.") + " "
+        return ""
+
     def _voice_step(turns, guesses=(), slot_id=None, decision=None, crop=None, quantity=None):
         """One turn of the spoken booking, worked out from everything said so far.
 
@@ -725,7 +869,9 @@ def register_routes(app):
         decision is "yes" or "no" from a button; otherwise it comes from the
         last reply.
         """
-        parsed, question = _voice_request(turns[0], guesses)
+        parsed, question, intent = _voice_request(turns[0], guesses)
+        if intent == "cancel":
+            return _voice_cancel_step(turns, parsed, decision)
         if question and len(turns) == 1:
             # asked something before booking anything: answer, then ask what to book
             return _voice_answered(question, parsed, None, None)
@@ -794,7 +940,8 @@ def register_routes(app):
             step.update(stage="booked", token=b["token_no"], repeat=False,
                         url=url_for("farmer_booking", booking_id=booking_id),
                         say=t("Your slot is booked. Your token number is %s. Please write it down.")
-                        % voicebook.spoken_token(b["token_no"]))
+                        % voicebook.spoken_token(b["token_no"])
+                        + " " + _voice_weather_warning(slot))
             return step
 
         before = ""
@@ -813,7 +960,7 @@ def register_routes(app):
             step.update(stage="ask_quantity", listen="answer",
                         say=before + t("How many quintals are you bringing?"))
         else:
-            say = before + voicebook.confirm_sentence(slot, parsed["crop"], parsed["quantity"])
+            say = before + _voice_weather_warning(slot) + voicebook.confirm_sentence(slot, parsed["crop"], parsed["quantity"])
             if decision == "unclear":
                 say = t("Please say yes or no.") + " " + say
             step.update(stage="confirm", listen="answer", say=say)

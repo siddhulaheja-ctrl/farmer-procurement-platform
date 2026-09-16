@@ -13,12 +13,15 @@ Without Gemini - no key, no internet, quota used up - a short list of common
 questions answers instead.
 """
 
+from datetime import date
+
 import core
 import payments
 import voice_ai
+import weather
 from db import query
 from i18n import get_lang, t
-from voicebook import normalise
+from voicebook import normalise, spoken_day
 
 LANGUAGE_NAMES = {"hi": "Hindi, in Devanagari script", "bn": "Bengali, in Bengali script",
                   "en": "simple English"}
@@ -66,8 +69,8 @@ def _facts(farmer):
         "Payment: after weighing, the centre closes the transaction and the money goes straight to the bank "
         "account registered with Aadhaar (direct benefit transfer). A failed payment is almost always a detail "
         "that does not match - Aadhaar, account number, IFSC or the name on the account - fixed on My Details.",
-        "Weather: the home page has the five-day forecast for every district. If rain is expected while grain "
-        "waits at home, the farmer gets a storage-risk alert.",
+        "Weather: the home page has the five-day forecast for every district, and each centre page has it hour "
+        "by hour. If rain is expected while grain waits at home, the farmer gets a storage-risk alert.",
         "The website is in English, Hindi and Bengali (chosen at the top of every page), and text can be made bigger.",
         "Help line: Kisan Call Centre 1800-180-1551, free, national.",
         "Minimum support prices per quintal, RMS 2025-26: "
@@ -79,6 +82,17 @@ def _facts(farmer):
         "%s at %s, %s district, buys %s, weighs %d quintals a day"
         % (c["name"], c["location"], c["district"], c["crop_types_accepted"].replace(",", ", "), c["daily_capacity"])
         for c in centres) + ".")
+
+    # the real forecast, so "us din mausam kaisa hoga" is answered from data
+    lines.append("Today is %s. The weather below is a five-day forecast: for any later day say the forecast "
+                 "does not reach that far yet, and never invent one." % date.today().isoformat())
+    districts = sorted({c["district"] for c in centres} | ({farmer["district"]} if farmer else set()))
+    for district in districts:
+        village = farmer["village"] if farmer and farmer["district"] == district else None
+        days, place = weather.outlook(district, 5, village)
+        lines.append("Weather in %s district, read at %s: %s." % (district, place, "; ".join(days)))
+    lines.append("Advice when rain is coming: keep the grain covered, on a raised platform, away from the floor. "
+                 "Damp grain loses a grade at the centre and is paid less.")
 
     if not farmer:
         lines.append("The person asking is not signed in, so their bookings can't be seen; they should sign in to check them.")
@@ -102,6 +116,16 @@ def _facts(farmer):
             for r in rows) + ".")
     else:
         lines.append("They have no bookings yet.")
+    # the weather for the days they are actually bringing grain on
+    today = date.today().isoformat()
+    for r in [x for x in rows if x["status"] in ("booked", "arrived") and x["date"] >= today][:3]:
+        risk = weather.assess_risk(farmer["district"], r["date"], farmer["village"])
+        card = weather.day_card(farmer["district"], r["date"], farmer["village"])
+        on_day = ("%s, rain %.1f mm, humidity %d%%" % (card["description"], card["rain_mm"], card["humidity"])
+                  if card else "beyond the five-day forecast")
+        lines.append("Their booking on %s (token %s): weather at home that day %s. Storage risk while the grain "
+                     "waits: %s. %s" % (r["date"], r["token_no"], on_day, risk["level"], risk["reason"]))
+
     money = payments.farmer_lines(farmer["id"])
     if money:
         lines.append("Their payments, newest first (a bank reference is a UTR; a returned payment goes again once "
@@ -149,10 +173,26 @@ def _package(text, link, follow_ups, source):
             "suggestions": follow_ups, "source": source}
 
 
-def _offline(question):
+def _weather_text(farmer):
+    """The next three days in plain words, for when the AI can't be reached."""
+    district = farmer["district"] if farmer else "Udham Singh Nagar"
+    village = farmer["village"] if farmer else None
+    forecast, source, point = weather.get_forecast(district, 3, village)
+    place = point["place"] if point else district
+    parts = ["%s: %s, %s mm" % (spoken_day(d["date"]), t(d["description"]), "%g" % d["rain_mm"])
+             for d in forecast]
+    text = t("Weather at %s for the next three days:") % t(place) + " " + "; ".join(parts) + "."
+    if any(d["rain_mm"] >= 0.5 for d in forecast):
+        text += " " + t("Keep the grain covered and off the ground.")
+    return text
+
+
+def _offline(question, farmer=None):
     s = normalise(question)
     for phrases, key, link in FAQ:
         if any(normalise(p) in s for p in phrases):
+            if key == "weather":
+                return _package(_weather_text(farmer), link, suggestions(), "offline")
             if key == "price":
                 text = t("Support prices per quintal:") + " " + ", ".join(
                     "%s ₹%s" % (t(crop), "{:,}".format(int(price))) for crop, price in core.MSP.items())
@@ -176,8 +216,8 @@ def reply(messages, farmer=None):
     try:
         answer = voice_ai.generate(instructions, contents, SCHEMA, label="help chat")
     except voice_ai.Unavailable:
-        return _offline(messages[-1]["text"])
+        return _offline(messages[-1]["text"], farmer)
     text = str(answer.get("reply") or "").strip()
     if not text:
-        return _offline(messages[-1]["text"])
+        return _offline(messages[-1]["text"], farmer)
     return _package(text[:1200], answer.get("link"), answer.get("suggestions"), "ai")

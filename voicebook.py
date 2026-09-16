@@ -563,6 +563,45 @@ YES_RE = re.compile(B + "(%s)" % _alt(YES) + E)
 NO_RE = re.compile(B + "(%s)" % _alt(NO) + E)
 
 
+# ---- cancelling a booking ------------------------------------------------------
+# "meri booking cancel kar do". These words also mean "no" in reply to a slot
+# read back, so this is only ever read from the farmer's opening sentence.
+CANCEL = ["cancel", "cancle", "cancil", "kensal", "kainsil", "radd", "rad kar", "rad kardo", "nirast",
+          "रद्द", "कैंसिल", "कैन्सिल", "निरस्त",
+          "বাতিল", "ক্যানসেল", "ক্যানসিল"]
+# said when they simply cannot come; the AI catches more of these than a list can
+NOT_COMING = ["nahi aa paunga", "nahi aa paungi", "nahi aa sakta", "nahi aa sakti", "nahi aaunga",
+              "nahi aaungi", "nahi aana", "not coming", "cant come", "नहीं आ पाऊंगा", "नहीं आ पाऊंगी",
+              "नहीं आ सकता", "नहीं आ सकती", "नहीं आऊंगा", "नहीं आना", "আসতে পারব না",
+              # asking for it to go away, without the word cancel
+              "hata do", "hata den", "hata dijiye", "hata dijie", "booking hata", "slot hata",
+              "nahi chahiye", "nai chahiye", "nahin chahiye", "band kar do",
+              "हटा दो", "हटा दें", "हटा दीजिए", "नहीं चाहिए", "नही चाहिए", "बंद कर दो",
+              "সরিয়ে দিন", "লাগবে না", "দরকার নেই"]
+CANCEL_RE = re.compile(B + "(%s)" % _alt(CANCEL) + E)
+NOT_COMING_RE = re.compile(_alt(NOT_COMING))
+
+# which of the bookings read out. only plain ordinals: "do" in "kar do" is not a 2
+ORDINALS = {"1": 1, "pehli": 1, "pehla": 1, "pahli": 1, "first": 1, "पहली": 1, "पहला": 1, "प्रथम": 1, "প্রথম": 1,
+            "2": 2, "dusri": 2, "dusra": 2, "doosri": 2, "doosra": 2, "second": 2, "दूसरी": 2, "दूसरा": 2, "দ্বিতীয়": 2,
+            "3": 3, "teesri": 3, "teesra": 3, "tisri": 3, "third": 3, "तीसरी": 3, "तीसरा": 3, "তৃতীয়": 3}
+
+
+def wants_cancel(text):
+    """True when an opening sentence asks to cancel a booking already made."""
+    s = normalise(text)
+    return bool(CANCEL_RE.search(s) or NOT_COMING_RE.search(s))
+
+
+def which_one(text, most):
+    """"dusri wali" or "2" -> 2, when there are that many. None if no number was said."""
+    for word in normalise(text).split(" "):
+        n = ORDINALS.get(word)
+        if n and n <= most:
+            return n
+    return None
+
+
 def answer_kind(text):
     """'yes', 'no' or None for a reply to "shall I book it?". No wins a tie: never book on a maybe."""
     s = normalise(text)
@@ -610,6 +649,8 @@ QUESTIONS = {
     "price": ["bhav", "msp", "kimat", "keemat", "daam", "भाव", "कीमत", "दाम", "দাম"],
     "payment": ["paisa kab", "paise kab", "payment kab", "bhugtan kab", "पैसा कब", "पैसे कब", "भुगतान कब",
                 "টাকা কবে"],
+    "weather": ["mausam", "mosam", "mausham", "barish", "baarish", "barsat", "weather", "rain", "मौसम",
+                "बारिश", "बरसात", "আবহাওয়া", "বৃষ্টি"],
 }
 _QUESTION_PHRASES = [(normalise(p), topic) for topic, phrases in QUESTIONS.items() for p in phrases]
 
