@@ -55,18 +55,18 @@
 <div class="card">
   <div class="empty">
     <strong>{{ t("You have no upcoming slots.") }}</strong>
-    <div><a class="btn wheat" href="{{ url_for('farmer_centres') }}">{{ icon('calendar-plus') }}{{ t("Book a new slot") }}</a></div>
   </div>
 </div>
 {% endif %}
 
-{# the five things a farmer comes here for, as pictures with a word or two #}
+{# the five things a farmer comes here for, as pictures with a word or two.
+   the three marked "dup" are also in the phone tab bar, so they hide there #}
 <nav class="tiles" aria-label="{{ t('What would you like to do?') }}">
   <a class="tile main" href="{{ url_for('farmer_centres') }}"><img src="{{ artdir }}calendar.svg" width="320" height="240" alt=""><span><strong>{{ t("Book a new slot") }}</strong><br><small>{{ t("Pick a centre, day and time") }}</small></span></a>
-  <a class="tile" href="{{ url_for('farmer_voice') }}"><img src="{{ artdir }}voice.svg" width="320" height="240" alt=""><strong>{{ t("Book by speaking") }}</strong><small>{{ t("No typing needed") }}</small></a>
-  <a class="tile" href="{{ url_for('farmer_payments') }}"><img src="{{ artdir }}bank.svg" width="320" height="240" alt=""><strong>{{ t("My money") }}</strong><small>{{ t("Follow each payment") }}</small></a>
-  <a class="tile" href="{{ url_for('farmer_alerts_page') }}"><img src="{{ artdir }}bell.svg" width="320" height="240" alt=""><strong>{{ t("Alerts") }}</strong><small>{{ t("Rain, slots and money") }}</small>{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
-  <a class="tile" href="{{ url_for('farmer_profile') }}"><img src="{{ artdir }}profile.svg" width="320" height="240" alt=""><strong>{{ t("My Details") }}</strong><small>{{ t("Aadhaar, bank and land") }}</small></a>
+  <a class="tile" href="{{ url_for('farmer_voice') }}"><img src="{{ artdir }}voice.svg" width="320" height="240" alt=""><span><strong>{{ t("Book by speaking") }}</strong><br><small>{{ t("No typing needed") }}</small></span></a>
+  <a class="tile dup" href="{{ url_for('farmer_payments') }}"><img src="{{ artdir }}bank.svg" width="320" height="240" alt=""><strong>{{ t("My money") }}</strong><small>{{ t("Follow each payment") }}</small></a>
+  <a class="tile dup" href="{{ url_for('farmer_alerts_page') }}"><img src="{{ artdir }}bell.svg" width="320" height="240" alt=""><strong>{{ t("Alerts") }}</strong><small>{{ t("Rain, slots and money") }}</small>{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
+  <a class="tile dup" href="{{ url_for('farmer_profile') }}"><img src="{{ artdir }}profile.svg" width="320" height="240" alt=""><strong>{{ t("My Details") }}</strong><small>{{ t("Aadhaar, bank and land") }}</small></a>
 </nav>
 
 {% if flags %}
@@ -78,7 +78,8 @@
 {% endif %}
 
 <div class="stat-row">
-  <div class="stat {{ 'info' if upcoming else 'zero' }}">
+  {# on a phone the bookings list above already says this, so it hides there #}
+  <div class="stat dup {{ 'info' if upcoming else 'zero' }}">
     <span class="stat-ic">{{ icon('ticket') }}</span>
     <div><div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
   </div>
@@ -90,7 +91,8 @@
     <span class="stat-ic">{{ icon('hourglass') }}</span>
     <div><div class="n">{{ (pending_amount or 0)|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
   </div>
-  <div class="stat {{ 'bad' if flags else 'good' }}">
+  {# the "action needed" notice above carries this, so it hides on a phone #}
+  <div class="stat dup {{ 'bad' if flags else 'good' }}">
     <span class="stat-ic">{{ icon('alert-triangle' if flags else 'check-circle') }}</span>
     <div><div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>
   </div>
@@ -104,19 +106,19 @@
     </div>
     {% if history %}
     <div class="table-scroll">
-      <table class="data">
+      <table class="data stack">
         <thead><tr><th>{{ t("Date") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Crop") }}</th>
                    <th class="num">{{ t("Amount") }}</th><th>{{ t("Status") }}</th><th>{{ t("Payment") }}</th></tr></thead>
         <tbody>
           {% for b in history %}
           <tr>
-            <td class="nowrap">{{ b.date|nicedate }}</td>
-            <td><strong>{{ t(b.centre_name) }}</strong>
+            <td class="nowrap lead" data-label="{{ t("Date") }}">{{ b.date|nicedate }}</td>
+            <td data-label="{{ t("Centre") }}"><strong>{{ t(b.centre_name) }}</strong>
               <span class="sub-line">{{ '%.1f'|format(b.actual_quantity or b.estimated_quantity) }} {{ t("quintals") }}</span></td>
-            <td>{{ crop(b.crop_type) }}</td>
-            <td class="num nowrap money">{{ b.total_amount|rupee if b.total_amount else '&mdash;'|safe }}</td>
-            <td>{{ status_badge(b.status) }}</td>
-            <td>{{ payment_badge(b.payment_status) }}</td>
+            <td data-label="{{ t("Crop") }}">{{ crop(b.crop_type) }}</td>
+            <td class="num nowrap money" data-label="{{ t("Amount") }}">{{ b.total_amount|rupee if b.total_amount else '&mdash;'|safe }}</td>
+            <td data-label="{{ t("Status") }}">{{ status_badge(b.status) }}</td>
+            <td data-label="{{ t("Payment") }}">{{ payment_badge(b.payment_status) }}</td>
           </tr>
           {% endfor %}
         </tbody>

@@ -33,7 +33,9 @@
 <div class="card">
   {% if rows %}
   <div class="table-scroll">
-    <table class="data">
+    {# "stack" turns each row into a labelled block on a phone, so money never
+       hides behind a sideways scroll #}
+    <table class="data stack">
       <thead>
         <tr><th>{{ t("Date") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Crop") }}</th><th class="num">{{ t("Quantity") }}</th>
             <th>{{ t("Grade") }}</th><th class="num">{{ t("Amount") }}</th><th>{{ t("Status") }}</th><th></th></tr>
@@ -41,15 +43,15 @@
       <tbody>
         {% for r in rows %}
         <tr class="{{ 'row-high' if r.pay_stage in ('held', 'returned') }}">
-          <td class="nowrap">{{ r.date|nicedate }}</td>
-          <td><strong>{{ t(r.centre_name) }}</strong><span class="sub-line mono">{{ r.token_no }}</span></td>
-          <td>{{ crop(r.crop_type) }}</td>
-          <td class="num nowrap">{{ '%.2f'|format(r.actual_quantity or 0) }} {{ t("qtl") }}</td>
-          <td>{{ grade_badge(r.quality_grade) }}</td>
-          <td class="num nowrap money">{{ r.total_amount|rupee }}</td>
-          <td>{{ stage_badge(r.pay_stage) }}
+          <td class="nowrap lead" data-label="{{ t("Date") }}">{{ r.date|nicedate }}</td>
+          <td data-label="{{ t("Centre") }}"><strong>{{ t(r.centre_name) }}</strong><span class="sub-line mono">{{ r.token_no }}</span></td>
+          <td data-label="{{ t("Crop") }}">{{ crop(r.crop_type) }}</td>
+          <td class="num nowrap" data-label="{{ t("Quantity") }}">{{ '%.2f'|format(r.actual_quantity or 0) }} {{ t("qtl") }}</td>
+          <td data-label="{{ t("Grade") }}">{{ grade_badge(r.quality_grade) }}</td>
+          <td class="num nowrap money" data-label="{{ t("Amount") }}">{{ r.total_amount|rupee }}</td>
+          <td data-label="{{ t("Status") }}">{{ stage_badge(r.pay_stage) }}
             {% if r.utr %}<span class="sub-line mono">UTR {{ r.utr }}</span>{% endif %}</td>
-          <td><a class="btn small secondary" href="{{ url_for('farmer_payment', txn_id=r.id) }}">{{ t("Details") }}{{ icon('chevron-right') }}</a></td>
+          <td class="go"><a class="btn small secondary" href="{{ url_for('farmer_payment', txn_id=r.id) }}">{{ t("Details") }}{{ icon('chevron-right') }}</a></td>
         </tr>
         {% endfor %}
       </tbody>
