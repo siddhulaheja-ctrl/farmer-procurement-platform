@@ -37,3 +37,8 @@ docs/
 
 # speech model for server-side recognition, fetched with `python speech_to_text.py download`
 models/
+
+
+
+
+
