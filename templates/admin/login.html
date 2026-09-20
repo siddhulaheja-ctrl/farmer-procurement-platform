@@ -1,43 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Centre Member Sign In{% endblock %}
+{% block title %}{{ t("Centre member sign in") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="auth">
-  <div class="auth-art staff">
-    <img src="{{ url_for('static', filename='img/mandi-yard.jpg') }}" width="1200" height="700" alt="">
-    <h2>Procurement centre counter</h2>
+  <div class="auth-art">
+    <img src="{{ url_for('static', filename='img/art/counter.svg') }}" width="320" height="240" alt="">
+    <h2>{{ t("Procurement centre counter") }}</h2>
+    <ul>
+      <li>{{ icon('scan') }}{{ t("Scan passes at the gate") }}</li>
+      <li>{{ icon('scale') }}{{ t("Weigh, grade and close") }}</li>
+      <li>{{ icon('banknote') }}{{ t("Send payments to the bank") }}</li>
+    </ul>
   </div>
 
   <div class="auth-form">
-    <p class="eyebrow">Members only</p>
-    <h1>Centre member sign in</h1>
+    <p class="eyebrow">{{ icon('shield') }}{{ t("Members only") }}</p>
+    <h1>{{ t("Centre member sign in") }}</h1>
     <form method="post">
       <div class="field">
-        <label for="staff_code">Member code <span class="req">*</span></label>
+        <label for="staff_code">{{ icon('id-card') }} {{ t("Member code") }} <span class="req">*</span></label>
         <input type="text" id="staff_code" name="staff_code" value="{{ code }}"
                style="text-transform:uppercase" autocomplete="username" required autofocus>
       </div>
       <div class="field">
-        <label for="password">Password <span class="req">*</span></label>
+        <label for="password">{{ icon('lock') }} {{ t("Password") }} <span class="req">*</span></label>
         <input type="password" id="password" name="password" autocomplete="current-password" required>
       </div>
-      <button class="btn block large" type="submit">{{ icon('log-in') }}Sign in</button>
+      <button class="btn block large" type="submit">{{ icon('log-in') }}{{ t("Sign in") }}</button>
     </form>
-    <p class="small mt">District superadmin? <a href="{{ url_for('super_login') }}">Superadmin sign in</a></p>
+    <p class="small mt">{{ t("District superadmin?") }} <a href="{{ url_for('super_login') }}">{{ t("Superadmin sign in") }}</a></p>
     <div class="roster">
-      <h2 class="roster-h">Demo accounts <span class="muted">&middot; password <b class="mono">{{ demo_password }}</b> for all</span></h2>
+      <h2 class="roster-h">{{ t("Demo accounts") }} <span class="muted small">&middot; {{ t("password") }} <b class="mono">{{ demo_password }}</b> {{ t("for all") }}</span></h2>
       <ul class="roster-list">
       {% for code_, name_, centre_, role_ in roster %}
         <li>
           <b class="mono roster-code">{{ code_ }}</b>
-          <span class="roster-who">{{ centre_ or 'All centres' }}<small class="muted">{{ name_ }}</small></span>
+          <span class="roster-who">{{ t(centre_) if centre_ else t('All centres') }}<small class="muted">{{ name_ }}</small></span>
           {% if role_ == 'superadmin' %}
-          <a class="btn small secondary" href="{{ url_for('super_login') }}">Superadmin page</a>
+          <a class="btn small secondary" href="{{ url_for('super_login') }}">{{ t("Superadmin page") }}</a>
           {% else %}
           <form method="post">
             <input type="hidden" name="staff_code" value="{{ code_ }}">
             <input type="hidden" name="password" value="{{ demo_password }}">
-            <button class="btn small secondary" type="submit">{{ icon('log-in') }}Sign in</button>
+            <button class="btn small secondary" type="submit">{{ icon('log-in') }}{{ t("Sign in") }}</button>
           </form>
           {% endif %}
         </li>

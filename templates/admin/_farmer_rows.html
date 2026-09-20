@@ -1,12 +1,12 @@
 {# the list on the farmers page. its own file so the live search can ask for just this #}
 <div class="card">
-  <div class="card-head"><h2 class="card-title">Records <span class="count">{{ farmers|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">{{ icon('users') }}{{ t("Records") }} <span class="count">{{ farmers|length }}</span></h2></div>
   {% if farmers %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Farmer</th><th>Village / district</th><th>Aadhaar</th>
-            <th>Registered via</th><th class="num">Bookings</th><th>Data issues</th><th></th></tr>
+        <tr><th>{{ t("Farmer") }}</th><th>{{ t("Village / district") }}</th><th>{{ t("Aadhaar") }}</th>
+            <th>{{ t("Registered via") }}</th><th class="num">{{ t("Bookings") }}</th><th>{{ t("Data issues") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for f in farmers %}
@@ -19,16 +19,16 @@
               </div>
             </div>
           </td>
-          <td class="small"><span class="icon-text">{{ icon('map-pin') }}{{ f.village }}, {{ f.district }}</span></td>
+          <td class="small"><span class="icon-text">{{ icon('map-pin') }}{{ t(f.village) }}, {{ t(f.district) }}</span></td>
           <td class="mono nowrap">{{ f.aadhaar_number or '—' }}</td>
-          <td><span class="badge grey plain">{{ f.registered_via|upper }}</span></td>
+          <td><span class="badge grey">{{ f.registered_via|upper }}</span></td>
           <td class="num">{{ f.booking_count }}</td>
           <td>
-            {% if f.flag_count %}<span class="badge red">{{ f.flag_count }} open</span>
-            {% else %}<span class="badge green">Clear</span>{% endif %}
+            {% if f.flag_count %}<span class="badge red">{{ icon('flag') }}{{ t("%(n)d open")|format(n=f.flag_count) }}</span>
+            {% else %}<span class="badge green">{{ icon('check') }}{{ t("Clear") }}</span>{% endif %}
           </td>
           <td class="nowrap right">
-            <a class="btn small secondary" href="{{ url_for('admin_farmer', farmer_id=f.id) }}">Open{{ icon('arrow-right') }}</a>
+            <a class="btn small secondary" href="{{ url_for('admin_farmer', farmer_id=f.id) }}">{{ t("Open") }}{{ icon('arrow-right') }}</a>
           </td>
         </tr>
         {% endfor %}
@@ -36,6 +36,6 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">No farmers match that search.</div>
+    <div class="empty">{{ t("No farmers match that search.") }}</div>
   {% endif %}
 </div>

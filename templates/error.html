@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Error {{ code }}{% endblock %}
+{% block title %}{{ t("Error") }} {{ code }}{% endblock %}
 
 {% block content %}
 <div class="error-page">
+  <img src="{{ url_for('static', filename='img/art/scarecrow.svg') }}" width="320" height="240" alt="">
   <div class="error-code">{{ code }}</div>
   <h1 class="page-title">{{ t("Page not found") if code == 404 else (t("Not allowed") if code == 403 else t("Something went wrong")) }}</h1>
-  <p class="page-sub" style="margin: 8px auto 22px">{{ message }}</p>
+  <p class="page-sub" style="margin: 14px auto 24px">{{ t(message) }}</p>
   <a class="btn large" href="{{ url_for('home') }}">{{ icon('home') }}{{ t("Return to home") }}</a>
 </div>
 {% endblock %}

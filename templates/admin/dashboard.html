@@ -1,37 +1,42 @@
 {% extends "base.html" %}
 {% from "_macros.html" import status_badge, payment_badge, risk_badge, crop %}
-{% block title %}Bookings Dashboard{% endblock %}
+{% block title %}{{ t("Bookings") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">{{ g.staff.centre_name or 'Every centre' }}</p>
-    <h1 class="page-title">Bookings</h1>
+    <p class="eyebrow">{{ icon('building') }}{{ t(g.staff.centre_name) if g.staff.centre_name else t('Every centre') }}</p>
+    <h1 class="page-title">{{ t("Bookings") }}</h1>
   </div>
   <div class="ph-actions">
-    <a class="btn secondary" href="{{ url_for('admin_dashboard', date=g.today.isoformat(), centre_id=sel_centre) }}">{{ icon('calendar') }}Today only</a>
+    <a class="btn secondary" href="{{ url_for('admin_dashboard', date=g.today.isoformat(), centre_id=sel_centre) }}">{{ icon('calendar') }}{{ t("Today only") }}</a>
+    <a class="btn wheat" href="{{ url_for('admin_gate') }}">{{ icon('scan') }}{{ t("Gate scan") }}</a>
   </div>
 </div>
 
 <div class="stat-row">
   <div class="stat {{ 'info' if summary.get('booked') else 'zero' }}">
-    <div><div class="n">{{ summary.get('booked', 0) }}</div><div class="l">Booked</div></div>
+    <span class="stat-ic">{{ icon('ticket') }}</span>
+    <div><div class="n">{{ summary.get('booked', 0) }}</div><div class="l">{{ t("Booked") }}</div></div>
   </div>
   <div class="stat {{ 'warn' if summary.get('arrived') else 'zero' }}">
-    <div><div class="n">{{ summary.get('arrived', 0) }}</div><div class="l">Weighed, not closed</div></div>
+    <span class="stat-ic">{{ icon('scale') }}</span>
+    <div><div class="n">{{ summary.get('arrived', 0) }}</div><div class="l">{{ t("Weighed, not closed") }}</div></div>
   </div>
   <div class="stat {{ 'good' if summary.get('completed') else 'zero' }}">
-    <div><div class="n">{{ summary.get('completed', 0) }}</div><div class="l">Completed</div></div>
+    <span class="stat-ic">{{ icon('check-circle') }}</span>
+    <div><div class="n">{{ summary.get('completed', 0) }}</div><div class="l">{{ t("Completed") }}</div></div>
   </div>
   <div class="stat {{ 'bad' if summary.flags else 'zero' }}">
-    <div><div class="n">{{ summary.flags }}</div><div class="l">Unresolved data flags</div></div>
+    <span class="stat-ic">{{ icon('flag') }}</span>
+    <div><div class="n">{{ summary.flags }}</div><div class="l">{{ t("Unresolved data flags") }}</div></div>
   </div>
 </div>
 
 {% if summary.risk and g.staff.role != 'superadmin' %}
 <div class="notice warning">
-  <strong>{{ summary.risk }}</strong> upcoming booking{{ 's' if summary.risk != 1 }} carry a high
-  storage-risk flag. <a href="{{ url_for('admin_storage_risk') }}">Review and offer earlier slots</a>.
+  {{ t("%(n)d upcoming bookings carry a high storage-risk flag.")|format(n=summary.risk) }}
+  <a href="{{ url_for('admin_storage_risk') }}">{{ t("Review and offer earlier slots") }}</a>.
 </div>
 {% endif %}
 
@@ -39,44 +44,44 @@
   {# centre staff are locked to their own centre, so no choice to offer #}
   {% if not my_centre %}
   <div class="field">
-    <label for="centre_id">Centre</label>
+    <label for="centre_id">{{ icon('building') }} {{ t("Centre") }}</label>
     <select id="centre_id" name="centre_id">
-      <option value="">All centres</option>
+      <option value="">{{ t("All centres") }}</option>
       {% for c in centres %}
-        <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ c.name }}</option>
+        <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ t(c.name) }}</option>
       {% endfor %}
     </select>
   </div>
   {% endif %}
   <div class="field">
-    <label for="date">Date</label>
+    <label for="date">{{ icon('calendar') }} {{ t("Date") }}</label>
     <input type="date" id="date" name="date" value="{{ sel_date }}">
   </div>
   <div class="field">
-    <label for="status">Status</label>
+    <label for="status">{{ icon('list') }} {{ t("Status") }}</label>
     <select id="status" name="status">
-      <option value="">All</option>
+      <option value="">{{ t("All") }}</option>
       {% for s in ['booked','arrived','completed','cancelled'] %}
-        <option value="{{ s }}" {{ 'selected' if sel_status == s }}>{{ s|title }}</option>
+        <option value="{{ s }}" {{ 'selected' if sel_status == s }}>{{ t(s|title) }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="actions">
-    <button class="btn" type="submit">{{ icon('sliders') }}Apply</button>
-    <a class="btn secondary" href="{{ url_for('admin_dashboard') }}">Reset</a>
+    <button class="btn" type="submit">{{ icon('sliders') }}{{ t("Apply") }}</button>
+    <a class="btn secondary" href="{{ url_for('admin_dashboard') }}">{{ t("Reset") }}</a>
   </div>
 </form>
 
 <div class="card">
   <div class="card-head">
-    <h2 class="card-title">Bookings <span class="count">{{ bookings|length }}</span></h2>
+    <h2 class="card-title">{{ icon('clipboard-check') }}{{ t("Bookings") }} <span class="count">{{ bookings|length }}</span></h2>
   </div>
   {% if bookings %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Token</th><th>Farmer</th><th>Slot</th><th>Crop</th>
-            <th class="num">Est. qty</th><th>Status</th><th>Payment</th><th>Risk</th><th></th></tr>
+        <tr><th>{{ t("Token") }}</th><th>{{ t("Farmer") }}</th><th>{{ t("Slot") }}</th><th>{{ t("Crop") }}</th>
+            <th class="num">{{ t("Est. qty") }}</th><th>{{ t("Status") }}</th><th>{{ t("Payment") }}</th><th>{{ t("Risk") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for b in bookings %}
@@ -86,12 +91,12 @@
             <div class="who">
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">{{ b.farmer_name }}</a>
-                <span class="sub-line">{{ b.village }}</span>
+                <span class="sub-line">{{ t(b.village) }}</span>
               </div>
             </div>
           </td>
           <td class="nowrap"><strong>{{ b.date|nicedate }}</strong>
-            <span class="sub-line">{{ b.time_window }} &middot; {{ b.centre_name }}</span></td>
+            <span class="sub-line">{{ b.time_window }} &middot; {{ t(b.centre_name) }}</span></td>
           <td>{{ crop(b.crop_type) }}</td>
           <td class="num nowrap">{{ '%.1f'|format(b.estimated_quantity) }}</td>
           <td>{{ status_badge(b.status) }}</td>
@@ -100,7 +105,7 @@
           <td class="nowrap right">
             <a class="btn small {{ '' if b.status == 'booked' else 'secondary' }}"
                href="{{ url_for('admin_booking', booking_id=b.id) }}">
-              {{ 'Verify' if b.status == 'booked' else 'Open' }}{{ icon('arrow-right') }}
+              {{ t('Verify') if b.status == 'booked' else t('Open') }}{{ icon('arrow-right') }}
             </a>
           </td>
         </tr>
@@ -109,7 +114,7 @@
     </table>
   </div>
   {% else %}
-    <div class="empty"><strong>No bookings match these filters.</strong>Try another date or centre.</div>
+    <div class="empty"><strong>{{ t("No bookings match these filters.") }}</strong>{{ t("Try another date or centre.") }}</div>
   {% endif %}
 </div>
 {% endblock %}

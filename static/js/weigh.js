@@ -32,7 +32,9 @@
         var net = Math.max(0, num('gross_weight') - (num('bags') || 0) * (num('bag_weight_kg') || 0) / 100);
         suggested = suggest(num('moisture'), num('foreign_matter'));
         if (suggested) {
-            hint.textContent = 'Readings suggest grade ' + suggested + '.';
+            // the words come from the page, in its language
+            var label = grade.querySelector('option[value="' + suggested + '"]');
+            hint.textContent = (hint.getAttribute('data-suggest') || 'Suggested') + ': ' + (label ? label.textContent : suggested);
             if (!touched) { grade.value = suggested; }
         }
         var differs = suggested && grade.value !== suggested;

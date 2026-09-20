@@ -359,10 +359,3 @@ def evaluate_booking(booking_id: int):
                     booking_id=booking_id)
     return result
 
-
-def rescan_all_upcoming():
-    """Re-evaluate every future booking. Used by the demo control panel."""
-    rows = query(
-        "SELECT b.id FROM bookings b JOIN slots s ON s.id = b.slot_id"
-        " WHERE b.status = 'booked' AND s.date >= ?", (date.today().isoformat(),))
-    return [evaluate_booking(r["id"]) for r in rows]

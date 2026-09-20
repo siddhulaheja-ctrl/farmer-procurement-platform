@@ -1,21 +1,20 @@
 {% extends "base.html" %}
 {% from "_macros.html" import status_badge, stage_badge, risk_badge, grade_badge, track, crop, flag_list %}
-{% block title %}Verify {{ b.token_no }}{% endblock %}
+{% block title %}{{ t("Verify") }} {{ b.token_no }}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('admin_dashboard') }}">{{ icon('grid') }}Bookings</a>{{ icon('chevron-right') }}<span>{{ b.token_no }}</span>
-</nav>
-
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">{{ b.token_no }}</p>
+    <nav class="breadcrumb" aria-label="{{ t('Breadcrumb') }}">
+      <a href="{{ url_for('admin_dashboard') }}">{{ icon('clipboard-check') }}{{ t("Bookings") }}</a>{{ icon('chevron-right') }}<span>{{ b.token_no }}</span>
+    </nav>
+    <p class="eyebrow">{{ icon('ticket') }}{{ b.token_no }}</p>
     <h1 class="page-title">{{ b.farmer_name }}</h1>
     <div class="meta-row">
-      <span>{{ icon('building') }}{{ b.centre_name }}</span>
+      <span>{{ icon('building') }}{{ t(b.centre_name) }}</span>
       <span>{{ icon('calendar') }}{{ b.date|nicedate }}, {{ b.time_window }}</span>
       <span>{{ status_badge(b.status) }}</span>
-      {% if b.gate_in_at %}<span>{{ icon('scan') }}In at {{ b.gate_in_at[11:16] }}, queue no. {{ b.gate_queue }}</span>{% endif %}
+      {% if b.gate_in_at %}<span>{{ icon('scan') }}{{ t("In at %(time)s, queue no. %(n)s")|format(time=b.gate_in_at[11:16], n=b.gate_queue) }}</span>{% endif %}
       {% if b.storage_risk != 'none' %}<span>{{ risk_badge(b.storage_risk) }}</span>{% endif %}
     </div>
   </div>
@@ -23,7 +22,7 @@
 
 {% if flags %}
 <div class="notice {{ 'error' if flags|selectattr('severity','equalto','blocking')|list else 'warning' }}">
-  <h3>This farmer has {{ flags|length }} unresolved detail issue{{ 's' if flags|length != 1 }}</h3>
+  <h3>{{ t("This farmer has %(n)d unresolved detail issue(s)")|format(n=flags|length) }}</h3>
   {{ flag_list(flags) }}
 </div>
 {% endif %}
@@ -38,70 +37,70 @@
   <div class="stack">
     {# 1. the weighbridge #}
     <div class="card stepcard">
-      <div class="card-head"><h2 class="card-title"><span class="stepnum">1</span>Weigh and grade</h2>{{ crop(b.crop_type) }}</div>
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">1</span>{{ t("Weigh and grade") }}</h2>{{ crop(b.crop_type) }}</div>
       <div class="card-body">
         {% if b.status == 'booked' %}
         {% if not b.gate_in_at %}
-        <p class="notice info small">Not scanned in at the gate yet. Weighing now marks them as arrived.</p>
+        <p class="notice info small">{{ t("Not scanned in at the gate yet. Weighing now marks them as arrived.") }}</p>
         {% endif %}
         <form method="post" action="{{ url_for('admin_arrive', booking_id=b.id) }}" id="weigh-form"
               data-msp="{{ msp.get(b.crop_type, 2000) }}" data-limit="{{ moisture_max }}"
               data-faq="{{ foreign_faq }}" data-b="{{ foreign_b }}">
           <div class="field-row three">
             <div class="field">
-              <label for="gross_weight">Gross weight (quintals) <span class="req">*</span></label>
+              <label for="gross_weight">{{ icon('scale') }} {{ t("Gross weight (quintals)") }} <span class="req">*</span></label>
               <input type="number" id="gross_weight" name="gross_weight" step="0.01" min="0"
                      value="{{ '%.2f'|format(b.estimated_quantity + b.estimated_quantity * 2 * 0.6 / 100) }}" required>
             </div>
             <div class="field">
-              <label for="bags">Bags <span class="req">*</span></label>
+              <label for="bags">{{ icon('package') }} {{ t("Bags") }} <span class="req">*</span></label>
               <input type="number" id="bags" name="bags" step="1" min="0" value="{{ (b.estimated_quantity * 2)|round|int }}" required>
             </div>
             <div class="field">
-              <label for="bag_weight_kg">Empty bag (kg each)</label>
+              <label for="bag_weight_kg">{{ t("Empty bag (kg each)") }}</label>
               <input type="number" id="bag_weight_kg" name="bag_weight_kg" step="0.05" min="0" max="5" value="0.60" required>
             </div>
           </div>
           <div class="field-row three">
             <div class="field">
-              <label for="moisture">Moisture (%) <span class="req">*</span></label>
+              <label for="moisture">{{ icon('droplet') }} {{ t("Moisture (%)") }} <span class="req">*</span></label>
               <input type="number" id="moisture" name="moisture" step="0.1" min="0" max="40" required>
-              <div class="hint">Up to {{ moisture_max }}% is fair average quality for {{ b.crop_type }}.</div>
+              <div class="hint">{{ t("Up to %(limit)s%% is fair average quality for %(crop)s.")|format(limit=moisture_max, crop=t(b.crop_type)) }}</div>
             </div>
             <div class="field">
-              <label for="foreign_matter">Foreign matter (%) <span class="req">*</span></label>
+              <label for="foreign_matter">{{ t("Foreign matter (%)") }} <span class="req">*</span></label>
               <input type="number" id="foreign_matter" name="foreign_matter" step="0.05" min="0" max="30" value="0.20" required>
             </div>
             <div class="field">
-              <label for="quality_grade">Grade <span class="req">*</span></label>
+              <label for="quality_grade">{{ icon('award') }} {{ t("Grade") }} <span class="req">*</span></label>
               <select id="quality_grade" name="quality_grade" required>
-                {% for gr in grades %}<option value="{{ gr }}">{{ gr }}</option>{% endfor %}
+                {% for gr in grades %}<option value="{{ gr }}">{{ t(gr) }}</option>{% endfor %}
               </select>
-              <div class="hint" id="suggested">Enter moisture for a suggested grade.</div>
+              <div class="hint" id="suggested" data-suggest="{{ t('Suggested from the readings') }}">{{ t("Enter moisture for a suggested grade.") }}</div>
             </div>
           </div>
           <div class="field" id="grade-note-field" hidden>
-            <label for="grade_note">Why a different grade from the readings? <span class="req">*</span></label>
-            <input type="text" id="grade_note" name="grade_note" placeholder="e.g. broken grains over the limit, checked by hand">
-            <div class="hint">Goes in the activity log for the superadmin.</div>
+            <label for="grade_note">{{ t("Why a different grade from the readings?") }} <span class="req">*</span></label>
+            <input type="text" id="grade_note" name="grade_note" placeholder="{{ t('e.g. broken grains over the limit, checked by hand') }}">
+            <div class="hint">{{ t("Goes in the activity log for the superadmin.") }}</div>
           </div>
           <div class="weigh-preview" id="weigh-preview" aria-live="polite">
-            <span>Net <b data-out="net">—</b> q</span>
-            <span>Rate <b data-out="rate">—</b></span>
-            <span>Amount <b data-out="amount">—</b></span>
+            <span>{{ t("Net") }} <b data-out="net">—</b> {{ t("q") }}</span>
+            <span>{{ t("Rate") }} <b data-out="rate">—</b></span>
+            <span>{{ t("Amount") }} <b data-out="amount">—</b></span>
           </div>
-          <button class="btn" type="submit">{{ icon('scale') }}Record weighing</button>
+          <button class="btn wheat large" type="submit">{{ icon('scale') }}{{ t("Record weighing") }}</button>
         </form>
         {% elif txn %}
           <div class="facts four">
-            <div class="fact"><div class="k">Gross</div><div class="v">{{ '%.2f'|format(txn.gross_weight or txn.actual_quantity or 0) }} <small>q</small></div></div>
-            <div class="fact"><div class="k">Bags</div><div class="v">{{ txn.bags if txn.bags is not none else '—' }}{% if txn.bags %} <small>&times; {{ '%.2f'|format(txn.bag_weight_kg or 0) }} kg</small>{% endif %}</div></div>
-            <div class="fact"><div class="k">Moisture / foreign</div><div class="v">{{ '%.1f'|format(txn.moisture) if txn.moisture is not none else '—' }}<small>%</small> / {{ '%.2f'|format(txn.foreign_matter) if txn.foreign_matter is not none else '—' }}<small>%</small></div></div>
-            <div class="fact"><div class="k">Net, grade</div><div class="v">{{ '%.2f'|format(txn.actual_quantity or 0) }} <small>q</small> {{ grade_badge(txn.quality_grade) }}</div></div>
+            <div class="fact"><div class="k">{{ icon('scale') }}{{ t("Gross") }}</div><div class="v">{{ '%.2f'|format(txn.gross_weight or txn.actual_quantity or 0) }} <small>{{ t("q") }}</small></div></div>
+            <div class="fact"><div class="k">{{ icon('package') }}{{ t("Bags") }}</div><div class="v">{{ txn.bags if txn.bags is not none else '—' }}{% if txn.bags %} <small>&times; {{ '%.2f'|format(txn.bag_weight_kg or 0) }} kg</small>{% endif %}</div></div>
+            <div class="fact"><div class="k">{{ icon('droplet') }}{{ t("Moisture / foreign") }}</div><div class="v">{{ '%.1f'|format(txn.moisture) if txn.moisture is not none else '—' }}<small>%</small> / {{ '%.2f'|format(txn.foreign_matter) if txn.foreign_matter is not none else '—' }}<small>%</small></div></div>
+            <div class="fact"><div class="k">{{ icon('award') }}{{ t("Net, grade") }}</div><div class="v">{{ '%.2f'|format(txn.actual_quantity or 0) }} <small>{{ t("q") }}</small> {{ grade_badge(txn.quality_grade) }}</div></div>
           </div>
-          {% if txn.grade_note %}<p class="small muted mt mb0">Grade picked by hand: {{ txn.grade_note }}</p>{% endif %}
+          {% if txn.grade_note %}<p class="small muted mt mb0">{{ t("Grade picked by hand") }}: {{ txn.grade_note }}</p>{% endif %}
         {% else %}
-          <p class="small muted mb0">Nothing recorded.</p>
+          <p class="small muted mb0">{{ t("Nothing recorded.") }}</p>
         {% endif %}
       </div>
     </div>
@@ -110,27 +109,27 @@
 
     {# 2. closing: the receipt #}
     <div class="card stepcard">
-      <div class="card-head"><h2 class="card-title"><span class="stepnum">2</span>Close and give the receipt</h2></div>
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">2</span>{{ t("Close and give the receipt") }}</h2></div>
       <div class="card-body">
         {% if txn %}
           <div class="facts four">
-            <div class="fact"><div class="k">Net weight</div><div class="v">{{ '%.2f'|format(txn.actual_quantity or 0) }} <small>quintals</small></div></div>
-            <div class="fact"><div class="k">Grade</div><div class="v">{{ grade_badge(txn.quality_grade) }}</div></div>
-            <div class="fact"><div class="k">Rate</div><div class="v">{{ txn.price_per_unit|rupee }} <small>per quintal</small></div></div>
-            <div class="fact"><div class="k">Total payable</div><div class="v money">{{ txn.total_amount|rupee }}</div></div>
+            <div class="fact"><div class="k">{{ icon('scale') }}{{ t("Net weight") }}</div><div class="v">{{ '%.2f'|format(txn.actual_quantity or 0) }} <small>{{ t("quintals") }}</small></div></div>
+            <div class="fact"><div class="k">{{ icon('award') }}{{ t("Grade") }}</div><div class="v">{{ grade_badge(txn.quality_grade) }}</div></div>
+            <div class="fact"><div class="k">{{ icon('rupee') }}{{ t("Rate") }}</div><div class="v">{{ txn.price_per_unit|rupee }} <small>{{ t("per quintal") }}</small></div></div>
+            <div class="fact"><div class="k">{{ icon('banknote') }}{{ t("Total payable") }}</div><div class="v money">{{ txn.total_amount|rupee }}</div></div>
           </div>
           {% if b.status == 'arrived' %}
           <form method="post" action="{{ url_for('admin_complete', booking_id=b.id) }}" class="mt">
-            <button class="btn go large" type="submit">{{ icon('check-circle') }}Close transaction and issue receipt</button>
+            <button class="btn go large" type="submit">{{ icon('check-circle') }}{{ t("Close transaction and issue receipt") }}</button>
           </form>
           {% elif txn.receipt_no %}
           <div class="btn-row mt">
-            <span class="mono small">Receipt {{ txn.receipt_no }}</span>
-            <a class="btn secondary small" href="{{ url_for('admin_receipt', booking_id=b.id) }}">{{ icon('printer') }}Print receipt</a>
+            <span class="mono small">{{ t("Receipt") }} {{ txn.receipt_no }}</span>
+            <a class="btn secondary small" href="{{ url_for('admin_receipt', booking_id=b.id) }}">{{ icon('printer') }}{{ t("Print receipt") }}</a>
           </div>
           {% endif %}
         {% else %}
-          <p class="small muted mb0">Weigh the load first.</p>
+          <p class="small muted mb0">{{ t("Weigh the load first.") }}</p>
         {% endif %}
       </div>
     </div>
@@ -138,70 +137,70 @@
     {# 3. the money #}
     {% if txn and b.status == 'completed' %}
     <div class="card stepcard">
-      <div class="card-head"><h2 class="card-title"><span class="stepnum">3</span>Payment</h2>{{ stage_badge(txn.pay_stage) }}</div>
+      <div class="card-head"><h2 class="card-title"><span class="stepnum">3</span>{{ t("Payment") }}</h2>{{ stage_badge(txn.pay_stage) }}</div>
       <div class="card-body">
-        {% if late %}<div class="notice warning small">Closed {{ txn.closed_at|stamp }} and still not in the farmer's account - past the 72-hour promise.</div>{% endif %}
+        {% if late %}<div class="notice warning small">{{ t("Closed %(when)s and still not in the farmer's account - past the 72-hour promise.")|format(when=txn.closed_at|stamp) }}</div>{% endif %}
 
         {% if txn.pay_stage == 'billed' %}
-          <p>Bill <span class="mono">{{ txn.bill_no }}</span> is ready. Send it now, or it goes with the next batch from the Payments screen.</p>
+          <p>{{ t("Bill %(bill)s is ready. Send it now, or it goes with the next batch from the Payments screen.")|format(bill=txn.bill_no) }}</p>
           <form method="post" action="{{ url_for('admin_payment_send', txn_id=txn.id) }}">
-            <button class="btn go" type="submit">{{ icon('send') }}Send {{ txn.total_amount|rupee }} to the bank now</button>
+            <button class="btn go" type="submit">{{ icon('send') }}{{ t("Send %(amount)s to the bank now")|format(amount=txn.total_amount|rupee) }}</button>
           </form>
         {% elif txn.pay_stage == 'sent' %}
-          <div class="notice info small" data-wait="{{ wait }}">With the bank (attempt {{ txn.attempts }}). Answer in <b data-wait-left>{{ wait }}</b> s - this page updates by itself.</div>
+          <div class="notice info small" data-wait="{{ wait }}">{{ t("With the bank (attempt %(n)s).")|format(n=txn.attempts) }} {{ t("Answer in") }} <b data-wait-left>{{ wait }}</b> {{ t("seconds") }}. {{ t("This page updates by itself.") }}</div>
         {% elif txn.pay_stage == 'credited' %}
           <dl class="kv">
-            <dt>Credited to</dt><dd class="mono">{{ bank }}</dd>
-            <dt>UTR</dt><dd class="mono">{{ txn.utr or 'none - set by hand' }}</dd>
-            <dt>When</dt><dd>{{ (txn.settled_at or txn.payment_date)|stamp }}</dd>
+            <dt>{{ icon('landmark') }}{{ t("Credited to") }}</dt><dd class="mono">{{ bank }}</dd>
+            <dt>{{ icon('receipt') }}UTR</dt><dd class="mono">{{ txn.utr or t('none - set by hand') }}</dd>
+            <dt>{{ icon('clock') }}{{ t("When") }}</dt><dd>{{ (txn.settled_at or txn.payment_date)|stamp }}</dd>
           </dl>
         {% elif txn.pay_stage == 'returned' %}
           <div class="notice error small">
-            <h3>Returned: {{ returns[txn.return_code][0] }}</h3>
-            <p>{{ returns[txn.return_code][1] }}</p>
+            <h3>{{ t("Returned") }}: {{ t(returns[txn.return_code][0]) }}</h3>
+            <p>{{ t(returns[txn.return_code][1]) }}</p>
           </div>
         {% elif txn.pay_stage == 'held' %}
-          <div class="notice error small"><p>Held because the farmer's record has blocking problems. Fix the record, then release it.</p></div>
+          <div class="notice error small"><p>{{ t("Held because the farmer's record has blocking problems. Fix the record, then release it.") }}</p></div>
           <form method="post" action="{{ url_for('admin_payment_release', txn_id=txn.id) }}">
-            <button class="btn" type="submit" {{ 'disabled' if flags|selectattr('severity','equalto','blocking')|list }}>{{ icon('check-circle') }}Release payment</button>
+            <button class="btn" type="submit" {{ 'disabled' if flags|selectattr('severity','equalto','blocking')|list }}>{{ icon('check-circle') }}{{ t("Release payment") }}</button>
           </form>
         {% elif txn.pay_stage == 'nil' %}
-          <p class="small muted">Rejected produce. Nothing to pay.</p>
+          <p class="small muted">{{ t("Rejected produce. Nothing to pay.") }}</p>
         {% endif %}
 
         {% if txn.pay_stage in ('billed', 'returned', 'held') %}
-        <h3 class="sub-head">What the bank will check</h3>
+        <h3 class="sub-head">{{ t("What the bank will check") }}</h3>
         <ul class="bank-checks">
           {% for c in bank_checks %}
-          <li class="{{ 'ok' if c.ok else 'bad' }}">{{ icon('check' if c.ok else 'x') }}<span>{{ c.label }}</span><small>{{ c.detail }}</small></li>
+          <li class="{{ 'ok' if c.ok else 'bad' }}">{{ icon('check' if c.ok else 'x') }}<span>{{ t(c.label) }}</span><small>{{ c.detail }}</small></li>
           {% endfor %}
         </ul>
         {% endif %}
 
         {% if txn.pay_stage == 'returned' %}
         <form method="post" action="{{ url_for('admin_payment_send', txn_id=txn.id) }}" class="btn-row mt">
-          <a class="btn secondary" href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">{{ icon('id-card') }}Fix the record</a>
-          <button class="btn go" type="submit">{{ icon('refresh') }}Send again</button>
+          <a class="btn secondary" href="{{ url_for('admin_farmer', farmer_id=b.farmer_id) }}">{{ icon('id-card') }}{{ t("Fix the record") }}</a>
+          <button class="btn go" type="submit">{{ icon('refresh') }}{{ t("Send again") }}</button>
         </form>
         {% endif %}
 
         <details class="override mt">
-          <summary>Change the stage by hand</summary>
+          <summary>{{ t("Change the stage by hand") }}</summary>
           <form method="post" action="{{ url_for('admin_payment', txn_id=txn.id) }}">
             <div class="field-row two">
               <div class="field">
-                <label for="stage">Stage</label>
+                <label for="stage">{{ t("Stage") }}</label>
                 <select id="stage" name="stage">
-                  {% for key, s in stages.items() %}<option value="{{ key }}" {{ 'selected' if txn.pay_stage == key }}>{{ s[1] }}</option>{% endfor %}
+                  {% for key, s in stages.items() %}<option value="{{ key }}" {{ 'selected' if txn.pay_stage == key }}>{{ t(s[1]) }}</option>{% endfor %}
                 </select>
               </div>
               <div class="field">
-                <label for="reason">Reason <span class="req">*</span></label>
-                <input type="text" id="reason" name="reason" placeholder="e.g. bank confirmed credit by phone" required minlength="8">
+                <label for="reason">{{ t("Reason") }} <span class="req">*</span></label>
+                <input type="text" id="reason" name="reason" placeholder="{{ t('e.g. bank confirmed credit by phone') }}" required minlength="8">
               </div>
             </div>
-            <button class="btn secondary small" type="submit">Set by hand</button>
-            <p class="hint">Shows in the superadmin's activity log and Needs attention.</p>
+            <button class="btn secondary small" type="submit">{{ t("Set by hand") }}</button>
+            <p class="hint">{{ t("Shows in the superadmin's activity log and Needs attention.") }}</p>
           </form>
         </details>
       </div>
@@ -211,38 +210,41 @@
 
   <div class="stack">
     <div class="card">
-      <div class="card-head"><h2 class="card-title">Farmer record</h2>
-        <span class="badge grey plain">{{ farmer.registered_via|upper }}</span></div>
+      <div class="card-head"><h2 class="card-title">{{ icon('user') }}{{ t("Farmer record") }}</h2>
+        <span class="badge grey">{{ farmer.registered_via|upper }}</span></div>
       <div class="card-body">
         <dl class="kv">
-          <dt>Mobile</dt><dd>{{ farmer.phone_number }}</dd>
-          <dt>Village</dt><dd>{{ farmer.village }}, {{ farmer.district }}</dd>
-          <dt>Aadhaar</dt><dd class="mono">{{ farmer.aadhaar_number or '—' }}</dd>
-          <dt>Bank account</dt><dd class="mono">{{ farmer.bank_account or '—' }} <span class="sub-line">{{ bank }}</span></dd>
-          <dt>IFSC</dt><dd class="mono">{{ farmer.ifsc_code or '—' }}</dd>
-          <dt>Name on account</dt><dd>{{ farmer.bank_name_on_account or '—' }}</dd>
-          <dt>Aadhaar linked to bank</dt><dd>{{ 'Yes' if farmer.aadhaar_seeded else 'No' }}</dd>
-          <dt>Land record</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
+          <dt>{{ icon('phone') }}{{ t("Mobile") }}</dt><dd>{{ farmer.phone_number }}</dd>
+          <dt>{{ icon('map-pin') }}{{ t("Village") }}</dt><dd>{{ t(farmer.village) }}, {{ t(farmer.district) }}</dd>
+          <dt>{{ icon('id-card') }}{{ t("Aadhaar") }}</dt><dd class="mono">{{ farmer.aadhaar_number or '—' }}</dd>
+          <dt>{{ icon('landmark') }}{{ t("Bank account") }}</dt><dd class="mono">{{ farmer.bank_account or '—' }} <span class="sub-line">{{ bank }}</span></dd>
+          <dt>{{ icon('file-text') }}IFSC</dt><dd class="mono">{{ farmer.ifsc_code or '—' }}</dd>
+          <dt>{{ icon('user') }}{{ t("Name on account") }}</dt><dd>{{ farmer.bank_name_on_account or '—' }}</dd>
+          <dt>{{ icon('check-circle') }}{{ t("Aadhaar linked to bank") }}</dt><dd>{{ t('Yes') if farmer.aadhaar_seeded else t('No') }}</dd>
+          <dt>{{ icon('map-pin') }}{{ t("Land record") }}</dt><dd class="mono">{{ farmer.land_record_id or '—' }}</dd>
         </dl>
         <form method="post" action="{{ url_for('admin_call', booking_id=b.id) }}" class="mt">
-          <button class="btn block" type="submit">{{ icon('phone-call') }}Call farmer about this booking</button>
+          <button class="btn block" type="submit">{{ icon('phone-call') }}{{ t("Call farmer about this booking") }}</button>
         </form>
-        <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">{{ icon('eye') }}Open full record</a>
+        <a class="btn secondary block mt" href="{{ url_for('admin_farmer', farmer_id=farmer.id) }}">{{ icon('eye') }}{{ t("Open full record") }}</a>
       </div>
     </div>
 
     {% if visit %}
+    {%- set visit_words = {'gate_in': "In at the gate", 'gate_out': "Out at the gate", 'weighed': "Weighed", 'pay_weighed': "Weighbridge record",
+        'pay_closed': "Closed", 'pay_billed': "Bill ready", 'pay_sent': "Sent to bank", 'pay_credited': "Credited",
+        'pay_returned': "Returned by bank", 'pay_held': "Held", 'pay_nil': "Nothing payable"} -%}
     <div class="card">
-      <div class="card-head"><h2 class="card-title">{{ icon('clock') }}This visit</h2></div>
+      <div class="card-head"><h2 class="card-title">{{ icon('clock') }}{{ t("This visit") }}</h2></div>
       <div class="card-body">
         <ol class="timeline compact-tl">
           {% for s in visit %}
           <li>
             <span class="tl-ic {{ 'green' if s.kind in ('gate_in', 'pay_credited') else ('red' if s.kind in ('pay_returned', 'pay_held') else ('blue' if s.kind == 'pay_sent' else 'grey')) }}">{{ icon({'gate_in': 'log-in', 'gate_out': 'log-out', 'weighed': 'scale', 'pay_sent': 'send', 'pay_credited': 'check', 'pay_returned': 'alert-triangle', 'pay_held': 'alert-triangle'}.get(s.kind, 'receipt')) }}</span>
             <div class="tl-body">
-              <div class="tl-meta"><strong>{{ {'gate_in': 'In at the gate', 'gate_out': 'Out at the gate', 'weighed': 'Weighed', 'pay_weighed': 'Weighbridge record', 'pay_closed': 'Closed', 'pay_billed': 'Bill ready', 'pay_sent': 'Sent to bank', 'pay_credited': 'Credited', 'pay_returned': 'Returned by bank', 'pay_held': 'Held', 'pay_nil': 'Nothing payable'}.get(s.kind, s.kind) }}</strong>
+              <div class="tl-meta"><strong>{{ t(visit_words.get(s.kind, s.kind)) }}</strong>
                 <span>{{ s.at|stamp }}</span>{% if s.who %}<span class="mono">{{ s.who }}</span>{% endif %}</div>
-              {% if s.detail %}<div class="tl-msg small">{{ s.detail }}</div>{% endif %}
+              {% if s.detail %}<div class="tl-msg small">{{ t(s.detail) }}</div>{% endif %}
             </div>
           </li>
           {% endfor %}

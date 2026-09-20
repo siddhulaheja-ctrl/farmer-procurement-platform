@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Registered Farmers{% endblock %}
+{% block title %}{{ t("Registered farmers") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <h1 class="page-title">Registered farmers</h1>
+    <p class="eyebrow">{{ icon('users') }}{{ t("Farmers") }}</p>
+    <h1 class="page-title">{{ t("Registered farmers") }}</h1>
   </div>
   <div class="ph-actions">
-    <a class="btn wheat" href="{{ url_for('admin_register_farmer') }}">{{ icon('user-plus') }}Register new farmer</a>
+    <a class="btn wheat" href="{{ url_for('admin_register_farmer') }}">{{ icon('user-plus') }}{{ t("Register new farmer") }}</a>
   </div>
 </div>
 
@@ -15,11 +16,11 @@
    the cross is a plain link back to everyone #}
 <form method="get" class="filter-bar" id="farmer-search" role="search">
   <div class="field grow">
-    <label for="q">Search by name, mobile or village</label>
+    <label for="q">{{ t("Search by name, mobile or village") }}</label>
     <div class="search-box">
       {{ icon('search') }}
       <input type="text" id="q" name="q" value="{{ q }}" autocomplete="off" spellcheck="false">
-      <a class="search-clear" href="{{ url_for('admin_farmers') }}" title="Clear search"{% if not q %} hidden{% endif %}>{{ icon('x') }}<span class="sr">Clear search</span></a>
+      <a class="search-clear" href="{{ url_for('admin_farmers') }}" title="{{ t('Clear search') }}"{% if not q %} hidden{% endif %}>{{ icon('x') }}<span class="sr">{{ t("Clear search") }}</span></a>
     </div>
   </div>
 </form>

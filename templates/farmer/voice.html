@@ -2,12 +2,12 @@
 {% block title %}{{ t("Book by speaking") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('farmer_centres') }}">{{ icon('arrow-left') }}{{ t("Back to centres") }}</a>
-</nav>
-
 <div class="pagehead">
   <div class="ph-text">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ url_for('farmer_centres') }}">{{ icon('arrow-left') }}{{ t("Back to centres") }}</a>
+    </nav>
+    <p class="eyebrow">{{ icon('mic') }}{{ t("No typing needed") }}</p>
     <h1 class="page-title">{{ t("Book by speaking") }}</h1>
     <p class="page-sub">{{ t("Say the centre, the day, the time, your crop and how many quintals. You will see the slot before anything is booked.") }}</p>
   </div>
@@ -55,7 +55,7 @@
   </div>
 
   <div class="card">
-    <div class="card-head"><h2 class="card-title">{{ t("You can say") }}</h2></div>
+    <div class="card-head"><h2 class="card-title">{{ icon('message') }}{{ t("You can say") }}</h2></div>
     <div class="card-body">
       <ul class="voice-eg">
         <li lang="hi">&ldquo;रुद्रपुर में कल सुबह गेहूं 20 क्विंटल&rdquo;</li>

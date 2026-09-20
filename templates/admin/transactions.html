@@ -1,60 +1,61 @@
 {% extends "base.html" %}
 {% from "_macros.html" import stage_badge, grade_badge, crop %}
-{% block title %}Payments{% endblock %}
+{% block title %}{{ t("Payment register") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">{{ g.staff.centre_name or 'Every centre' }}</p>
-    <h1 class="page-title">Payment register</h1>
+    <p class="eyebrow">{{ icon('building') }}{{ t(g.staff.centre_name) if g.staff.centre_name else t('Every centre') }}</p>
+    <h1 class="page-title">{{ t("Payment register") }}</h1>
   </div>
-  <a class="btn secondary" href="{{ url_for('admin_transactions_csv') }}">{{ icon('file-text') }}Download CSV</a>
+  <div class="ph-actions">
+    <a class="btn secondary" href="{{ url_for('admin_transactions_csv') }}">{{ icon('file-text') }}{{ t("Download CSV") }}</a>
+  </div>
 </div>
 
 {% set credited = all_rows|selectattr('pay_stage', 'equalto', 'credited')|map(attribute='total_amount')|select|sum %}
 {% set with_bank = all_rows|selectattr('pay_stage', 'equalto', 'sent')|list|length %}
 <div class="stat-row">
-  <div class="stat {{ 'warn' if ready else 'zero' }}"><div><div class="n">{{ ready|length }}</div><div class="l">Bills ready for the bank</div></div></div>
-  <div class="stat {{ 'info' if with_bank else 'zero' }}"><div><div class="n">{{ with_bank }}</div><div class="l">With the bank now</div></div></div>
-  <div class="stat {{ 'good' if credited else 'zero' }}"><div><div class="n">{{ credited|rupee if credited else 'None yet' }}</div><div class="l">Credited</div></div></div>
-  <div class="stat {{ 'bad' if returned else 'zero' }}"><div><div class="n">{{ returned|length }}</div><div class="l">Returned, to fix</div></div></div>
+  <div class="stat {{ 'warn' if ready else 'zero' }}"><span class="stat-ic">{{ icon('receipt') }}</span><div><div class="n">{{ ready|length }}</div><div class="l">{{ t("Bills ready for the bank") }}</div></div></div>
+  <div class="stat {{ 'info' if with_bank else 'zero' }}"><span class="stat-ic">{{ icon('send') }}</span><div><div class="n">{{ with_bank }}</div><div class="l">{{ t("With the bank now") }}</div></div></div>
+  <div class="stat {{ 'good' if credited else 'zero' }}"><span class="stat-ic">{{ icon('banknote') }}</span><div><div class="n">{{ credited|rupee if credited else t('None yet') }}</div><div class="l">{{ t("Credited") }}</div></div></div>
+  <div class="stat {{ 'bad' if returned else 'zero' }}"><span class="stat-ic">{{ icon('alert-triangle') }}</span><div><div class="n">{{ returned|length }}</div><div class="l">{{ t("Returned, to fix") }}</div></div></div>
 </div>
 
-<div class="card batch-card">
+<div class="card batch-card taped">
   <div class="card-body">
     {% if ready %}
     <form method="post" action="{{ url_for('admin_payment_batch') }}" class="batch-row">
       <div>
-        <h2>{{ ready|length }} bill{{ 's' if ready|length != 1 }} waiting, {{ ready_amount|rupee }}</h2>
-        <p class="small muted mb0">One batch to the bank. The demo bank answers each payment about {{ credit_seconds }} seconds later
-          with a credit and a UTR, or a return and the reason.</p>
+        <h2>{{ t("%(n)d bill(s) waiting, %(amount)s")|format(n=ready|length, amount=ready_amount|rupee) }}</h2>
+        <p class="small muted mb0">{{ t("One batch to the bank. The demo bank answers each payment about %(s)s seconds later with a credit and a UTR, or a return and the reason.")|format(s=credit_seconds) }}</p>
       </div>
-      <button class="btn go large" type="submit">{{ icon('send') }}Send batch to bank</button>
+      <button class="btn go large" type="submit">{{ icon('send') }}{{ t("Send batch to bank") }}</button>
     </form>
     {% else %}
-    <p class="mb0 muted">{{ icon('check-circle') }} No bills waiting. Closing a transaction puts its bill here.</p>
+    <p class="mb0 muted icon-text">{{ icon('check-circle') }} {{ t("No bills waiting. Closing a transaction puts its bill here.") }}</p>
     {% endif %}
   </div>
 </div>
 
 {% if returned %}
 <div class="card">
-  <div class="card-head"><h2 class="card-title">{{ icon('alert-triangle') }}Returned by the bank <span class="count">{{ returned|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">{{ icon('alert-triangle') }}{{ t("Returned by the bank") }} <span class="count">{{ returned|length }}</span></h2></div>
   <div class="table-scroll">
     <table class="data">
-      <thead><tr><th>Token</th><th>Farmer</th><th class="num">Amount</th><th>Reason</th><th>Attempts</th><th></th></tr></thead>
+      <thead><tr><th>{{ t("Token") }}</th><th>{{ t("Farmer") }}</th><th class="num">{{ t("Amount") }}</th><th>{{ t("Reason") }}</th><th>{{ t("Attempts") }}</th><th></th></tr></thead>
       <tbody>
       {% for r in returned %}
         <tr class="row-high">
           <td><a class="token-txt" href="{{ url_for('admin_booking', booking_id=r.booking_id) }}">{{ r.token_no }}</a></td>
           <td><a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a><span class="sub-line mono">{{ bank_label(r) }}</span></td>
           <td class="num money">{{ r.total_amount|rupee }}</td>
-          <td class="small">{{ returns[r.return_code][0] }}</td>
+          <td class="small">{{ t(returns[r.return_code][0]) }}</td>
           <td>{{ r.attempts }}</td>
           <td class="nowrap">
-            <a class="btn small secondary" href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ icon('id-card') }}Fix record</a>
+            <a class="btn small secondary" href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ icon('id-card') }}{{ t("Fix record") }}</a>
             <form method="post" action="{{ url_for('admin_payment_send', txn_id=r.id) }}" class="inline-form">
-              <button class="btn small" type="submit">{{ icon('refresh') }}Send again</button>
+              <button class="btn small" type="submit">{{ icon('refresh') }}{{ t("Send again") }}</button>
             </form>
           </td>
         </tr>
@@ -65,11 +66,11 @@
 </div>
 {% endif %}
 
-<nav class="stage-chips" aria-label="Filter by stage">
-  <a href="{{ url_for('admin_transactions') }}" class="{{ 'on' if not sel_stage }}">All <span>{{ all_rows|length }}</span></a>
+<nav class="stage-chips" aria-label="{{ t('Filter by stage') }}">
+  <a href="{{ url_for('admin_transactions') }}" class="{{ 'on' if not sel_stage }}">{{ t("All") }} <span>{{ all_rows|length }}</span></a>
   {% for key, s in stages.items() %}
     {% set n = all_rows|selectattr('pay_stage', 'equalto', key)|list|length %}
-    {% if n %}<a href="{{ url_for('admin_transactions', stage=key) }}" class="{{ 'on' if sel_stage == key }}">{{ s[1] }} <span>{{ n }}</span></a>{% endif %}
+    {% if n %}<a href="{{ url_for('admin_transactions', stage=key) }}" class="{{ 'on' if sel_stage == key }}">{{ t(s[1]) }} <span>{{ n }}</span></a>{% endif %}
   {% endfor %}
 </nav>
 
@@ -78,22 +79,22 @@
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Receipt / token</th><th>Farmer</th><th>Crop</th><th class="num">Net q</th><th class="num">Amount</th>
-            <th>Stage</th><th>Bank reference</th></tr>
+        <tr><th>{{ t("Receipt / token") }}</th><th>{{ t("Farmer") }}</th><th>{{ t("Crop") }}</th><th class="num">{{ t("Net q") }}</th><th class="num">{{ t("Amount") }}</th>
+            <th>{{ t("Stage") }}</th><th>{{ t("Bank reference") }}</th></tr>
       </thead>
       <tbody>
         {% for r in rows %}
         <tr class="{{ 'row-high' if r.id in late }}">
           <td><a class="token-txt" href="{{ url_for('admin_booking', booking_id=r.booking_id) }}">{{ r.token_no }}</a>
-            <span class="sub-line mono">{{ r.receipt_no or 'not closed' }}</span></td>
+            <span class="sub-line mono">{{ r.receipt_no or t('not closed') }}</span></td>
           <td><a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
-            <span class="sub-line">{{ r.centre_name }}</span></td>
+            <span class="sub-line">{{ t(r.centre_name) }}</span></td>
           <td>{{ crop(r.crop_type) }} {{ grade_badge(r.quality_grade) }}</td>
           <td class="num nowrap">{{ '%.2f'|format(r.actual_quantity or 0) }}</td>
           <td class="num nowrap money">{{ r.total_amount|rupee }}</td>
           <td>{{ stage_badge(r.pay_stage) }}
-            {% if r.id in late %}<span class="sub-line hl-bad">Over 72 h since closing</span>{% endif %}
-            {% if r.id in waiting %}<span class="sub-line" data-wait="{{ waiting[r.id] }}">answer in <b data-wait-left>{{ waiting[r.id] }}</b> s</span>{% endif %}
+            {% if r.id in late %}<span class="sub-line hl-bad">{{ t("Over 72 h since closing") }}</span>{% endif %}
+            {% if r.id in waiting %}<span class="sub-line" data-wait="{{ waiting[r.id] }}">{{ t("Answer in") }} <b data-wait-left>{{ waiting[r.id] }}</b> {{ t("seconds") }}</span>{% endif %}
           </td>
           <td class="small">
             {% if r.utr %}<span class="mono">{{ r.utr }}</span>
@@ -101,7 +102,7 @@
             {% elif r.bill_no %}<span class="mono">{{ r.bill_no }}</span>
             {% else %}—{% endif %}
             {% if r.settled_at %}<span class="sub-line">{{ r.settled_at|stamp }}</span>
-            {% elif r.closed_at %}<span class="sub-line">closed {{ r.closed_at|stamp }}</span>{% endif %}
+            {% elif r.closed_at %}<span class="sub-line">{{ t("closed") }} {{ r.closed_at|stamp }}</span>{% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -109,26 +110,26 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">Nothing at this stage.</div>
+    <div class="empty">{{ t("Nothing at this stage.") }}</div>
   {% endif %}
 </div>
 
 {% if batches %}
 <div class="card">
-  <div class="card-head"><h2 class="card-title">{{ icon('send') }}Recent batches</h2></div>
+  <div class="card-head"><h2 class="card-title">{{ icon('send') }}{{ t("Recent batches") }}</h2></div>
   <div class="table-scroll">
     <table class="data">
-      <thead><tr><th>Batch</th><th>Sent</th><th class="num">Bills</th><th class="num">Amount</th><th>Bank's answer</th></tr></thead>
+      <thead><tr><th>{{ t("Batch") }}</th><th>{{ t("Sent") }}</th><th class="num">{{ t("Bills") }}</th><th class="num">{{ t("Amount") }}</th><th>{{ t("Bank's answer") }}</th></tr></thead>
       <tbody>
       {% for bt in batches %}
         <tr>
-          <td class="mono">{{ bt.batch_no }}<span class="sub-line">{{ bt.staff_code or '' }}{{ ' · ' ~ bt.centre_name if bt.centre_name and not g.staff.centre_id else '' }}</span></td>
+          <td class="mono">{{ bt.batch_no }}<span class="sub-line">{{ bt.staff_code or '' }}{{ ' · ' ~ t(bt.centre_name) if bt.centre_name and not g.staff.centre_id else '' }}</span></td>
           <td class="small nowrap">{{ bt.created_at|stamp }}</td>
           <td class="num">{{ bt.items }}</td>
           <td class="num money">{{ bt.amount|rupee }}</td>
-          <td class="small">{% if bt.credited %}<span class="badge green">{{ bt.credited }} credited</span>{% endif %}
-            {% if bt.returned %}<span class="badge red">{{ bt.returned }} returned</span>{% endif %}
-            {% if bt.items > bt.credited + bt.returned %}<span class="state">waiting or sent again</span>{% endif %}</td>
+          <td class="small">{% if bt.credited %}<span class="badge green">{{ t("%(n)d credited")|format(n=bt.credited) }}</span>{% endif %}
+            {% if bt.returned %}<span class="badge red">{{ t("%(n)d returned")|format(n=bt.returned) }}</span>{% endif %}
+            {% if bt.items > bt.credited + bt.returned %}<span class="state">{{ t("waiting or sent again") }}</span>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>

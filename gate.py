@@ -9,8 +9,11 @@ import re
 from datetime import date, datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 
+from flask import has_request_context
+
 import audit
 from db import execute, query
+from i18n import t
 
 EARLY_MINUTES = 60      # let people in this long before their window
 LATE_MINUTES = 60       # and this long after it closes
@@ -62,61 +65,77 @@ def _hm(stamp):
         return "?"
 
 
+def _say(fmt, *args):
+    """A line for the gate screen: english for the log, and the same words in
+    the reader's language for the screen (i18n.t, only inside a request)."""
+    english = fmt % args if args else fmt
+    local = english
+    if has_request_context():
+        local = t(fmt) % args if args else t(fmt)
+    return english, local
+
+
 def verdict(b, genuine, my_centre, now=None):
     """What the gate screen says.
 
     genuine: True (signature checked), None (typed by hand), False (bad code).
     tone is ok / warn / bad / info. `action` is what the big button does:
     checkin, checkin_anyway, checkout, open (the booking page) or None.
+    title and detail are english (they go in the log); title_local and
+    detail_local are the same in the reader's language.
     """
     now = now or datetime.now()
+
+    def out(tone, code, title, detail, action, extra=None):
+        v = {"tone": tone, "code": code, "action": action}
+        v["title"], v["title_local"] = title
+        v["detail"], v["detail_local"] = detail
+        if extra:
+            v["detail"] += extra[0]
+            v["detail_local"] += extra[1]
+        return v
+
     if b is None or genuine is False:
-        return {"tone": "bad", "code": "not_genuine", "title": "Not a genuine pass",
-                "detail": "This code was not issued by Krishi Sutra, or it has been changed or replaced. "
-                          "Look the farmer up by name and check their Aadhaar card.",
-                "action": None}
+        return out("bad", "not_genuine", _say("Not a genuine pass"),
+                   _say("This code was not issued by Krishi Sutra, or it has been changed or replaced. "
+                        "Look the farmer up by name and check their Aadhaar card."), None)
     if my_centre and b["centre_id"] != my_centre:
-        return {"tone": "bad", "code": "wrong_centre", "title": "Booked at another centre",
-                "detail": "This slot is at %s. Send the farmer there." % b["centre_name"], "action": None}
+        return out("bad", "wrong_centre", _say("Booked at another centre"),
+                   _say("This slot is at %s. Send the farmer there.", b["centre_name"]), None)
     if b["status"] == "cancelled":
-        return {"tone": "bad", "code": "cancelled", "title": "Booking cancelled",
-                "detail": "The farmer cancelled or moved this booking. An old printout may still be in their hand.",
-                "action": None}
+        return out("bad", "cancelled", _say("Booking cancelled"),
+                   _say("The farmer cancelled or moved this booking. An old printout may still be in their hand."), None)
     if b["gate_out_at"]:
-        return {"tone": "info", "code": "finished", "title": "Visit finished",
-                "detail": "Left the centre at %s." % _hm(b["gate_out_at"]), "action": None}
+        return out("info", "finished", _say("Visit finished"), _say("Left the centre at %s.", _hm(b["gate_out_at"])), None)
     if b["status"] == "completed":
-        return {"tone": "ok", "code": "closed", "title": "Transaction closed, let them out",
-                "detail": "Receipt issued. Mark them out at the gate.", "action": "checkout"}
+        return out("ok", "closed", _say("Transaction closed, let them out"),
+                   _say("Receipt issued. Mark them out at the gate."), "checkout")
     if b["status"] == "arrived":
-        return {"tone": "info", "code": "weighed", "title": "Weighed, waiting to be closed",
-                "detail": "Weighed at %s. Open the booking to close the transaction." % _hm(b["weighed_at"]),
-                "action": "open"}
+        return out("info", "weighed", _say("Weighed, waiting to be closed"),
+                   _say("Weighed at %s. Open the booking to close the transaction.", _hm(b["weighed_at"])), "open")
     if b["gate_in_at"]:
-        return {"tone": "info", "code": "inside", "title": "Already inside, queue no. %s" % (b["gate_queue"] or "?"),
-                "detail": "Came in at %s. Send them to the weighbridge." % _hm(b["gate_in_at"]), "action": "open"}
+        return out("info", "inside", _say("Already inside, queue no. %s", b["gate_queue"] or "?"),
+                   _say("Came in at %s. Send them to the weighbridge.", _hm(b["gate_in_at"])), "open")
 
     start, end = _window(b)
     today = now.date()
     slot_day = start.date() if start else None
-    typed = " Typed by hand, so match the name to the Aadhaar card." if genuine is None else ""
+    typed = _say(" Typed by hand, so match the name to the Aadhaar card.") if genuine is None else ("", "")
     if slot_day and slot_day < today:
-        return {"tone": "bad", "code": "missed", "title": "Slot was on %s" % slot_day.strftime("%d %b"),
-                "detail": "The farmer missed this slot. Let them in only if the centre has room today." + typed,
-                "action": "checkin_anyway"}
+        return out("bad", "missed", _say("Slot was on %s", slot_day.strftime("%d %b")),
+                   _say("The farmer missed this slot. Let them in only if the centre has room today."), "checkin_anyway", typed)
     if slot_day and slot_day > today:
         days = (slot_day - today).days
-        return {"tone": "warn", "code": "early_day",
-                "title": "Slot is on %s, %d day%s away" % (slot_day.strftime("%d %b"), days, "s" if days != 1 else ""),
-                "detail": "Not today. Let them in only if the centre has room." + typed, "action": "checkin_anyway"}
+        return out("warn", "early_day", _say("Slot is on %s, %d day(s) away", slot_day.strftime("%d %b"), days),
+                   _say("Not today. Let them in only if the centre has room."), "checkin_anyway", typed)
     if start and now < start - timedelta(minutes=EARLY_MINUTES):
-        return {"tone": "warn", "code": "early", "title": "Early, slot starts at %s" % start.strftime("%H:%M"),
-                "detail": "More than an hour early." + typed, "action": "checkin_anyway"}
+        return out("warn", "early", _say("Early, slot starts at %s", start.strftime("%H:%M")),
+                   _say("More than an hour early."), "checkin_anyway", typed)
     if end and now > end + timedelta(minutes=LATE_MINUTES):
-        return {"tone": "warn", "code": "late", "title": "Late, slot ended at %s" % end.strftime("%H:%M"),
-                "detail": "More than an hour after the window." + typed, "action": "checkin_anyway"}
-    return {"tone": "ok", "code": "allow", "title": "Genuine pass, let them in" if genuine else "Booking found, let them in",
-            "detail": ("Right centre, right day, %s." % b["time_window"]) + typed, "action": "checkin"}
+        return out("warn", "late", _say("Late, slot ended at %s", end.strftime("%H:%M")),
+                   _say("More than an hour after the window."), "checkin_anyway", typed)
+    return out("ok", "allow", _say("Genuine pass, let them in") if genuine else _say("Booking found, let them in"),
+               _say("Right centre, right day, %s.", b["time_window"]), "checkin", typed)
 
 
 def log_scan(b, staff, v, centre_id=None):
@@ -156,14 +175,14 @@ def visit(booking_id):
     for e in query("SELECT e.*, s.staff_code FROM booking_events e LEFT JOIN staff s ON s.id = e.staff_id"
                    " WHERE e.booking_id = ? AND e.kind != 'scan' ORDER BY e.at", (booking_id,)):
         steps.append({"at": e["at"], "kind": e["kind"], "detail": e["detail"], "who": e["staff_code"]})
-    t = query("SELECT * FROM transactions WHERE booking_id = ?", (booking_id,), one=True)
-    if t and t["weighed_at"]:
-        steps.append({"at": t["weighed_at"], "kind": "weighed",
-                      "detail": "%.2f quintals net, grade %s" % (t["actual_quantity"] or 0, t["quality_grade"]),
+    tx = query("SELECT * FROM transactions WHERE booking_id = ?", (booking_id,), one=True)
+    if tx and tx["weighed_at"]:
+        steps.append({"at": tx["weighed_at"], "kind": "weighed",
+                      "detail": t("%.2f quintals net, grade %s") % (tx["actual_quantity"] or 0, tx["quality_grade"]),
                       "who": None})
-    if t:
+    if tx:
         for e in query("SELECT e.*, s.staff_code FROM payment_events e LEFT JOIN staff s ON s.id = e.staff_id"
-                       " WHERE e.transaction_id = ? ORDER BY e.at, e.id", (t["id"],)):
+                       " WHERE e.transaction_id = ? ORDER BY e.at, e.id", (tx["id"],)):
             steps.append({"at": e["at"], "kind": "pay_" + e["stage"], "detail": e["detail"], "who": e["staff_code"]})
     steps.sort(key=lambda s: s["at"] or "")
     return steps

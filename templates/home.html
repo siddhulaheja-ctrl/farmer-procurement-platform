@@ -1,223 +1,214 @@
 {% extends "base.html" %}
-{% from "_macros.html" import forecast_days, crop_name, hours_table %}
-{% block title %}{{ t("Krishi Sutra") }}{% endblock %}
+{% from "_macros.html" import wx_icon, wx_kind, hours_table %}
+{% block title %}{{ t("Krishi Sutra") }} &middot; {{ t("Slot Booking & Procurement Management System") }}{% endblock %}
+
+{#- the pencil line under a section heading, drawn when it comes into view -#}
+{%- macro scribble() -%}
+<svg class="scribble" data-reveal viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 C 26 3, 52 11, 78 6 S 110 4, 118 7"/></svg>
+{%- endmacro -%}
+{%- set artdir = url_for('static', filename='img/art/') -%}
 
 {% block content %}
-<section class="lead">
-  <div class="lead-text">
-    <h1>{{ t("Book a weighing slot at your procurement centre") }}</h1>
-    <p class="lead-sub">{{ t("Choose a day and time, get a token, and bring your crop when it is your turn. Your Aadhaar and bank details are checked when you register, so your payment is not held up later.") }}</p>
-    <div class="btn-row">
-      <a class="btn large" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register as a farmer") }}</a>
-      <a class="btn secondary large" href="{{ url_for('login') }}">{{ icon('log-in') }}{{ t("Farmer sign in") }}</a>
+{# a framed photo slideshow over a field of wheat that sways in the wind #}
+<section class="hero">
+  <div class="hero-deco" data-reveal aria-hidden="true">
+    <span class="sprig tr"><img src="{{ artdir }}sprig.svg" width="220" height="340" alt=""></span>
+    <div class="fields">
+      <div class="horizon">
+        <img class="land" src="{{ artdir }}fields.svg" width="1440" height="260" alt="">
+        <img class="tractor" src="{{ artdir }}tractor.svg" width="120" height="84" alt="">
+      </div>
+      {#- four rows of stalks from the horizon to the front; far rows small and faint, near rows big.
+          --x places a stalk along its row, --j nudges its size and timing so the field is not a fence #}
+      {% for row, count in [('r1', 44), ('r2', 34), ('r3', 24), ('r4', 16)] %}
+      <div class="stalks {{ row }}">{% for i in range(count) %}<i style="--x: {{ i }}; --j: {{ (i * 7 + count) % 10 }}"><img src="{{ artdir }}wheat-stalk.svg" width="220" height="420" alt="" decoding="async"></i>{% endfor %}</div>
+      {% endfor %}
     </div>
-    <p class="lead-note">{{ icon('smartphone') }}{{ t("No smartphone? Any CSC centre can register you.") }}</p>
   </div>
-  <figure class="lead-photo">
-    <picture>
-      <img src="{{ url_for("static", filename="img/harvest-paddy.jpg") }}" width="1500" height="1000"
-           alt="A farmer bending to cut ripe paddy by hand, with a harvester working the field behind her" fetchpriority="high">
-    </picture>
-    <figcaption>Harvesting paddy, Raichur, Karnataka &middot; Nanditha Gogate, WELL Labs, CC BY-SA 4.0</figcaption>
-  </figure>
-</section>
 
-{# a notice board, the way a mandi has one by the gate: the rates and what to bring #}
-<section class="board">
-  <div class="board-col">
-    <h2 class="board-title">{{ t("Minimum Support Price") }}</h2>
-    <p class="board-sub">{{ t("Indicative rates per quintal, and the rise over the previous season") }}</p>
-    <table class="data msp">
-      <tbody>
-        {% for name, rate in msp.items() %}
-        <tr><td>{{ crop_name(name) }}</td>
-            <td class="num small muted">{% set prev = msp_prev.get(name) %}{% if prev and rate > prev %}+&#8377;{{ "{:,}".format((rate - prev)|int) }}{% endif %}</td>
-            <td class="num"><strong>&#8377;{{ "{:,}".format(rate|int) }}</strong></td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <div class="board-col">
-    <h2 class="board-title">{{ t("Before you come") }}</h2>
-    <ul class="board-list">
-      <li>{{ icon('id-card') }}{{ t("Aadhaar card") }}</li>
-      <li>{{ icon('landmark') }}{{ t("Bank passbook") }}</li>
-      <li>{{ icon('ticket') }}{{ t("Gate pass or token number") }}</li>
-    </ul>
-    <dl class="board-facts">
-      <dt>{{ t("Procurement centres") }}</dt>
-      <dd>{% for d in districts %}{{ t(d) }}{{ ", " if not loop.last }}{% endfor %}</dd>
-      <dt>{{ t("Kisan Call Centre") }}</dt>
-      <dd><strong>1800-180-1551</strong></dd>
-    </dl>
+  <div class="wrap hero-in">
+    <div class="hero-text">
+      <p class="note red write" data-reveal>{{ icon('calendar') }} {{ t("Procurement season") }} &middot; {{ g.today.day }} {{ t(g.today.strftime('%b')) }} {{ g.today.year }}</p>
+      {#- the words rise one by one; the middle phrase gets the highlighter -#}
+      {%- set head = t("Book a weighing slot at your procurement centre") -%}
+      {%- set marked = t("weighing slot") -%}
+      <h1 class="rise-words" data-reveal>
+        {%- if marked in head -%}
+          {%- set parts = head.split(marked, 1) -%}
+          {%- for w in parts[0].split() %}<span class="w">{{ w }}</span> {% endfor -%}
+          <span class="mark">{% for w in marked.split() %}<span class="w">{{ w }}</span>{{ ' ' if not loop.last }}{% endfor %}</span>
+          {%- for w in parts[1].split() %} <span class="w">{{ w }}</span>{% endfor -%}
+        {%- else -%}
+          {%- for w in head.split() %}<span class="w">{{ w }}</span> {% endfor -%}
+        {%- endif -%}
+      </h1>
+      <p class="lede fade" data-reveal style="--d: .9s">{{ t("Choose a day and time, get a token, and bring your crop when it is your turn. Your Aadhaar and bank details are checked when you register, so your payment is not held up later.") }}</p>
+      <div class="actions fade" data-reveal style="--d: 1.1s">
+        <a class="btn" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register as a farmer") }} <span aria-hidden="true">&rarr;</span></a>
+        <a class="btn login" href="{{ url_for('login') }}">{{ icon('log-in') }}<span class="lbl"><small>{{ t("Already registered?") }}</small>{{ t("Sign in") }}</span></a>
+      </div>
+      <p class="aside fade" data-reveal style="--d: 1.3s">{{ icon('smartphone') }}{{ t("No smartphone? Any CSC centre can register you.") }}</p>
+    </div>
+
+    <figure class="plate-photo" data-reveal>
+      <div class="print-frame"><div class="print-in">
+        <img src="{{ url_for('static', filename='img/harvest-paddy.jpg') }}"
+             srcset="{{ url_for('static', filename='img/small/harvest-paddy.jpg') }} 720w, {{ url_for('static', filename='img/harvest-paddy.jpg') }} 1200w"
+             sizes="(max-width: 900px) 94vw, 52vw" width="1200" height="900"
+             alt="{{ t('A farmer cutting ripe paddy by hand, a harvester working behind her') }}" fetchpriority="high">
+      </div></div>
+    </figure>
   </div>
 </section>
 
-<section class="section" id="weather">
-  <div class="card weather-card">
-    <div class="weather-side">
-      <span class="wx-ic">{{ icon('cloud-sun') }}</span>
-      <h2>{{ t("Weather where you farm") }}</h2>
-      {# a plain GET form, so the chosen district ends up in the address and
-         the forecast can be bookmarked or shared #}
-      <form method="get" action="{{ url_for('home') }}#weather">
-        <div class="field">
-          <label for="district">{{ t("Your district") }}</label>
-          <select id="district" name="district">
-            <option value="">{{ t("Select a district") }}</option>
-            {% for d in districts %}
-              <option value="{{ d }}" {{ 'selected' if picked == d }}>{{ t(d) }}</option>
-            {% endfor %}
+{#- the MSP rates as specimen plates taped into the notebook -#}
+{%- set crop_art = {'Wheat': 'wheat', 'Paddy': 'paddy', 'Mustard': 'mustard', 'Gram': 'gram', 'Maize': 'maize', 'Bajra': 'bajra'} -%}
+<section class="home-sec" id="msp">
+  <div class="sec-head">
+    <div>
+      <p class="eyebrow">{{ t("Table 1") }}</p>
+      <h2><span class="h-ic">{{ icon('rupee') }}</span>{{ t("Minimum Support Price") }}</h2>
+      {{ scribble() }}
+    </div>
+    <p class="note write" data-reveal style="--d: .5s">{{ t("Indicative rates per quintal, and the rise over the previous season") }}</p>
+  </div>
+  <ol class="plates">
+    {% for name, rate in msp.items() %}
+    {% set prev = msp_prev.get(name) %}
+    <li class="plate" data-reveal style="--i: {{ loop.index0 }}">
+      <div class="plate-art draw"><div class="grow"><img src="{{ artdir }}crops/{{ crop_art.get(name, 'wheat') }}.svg" width="240" height="420" alt="" decoding="async" loading="lazy"></div></div>
+      <div class="plate-text">
+        <h3>{{ t(name) }}</h3>
+        <p class="rate"><span class="leader" aria-hidden="true"></span>&#8377;<span data-count="{{ rate|int }}">{{ "{:,}".format(rate|int) }}</span></p>
+        {% if prev and rate > prev %}
+        <p class="rise note red write">{{ icon('trending-up') }} +&#8377;{{ "{:,}".format((rate - prev)|int) }} {{ t("over last season") }}</p>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="swipe-hint note red" aria-hidden="true">{{ icon('hand-swipe') }} {{ t("Swipe to see the other crops") }} &rarr;</p>
+</section>
+
+<section class="home-sec" id="weather">
+  {#- a small sky over the weather diary: a sun, clouds drifting past, a few birds #}
+  <div class="sky" aria-hidden="true">
+    <img class="sun" src="{{ artdir }}sun.svg" width="120" height="120" alt="">
+    <img class="cloud c1" src="{{ artdir }}cloud.svg" width="200" height="96" alt="">
+    <img class="cloud c2" src="{{ artdir }}cloud.svg" width="200" height="96" alt="">
+    <img class="cloud c3" src="{{ artdir }}cloud.svg" width="200" height="96" alt="">
+    <span class="birds"><img src="{{ artdir }}birds.svg" width="90" height="44" alt=""></span>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <p class="eyebrow">{{ t("Table 2") }}</p>
+        <h2><span class="h-ic">{{ icon('cloud-sun') }}</span>{{ t("Weather diary") }}</h2>
+        {{ scribble() }}
+      </div>
+      {# a plain GET form, so the chosen district ends up in the address #}
+      <form method="get" action="{{ url_for('home') }}#weather" class="pick">
+        <label for="district">{{ t("Choose your district") }}</label>
+        <span class="select">
+          {{ icon('map-pin', 'pin') }}
+          <select id="district" name="district" onchange="this.form.submit()">
+            <option value="">{{ t("All districts") }}</option>
+            {% for d in districts %}<option value="{{ d }}" {{ 'selected' if picked == d }}>{{ t(d) }}</option>{% endfor %}
           </select>
-        </div>
-        <button class="btn wheat block" type="submit">{{ icon('search') }}{{ t("Show forecast") }}</button>
+          {{ icon('chevron-down', 'chev') }}
+        </span>
+        <noscript><button class="btn small">{{ t("Show forecast") }}</button></noscript>
       </form>
     </div>
 
-    <div class="weather-main">
-      {% if forecast %}
-        <div class="wx-head">
-          <h3 class="card-title">{{ icon('map-pin') }}{{ t(place) }}</h3>
-          {% if source == 'live' %}
-            <span class="badge green live">{{ t("Live forecast") }}</span>
-          {% else %}
-            <span class="badge grey">{{ t("Simulated forecast") }}</span>
-          {% endif %}
+    {% if forecast %}
+      <p class="log-meta">{{ icon('map-pin') }} {{ t(place) }} &middot; {{ t("Next five days") }} &middot; {{ t("Live forecast") if source == 'live' else t("Simulated forecast") }}</p>
+      <ol class="gauges" data-reveal>
+        {% for d in forecast %}
+        <li class="{{ 'wet' if d.rain_mm > 0.5 }} {{ 'on' if day == d.date }}">
+          <a href="{{ url_for('home', district=picked, day=d.date) }}#day-detail"{% if day == d.date %} aria-current="true"{% endif %}>
+            <b>{{ d.date|dayname }}</b>
+            <small>{{ d.date|nicedate }}</small>
+            <span class="wx-ic">{{ wx_icon(wx_kind(d.description, d.rain_mm)) }}</span>
+            <strong>{{ icon('droplet') }}{{ d.rain_mm }} <small>mm</small></strong>
+            <span class="muted">{{ t((d.description or '')|lower) }}</span>
+            <span class="muted">{{ icon('waves') }} {{ t("Humidity") }} {{ d.humidity }}%</span>
+            {% if d.rain_mm > 0.5 %}<span class="note red">{{ icon('umbrella') }} {{ t("Cover your grain") }}</span>{% endif %}
+            <span class="more">{{ t("Hour by hour") }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+      <p class="swipe-hint note red" aria-hidden="true">{{ icon('hand-swipe') }} {{ t("Swipe to see the other days") }} &rarr;</p>
+      {% if day %}
+      <div class="day-detail card" id="day-detail">
+        <div class="card-head">
+          <h3 class="card-title">{{ icon('clock') }}{{ day|dayname }}, {{ day|nicedate }} &middot; {{ t("Hour by hour") }}</h3>
+          <a class="btn small secondary" href="{{ url_for('home', district=picked) }}#weather">{{ icon('x') }}{{ t("Close") }}</a>
         </div>
-        {{ forecast_days(forecast, district=picked, current=day) }}
-
-        {% if day %}
-        <div class="day-detail" id="day-detail">
-          <div class="wx-head">
-            <h3 class="card-title">{{ day|dayname }}, {{ day|nicedate }} &middot; {{ t("Hour by hour") }}</h3>
-            <a class="btn small secondary" href="{{ url_for('home', district=picked) }}#weather">{{ icon('x') }}{{ t("Close") }}</a>
-          </div>
-          {% if hours %}
-          {{ hours_table(hours) }}
-          <p class="small muted wx-note">{{ t("Readings are for three-hour steps, in local time.") }}</p>
-          {% else %}
-          <div class="empty">{{ t("No hourly readings left for this day.") }}</div>
-          {% endif %}
-        </div>
-        {% endif %}
-      {% elif picked %}
-        <div class="empty">{{ t("No forecast available for that district right now.") }}</div>
-      {% else %}
-        <div class="wx-head">
-          <h3 class="card-title">{{ t("Next three days, every procurement district") }}</h3>
-          {% if source == "live" %}<span class="badge green">{{ t("Live forecast") }}</span>
-          {% elif source %}<span class="state off">{{ t("Simulated forecast") }}</span>{% endif %}
-        </div>
-        {% if outlook %}
-        <div class="table-scroll">
-          <table class="data wx-all">
-            <thead><tr><th>{{ t("District") }}</th><th>{{ t("Reading at") }}</th><th class="num">{{ t("Rain today") }}</th>
-                       <th class="num">{{ t("Rain, 3 days") }}</th><th class="num">{{ t("Humidity") }}</th><th></th></tr></thead>
-            <tbody>
-              {% for o in outlook %}
-              <tr>
-                <td><a href="{{ url_for("home", district=o.district) }}#weather">{{ t(o.district) }}</a></td>
-                <td class="muted">{{ t(o.place) }}</td>
-                <td class="num">{{ o.today.rain_mm }} mm</td>
-                <td class="num">{% if o.wet_days %}<strong>{{ o.rain_3d }} mm</strong>{% else %}{{ o.rain_3d }} mm{% endif %}</td>
-                <td class="num">{{ o.today.humidity }}%</td>
-                <td>{% if o.rain_3d >= 5 %}<span class="badge amber">{{ t("Keep grain covered") }}</span>{% endif %}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <p class="small muted wx-note">{{ t("Pick a district for its five-day forecast.") }}</p>
+        {% if hours %}
+        {{ hours_table(hours) }}
+        <p class="small muted card-body">{{ t("Readings are for three-hour steps, in local time.") }}</p>
         {% else %}
-        <div class="empty">{{ t("No forecast available right now.") }}</div>
+        <div class="empty">{{ t("No hourly readings left for this day.") }}</div>
         {% endif %}
+      </div>
       {% endif %}
-    </div>
+    {% elif picked %}
+      <p class="log-meta">{{ t("No forecast available for that district right now.") }}</p>
+    {% elif outlook %}
+      <table class="log" data-reveal>
+        <thead><tr><th></th><th>{{ t("District") }}</th><th>{{ t("Reading at") }}</th><th class="num">{{ icon('droplet') }} {{ t("Rain today") }}</th><th class="num">{{ icon('droplet') }} {{ t("Rain, 3 days") }}</th><th class="num">{{ icon('waves') }} {{ t("Humidity") }}</th><th></th></tr></thead>
+        <tbody>
+          {% for o in outlook %}
+          <tr>
+            <td class="wx-cell"><span class="wx-ic">{{ wx_icon(wx_kind(o.today.description, o.today.rain_mm)) }}</span></td>
+            <td class="city"><a href="{{ url_for('home', district=o.district) }}#weather">{{ icon('map-pin') }}{{ t(o.district) }}</a></td>
+            <td class="muted place">{{ t(o.place) }}</td>
+            <td class="num" data-label="{{ t('Rain today') }}">{{ o.today.rain_mm }} mm</td>
+            <td class="num" data-label="{{ t('Rain, 3 days') }}">{{ o.rain_3d }} mm</td>
+            <td class="num" data-label="{{ t('Humidity') }}">{{ o.today.humidity }}%</td>
+            <td class="warn">{% if o.rain_3d >= 5 %}<span class="note red write">{{ icon('umbrella') }} {{ t("Keep grain covered") }}</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="swipe-hint note red" aria-hidden="true">{{ icon('hand-swipe') }} {{ t("Swipe to see the other districts") }} &rarr;</p>
+      <p class="log-meta">{{ t("Pick a district for its five-day forecast.") }}</p>
+    {% else %}
+      <p class="log-meta">{{ t("No forecast available right now.") }}</p>
+    {% endif %}
   </div>
 </section>
 
-<section class="section">
-  <div class="audience">
-    <div class="aud">
-      <div class="aud-photo">
-        <img src="{{ url_for("static", filename="img/farmer-grain-market.jpg") }}" width="1200" height="700" loading="lazy"
-             alt="A farmer sitting at a grain market, with a loaded truck and stacked grain bags behind">
-        <span class="aud-tag">{{ icon('sprout') }}{{ t("For farmers") }}</span>
-      </div>
-      <div class="aud-body">
-        <ul class="aud-list">
-          <li>{{ icon('check-circle') }}{{ t("Book, move or cancel a slot") }}</li>
-          <li>{{ icon('check-circle') }}{{ t("See your place in the queue") }}</li>
-          <li>{{ icon('check-circle') }}{{ t("Follow your payment to the bank") }}</li>
-        </ul>
-        <div class="aside-note">
-          {{ icon('smartphone') }}
-          <div>{{ t("No smartphone? Any CSC centre can register you.") }}</div>
-        </div>
-        <div class="btn-row">
-          <a class="btn" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register") }}</a>
-          <a class="btn secondary" href="{{ url_for('login') }}">{{ t("Sign in") }}</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="aud">
-      <div class="aud-photo">
-        <img src="{{ url_for("static", filename="img/mandi-yard.jpg") }}" width="1200" height="700" loading="lazy"
-             alt="Workers cleaning wheat and filling bags at a grain market yard, a truck being loaded behind">
-        <span class="aud-tag">{{ icon('shield') }}{{ t("For centre members") }}</span>
-      </div>
-      <div class="aud-body">
-        <ul class="aud-list">
-          <li>{{ icon('scale') }}{{ t("Record weight and grade, then close the transaction") }}</li>
-          <li>{{ icon('phone-call') }}{{ t("Ring a farmer in Hindi from any booking") }}</li>
-        </ul>
-        <div class="btn-row">
-          <a class="btn" href="{{ url_for('admin_login') }}">{{ icon('log-in') }}{{ t("Member sign in") }}</a>
-        </div>
-      </div>
-    </div>
+<section class="home-sec">
+  <div class="two">
+    <article class="entry" data-reveal>
+      <figure>
+        <img src="{{ url_for('static', filename='img/winnowing-uttarakhand.jpg') }}" width="1000" height="1000" loading="lazy" alt="{{ t('A farmer winnowing rice in a field in Uttarakhand') }}">
+      </figure>
+      <h2><span class="h-ic">{{ icon('sprout') }}</span>{{ t("For farmers") }}</h2>
+      <ul>
+        <li>{{ icon('calendar-check') }}{{ t("Book, move or cancel a slot") }}</li>
+        <li>{{ icon('users') }}{{ t("See your place in the queue") }}</li>
+        <li>{{ icon('banknote') }}{{ t("Follow your payment to the bank") }}</li>
+      </ul>
+      <a class="btn" href="{{ url_for('login') }}">{{ icon('log-in') }}{{ t("Farmer sign in") }} <span aria-hidden="true">&rarr;</span></a>
+    </article>
+    <article class="entry" data-reveal>
+      <figure>
+        <img src="{{ url_for('static', filename='img/warehouse-depot.jpg') }}" width="1200" height="675" loading="lazy" alt="{{ t('A Central Warehousing Corporation grain depot') }}">
+      </figure>
+      <h2><span class="h-ic">{{ icon('building') }}</span>{{ t("For centre members") }}</h2>
+      <ul>
+        <li>{{ icon('scan') }}{{ t("Scan passes at the gate") }}</li>
+        <li>{{ icon('scale') }}{{ t("Record weight and grade, then close the transaction") }}</li>
+        <li>{{ icon('phone-call') }}{{ t("Ring a farmer in Hindi from any booking") }}</li>
+      </ul>
+      <a class="btn secondary" href="{{ url_for('admin_login') }}">{{ icon('log-in') }}{{ t("Member sign in") }} <span aria-hidden="true">&rarr;</span></a>
+    </article>
   </div>
 </section>
 {% endblock %}
 
-{% block scripts %}
-<script>
-/* #weather and #day-detail: the browser puts the target at the very top,
-   where the sticky header covers its first lines. put it in the middle of
-   what can be seen instead, or just under the header if it's too tall */
-(function () {
-    var TARGETS = { '#weather': 'weather', '#day-detail': 'day-detail' };
-
-    function centre(hash) {
-        var el = document.getElementById(TARGETS[hash]);
-        if (!el) { return; }
-        var header = document.querySelector('.topbar');
-        var covered = header ? header.offsetHeight : 0;
-        var box = el.getBoundingClientRect();
-        var room = window.innerHeight - covered;
-        var gap = box.height < room ? (room - box.height) / 2 : 12;
-        window.scrollTo(0, Math.max(0, window.pageYOffset + box.top - covered - gap));
-    }
-
-    if (TARGETS[location.hash]) {
-        // again on load, once the photos above have taken their height
-        document.addEventListener('DOMContentLoaded', function () { centre(location.hash); });
-        window.addEventListener('load', function () { centre(location.hash); });
-    }
-    window.addEventListener('hashchange', function () { centre(location.hash); });
-
-    // the Weather link while already on this page, when the hash doesn't change
-    document.addEventListener('click', function (e) {
-        var link = e.target.closest ? e.target.closest('a[href]') : null;
-        if (!link) { return; }
-        var url = new URL(link.href, location.href);
-        if (url.pathname === location.pathname && url.search === location.search && TARGETS[url.hash]) {
-            e.preventDefault();
-            history.replaceState(null, '', url.hash);
-            centre(url.hash);
-        }
-    });
-})();
-</script>
-{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/home.js') }}"></script>{% endblock %}

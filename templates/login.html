@@ -4,14 +4,20 @@
 {% block content %}
 <div class="auth">
   <div class="auth-art">
-    <img src="{{ url_for('static', filename='img/winnowing-uttarakhand.jpg') }}" width="1000" height="1000" alt="">
+    <img src="{{ url_for('static', filename='img/art/phone-otp.svg') }}" width="320" height="240" alt="">
     <h2>{{ t("Welcome back") }}</h2>
+    <p>{{ t("Your mobile number is all you need") }}</p>
+    <ul>
+      <li>{{ icon('smartphone') }}{{ t("Enter your number") }}</li>
+      <li>{{ icon('message') }}{{ t("Get a code by SMS") }}</li>
+      <li>{{ icon('check-circle') }}{{ t("Type the code and you are in") }}</li>
+    </ul>
   </div>
 
   <div class="auth-form">
     <p class="eyebrow">{{ icon('smartphone') }}{{ t("Step 1 of 2") }}</p>
     <h1>{{ t("Farmer sign in") }}</h1>
-    <form method="post" class="mt">
+    <form method="post">
       <div class="field">
         <label for="phone">{{ t("Registered mobile number") }} <span class="req">*</span></label>
         <div class="phone-field">
@@ -20,10 +26,10 @@
                  inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel" required autofocus>
         </div>
       </div>
-      <button class="btn block large" type="submit">{{ t("Send OTP") }}{{ icon('arrow-right') }}</button>
+      <button class="btn wheat block large" type="submit">{{ icon('send') }}{{ t("Send OTP") }}</button>
     </form>
     <p class="auth-alt">
-      {{ t("Not registered yet?") }} <a href="{{ url_for('register') }}">{{ t("Create an account") }}</a>
+      {{ t("Not registered yet?") }} <a href="{{ url_for('register') }}">{{ icon('user-plus') }} {{ t("Create an account") }}</a>
     </p>
   </div>
 </div>

@@ -8,7 +8,7 @@
    the page renders at the default size and jumps. Everything is wrapped
    because localStorage throws outright in some privacy modes. */
 (function () {
-    var STEPS = [12.5, 14, 15.5, 17];   // 14 is the default, index 1
+    var STEPS = [14, 16, 18, 20];       // 16 is the default, index 1
     var root = document.documentElement;
     // lets the stylesheet fold the phone menu only when this script can open it
     root.classList.add('js');
@@ -79,6 +79,10 @@
             });
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && nav.classList.contains('open')) { setOpen(false); toggle.focus(); }
+            });
+            // picking a link closes the menu instead of leaving it open behind the new page
+            nav.addEventListener('click', function (e) {
+                if (e.target.closest('a')) { setOpen(false); }
             });
         }
 

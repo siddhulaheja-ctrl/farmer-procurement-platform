@@ -1,45 +1,49 @@
 {% extends "base.html" %}
-{% block title %}Overview{% endblock %}
+{% block title %}{{ t("Overview") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">District superadmin</p>
-    <h1 class="page-title">Every centre, today</h1>
-    <p class="page-sub">{{ g.today.isoformat()|nicedate }} &middot; {{ totals.signed_in }} of {{ totals.staff_active }} counter members have signed in today</p>
+    <p class="eyebrow">{{ icon('shield') }}{{ t("District superadmin") }}</p>
+    <h1 class="page-title">{{ t("Every centre, today") }}</h1>
+    <p class="page-sub">{{ g.today.isoformat()|nicedate }} &middot; {{ t("%(n)s of %(total)s counter members have signed in today")|format(n=totals.signed_in, total=totals.staff_active) }}</p>
   </div>
   <div class="ph-actions">
-    <a class="btn secondary" href="{{ url_for('super_attention') }}">{{ icon('alert-triangle') }}Needs attention{% if attention_count %} ({{ attention_count }}){% endif %}</a>
+    <a class="btn wheat" href="{{ url_for('super_attention') }}">{{ icon('alert-triangle') }}{{ t("Needs attention") }}{% if attention_count %} ({{ attention_count }}){% endif %}</a>
   </div>
 </div>
 
 <div class="stat-row">
   <div class="stat {{ 'info' if totals.today else 'zero' }}">
-    <div><div class="n">{{ totals.today }}</div><div class="l">Booked for today</div></div>
+    <span class="stat-ic">{{ icon('ticket') }}</span>
+    <div><div class="n">{{ totals.today }}</div><div class="l">{{ t("Booked for today") }}</div></div>
   </div>
   <div class="stat {{ 'good' if totals.weighed else 'zero' }}">
-    <div><div class="n">{{ totals.weighed }}</div><div class="l">Weighed so far</div></div>
+    <span class="stat-ic">{{ icon('scale') }}</span>
+    <div><div class="n">{{ totals.weighed }}</div><div class="l">{{ t("Weighed so far") }}</div></div>
   </div>
   <div class="stat {{ 'bad' if totals.held_n else 'zero' }}">
-    <div><div class="n">{{ totals.held_amount|rupee if totals.held_amount else "None held" }}</div><div class="l">{{ totals.held_n }} payment{{ 's' if totals.held_n != 1 }} held</div></div>
+    <span class="stat-ic">{{ icon('banknote') }}</span>
+    <div><div class="n">{{ totals.held_amount|rupee if totals.held_amount else t("None held") }}</div><div class="l">{{ t("%(n)d payment(s) held")|format(n=totals.held_n) }}</div></div>
   </div>
   <div class="stat {{ 'info' if totals.signed_in else 'zero' }}">
-    <div><div class="n">{{ totals.signed_in }} / {{ totals.staff_active }}</div><div class="l">Counter members signed in today</div></div>
+    <span class="stat-ic">{{ icon('users') }}</span>
+    <div><div class="n">{{ totals.signed_in }} / {{ totals.staff_active }}</div><div class="l">{{ t("Counter members signed in today") }}</div></div>
   </div>
 </div>
 
 <div class="grid side">
   <div class="card">
     <div class="card-head">
-      <h2 class="card-title">Bookings by slot date</h2>
+      <h2 class="card-title">{{ icon('trending-up') }}{{ t("Bookings by slot date") }}</h2>
     </div>
     <div class="card-body">
       <div class="legend">
-        {% for key, label in chart.legend %}<span><i class="sw sw-{{ key }}"></i>{{ label }}</span>{% endfor %}
+        {% for key, label in chart.legend %}<span><i class="sw sw-{{ key }}"></i>{{ t(label) }}</span>{% endfor %}
       </div>
       {# drawn on the server - the geometry comes from supervisor.bookings_chart #}
       <svg class="chart" viewBox="0 0 {{ chart.w }} {{ chart.h }}" role="img"
-           aria-label="Bookings per day for the week before and after today">
+           aria-label="{{ t('Bookings per day for the week before and after today') }}">
         {% for gl in chart.grid %}
           <line class="grid-line" x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ '%.1f'|format(gl.y) }}" y2="{{ '%.1f'|format(gl.y) }}"/>
           <text class="tick" x="{{ chart.left - 8 }}" y="{{ '%.1f'|format(gl.y + 4) }}" text-anchor="end">{{ gl.v }}</text>
@@ -51,18 +55,18 @@
           {% for s in b.segments %}<path class="seg seg-{{ s.key }}" d="{{ s.path }}"/>{% endfor %}
           {% if b.total %}<text class="val" x="{{ '%.1f'|format(b.cx) }}" y="{{ '%.1f'|format(b.top_y - 7) }}" text-anchor="middle">{{ b.total }}</text>{% endif %}
           <text class="xl {{ 'today' if b.is_today }}" x="{{ '%.1f'|format(b.cx) }}" y="{{ chart.base + 18 }}" text-anchor="middle">{{ b.day }}</text>
-          <text class="xl2 {{ 'today' if b.is_today }}" x="{{ '%.1f'|format(b.cx) }}" y="{{ chart.base + 33 }}" text-anchor="middle">{{ 'Today' if b.is_today else b.dow }}</text>
+          <text class="xl2 {{ 'today' if b.is_today }}" x="{{ '%.1f'|format(b.cx) }}" y="{{ chart.base + 33 }}" text-anchor="middle">{{ t('Today') if b.is_today else t(b.dow) }}</text>
         </g>
         {% endfor %}
       </svg>
       <details class="table-view">
-        <summary>Show the same numbers as a table</summary>
+        <summary>{{ t("Show the same numbers as a table") }}</summary>
         <div class="table-scroll">
           <table class="data">
-            <thead><tr><th>Date</th><th class="num">Booked</th><th class="num">Weighed</th><th class="num">Closed</th><th class="num">Total</th></tr></thead>
+            <thead><tr><th>{{ t("Date") }}</th><th class="num">{{ t("Booked") }}</th><th class="num">{{ t("Weighed") }}</th><th class="num">{{ t("Closed") }}</th><th class="num">{{ t("Total") }}</th></tr></thead>
             <tbody>
               {% for d in chart.days %}
-              <tr><td>{{ d.iso|nicedate }}{% if d.is_today %} <span class="badge wheat">Today</span>{% endif %}</td>
+              <tr><td>{{ d.iso|nicedate }}{% if d.is_today %} <span class="badge wheat">{{ t("Today") }}</span>{% endif %}</td>
                   <td class="num">{{ d.booked }}</td><td class="num">{{ d.weighed }}</td>
                   <td class="num">{{ d.closed }}</td><td class="num"><strong>{{ d.total }}</strong></td></tr>
               {% endfor %}
@@ -74,12 +78,12 @@
   </div>
 
   <div class="card">
-    <div class="card-head"><h2 class="card-title">Where the money is</h2></div>
+    <div class="card-head"><h2 class="card-title">{{ icon('wallet') }}{{ t("Where the money is") }}</h2></div>
     <div class="card-body">
       <ul class="split-list">
         {% for p in payments %}
         <li>
-          <div class="sl-top"><strong>{{ p.label }}</strong><span>{{ p.amount|rupee }}</span></div>
+          <div class="sl-top"><strong>{{ t(p.label) }}</strong><span>{{ p.amount|rupee }}</span></div>
           <div class="sl-bar"><span class="meter"><span style="width: {{ p.pct }}%"></span></span><span class="small muted nowrap">{{ p.n }} &middot; {{ p.pct }}%</span></div>
         </li>
         {% endfor %}
@@ -91,33 +95,36 @@
 <div class="section">
   <div class="section-head">
     <div>
-      <h2 class="section-title">Centres</h2>
-      <p class="section-sub">Today's slots at each centre, and anything there that's waiting on someone.</p>
+      <h2 class="section-title scribbled">{{ t("Centres") }}</h2>
+      <p class="section-sub">{{ t("Today's slots at each centre, and anything there that's waiting on someone.") }}</p>
     </div>
   </div>
   <div class="cc-grid">
     {% for c in centres %}
     <div class="cc">
-      <div>
-        <h3>{{ c.name }}</h3>
-        <span class="small muted">{{ c.location }}, {{ c.district }}</span>
+      <div class="cc-top">
+        <img src="{{ url_for('static', filename='img/art/mandi.svg') }}" width="320" height="240" alt="" loading="lazy">
+        <div>
+          <h3>{{ t(c.name) }}</h3>
+          <span class="small muted">{{ icon('map-pin') }} {{ t(c.location) }}, {{ t(c.district) }}</span>
+        </div>
       </div>
       <div class="cc-nums">
-        <div><strong>{{ c.today_total }}</strong><span>Booked</span></div>
-        <div><strong>{{ c.today_weighed }}</strong><span>Weighed</span></div>
-        <div><strong>{{ c.today_closed }}</strong><span>Closed</span></div>
+        <div><strong>{{ c.today_total }}</strong><span>{{ t("Booked") }}</span></div>
+        <div><strong>{{ c.today_weighed }}</strong><span>{{ t("Weighed") }}</span></div>
+        <div><strong>{{ c.today_closed }}</strong><span>{{ t("Closed") }}</span></div>
       </div>
       <div class="cc-usage">
         <span class="meter"><span style="width: {{ c.usage }}%"></span></span>
-        <span class="small muted nowrap">{{ c.places_booked }} of {{ c.places_total }} places</span>
+        <span class="small muted nowrap">{{ t("%(n)s of %(total)s places")|format(n=c.places_booked, total=c.places_total) }}</span>
       </div>
       <div class="cc-foot">
-        <span class="small muted">{{ icon('users') }} {{ c.staff_count }} members</span>
+        <span class="small muted icon-text">{{ icon('users') }} {{ t("%(n)s members")|format(n=c.staff_count) }}</span>
         <span>
-          {% if c.delay_minutes %}<span class="badge amber">{{ c.delay_minutes }} min behind</span>{% endif %}
-          {% if c.held %}<span class="badge red">{{ c.held }} held</span>{% endif %}
+          {% if c.delay_minutes %}<span class="badge amber">{{ t("%(n)s min behind")|format(n=c.delay_minutes) }}</span>{% endif %}
+          {% if c.held %}<span class="badge red">{{ t("%(n)s held")|format(n=c.held) }}</span>{% endif %}
         </span>
-        <a class="btn small secondary" href="{{ url_for('admin_dashboard', centre_id=c.id, date=g.today.isoformat()) }}">Bookings{{ icon('arrow-right') }}</a>
+        <a class="btn small secondary" href="{{ url_for('admin_dashboard', centre_id=c.id, date=g.today.isoformat()) }}">{{ t("Bookings") }}{{ icon('arrow-right') }}</a>
       </div>
     </div>
     {% endfor %}

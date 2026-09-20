@@ -4,57 +4,56 @@
    Expects: b, moisture_table, moisture_max, foreign_faq, foreign_b, grade_factor, msp #}
 {% set L = moisture_max %}
 <details class="grade-rules card"{{ ' open' if b.status == 'booked' }}>
-  <summary class="card-head"><h2 class="card-title">{{ icon('award') }}How the grade is decided</h2></summary>
+  <summary class="card-head"><h2 class="card-title">{{ icon('award') }}{{ t("How the grade is decided") }}</h2></summary>
   <div class="card-body">
-    <p class="small muted">The portal suggests a grade from two readings: moisture and foreign matter (dust, stones, husk).
-      Rules are checked top to bottom and the first one that matches wins.
-      For {{ b.crop_type }} the moisture limit <b>L</b> is <b>{{ L }}%</b>.</p>
+    <p class="small muted">{{ t("The portal suggests a grade from two readings: moisture and foreign matter (dust, stones, husk). Rules are checked top to bottom and the first one that matches wins.") }}
+      {{ t("For %(crop)s the moisture limit L is %(limit)s%%.")|format(crop=t(b.crop_type), limit=L) }}</p>
 
     <div class="table-scroll">
     <table class="data rules">
-      <thead><tr><th>Grade</th><th class="when">When</th><th>For {{ b.crop_type }}</th><th class="num">Price</th></tr></thead>
+      <thead><tr><th>{{ t("Grade") }}</th><th class="when">{{ t("When") }}</th><th>{{ t("For %(crop)s")|format(crop=t(b.crop_type)) }}</th><th class="num">{{ t("Price") }}</th></tr></thead>
       <tbody>
-        <tr><td><b>Rejected</b></td><td class="when">moisture &gt; L + 2, <i>or</i> foreign matter &gt; {{ foreign_b }}%</td>
-          <td>moisture &gt; {{ L + 2 }}%</td><td class="num">nothing paid</td></tr>
-        <tr><td><b>B</b></td><td class="when">moisture &gt; L, <i>or</i> foreign matter &gt; {{ foreign_faq }}%</td>
-          <td>moisture {{ L }}&ndash;{{ L + 2 }}%</td><td class="num">MSP &times; {{ grade_factor['B'] }}</td></tr>
-        <tr><td><b>A</b></td><td class="when">moisture &le; L &minus; 1.5 <i>and</i> foreign matter &le; 0.25%</td>
-          <td>moisture &le; {{ L - 1.5 }}%</td><td class="num">MSP &times; {{ '%.2f'|format(grade_factor['A']) }}</td></tr>
-        <tr><td><b>FAQ</b></td><td class="when">everything else (fair average quality)</td>
-          <td>moisture {{ L - 1.5 }}&ndash;{{ L }}%</td><td class="num">MSP &times; {{ '%.2f'|format(grade_factor['FAQ']) }}</td></tr>
+        <tr><td><b>{{ t("Rejected") }}</b></td><td class="when">{{ t("moisture") }} &gt; L + 2, <i>{{ t("or") }}</i> {{ t("foreign matter") }} &gt; {{ foreign_b }}%</td>
+          <td>{{ t("moisture") }} &gt; {{ L + 2 }}%</td><td class="num">{{ t("nothing paid") }}</td></tr>
+        <tr><td><b>B</b></td><td class="when">{{ t("moisture") }} &gt; L, <i>{{ t("or") }}</i> {{ t("foreign matter") }} &gt; {{ foreign_faq }}%</td>
+          <td>{{ t("moisture") }} {{ L }}&ndash;{{ L + 2 }}%</td><td class="num">MSP &times; {{ grade_factor['B'] }}</td></tr>
+        <tr><td><b>A</b></td><td class="when">{{ t("moisture") }} &le; L &minus; 1.5 <i>{{ t("and") }}</i> {{ t("foreign matter") }} &le; 0.25%</td>
+          <td>{{ t("moisture") }} &le; {{ L - 1.5 }}%</td><td class="num">MSP &times; {{ '%.2f'|format(grade_factor['A']) }}</td></tr>
+        <tr><td><b>FAQ</b></td><td class="when">{{ t("everything else (fair average quality)") }}</td>
+          <td>{{ t("moisture") }} {{ L - 1.5 }}&ndash;{{ L }}%</td><td class="num">MSP &times; {{ '%.2f'|format(grade_factor['FAQ']) }}</td></tr>
       </tbody>
     </table>
     </div>
 
     <div class="rules-row">
       <div>
-        <h3 class="rules-h">Moisture limit L, by crop</h3>
+        <h3 class="rules-h">{{ t("Moisture limit L, by crop") }}</h3>
         <table class="data rules compact">
           <tbody>
           {% for c, limit in moisture_table.items() %}
-            <tr{{ ' class=is-this' if c == b.crop_type }}><td>{{ c }}</td><td class="num">{{ limit }}%</td>
+            <tr{{ ' class=is-this' if c == b.crop_type }}><td>{{ t(c) }}</td><td class="num">{{ limit }}%</td>
               <td class="num muted">MSP &#8377;{{ '{:,.0f}'.format(msp.get(c, 0)) }}/q</td></tr>
           {% endfor %}
           </tbody>
         </table>
       </div>
       <div>
-        <h3 class="rules-h">Foreign matter</h3>
+        <h3 class="rules-h">{{ t("Foreign matter") }}</h3>
         <table class="data rules compact">
           <tbody>
-            <tr><td>A</td><td class="num">up to 0.25%</td></tr>
-            <tr><td>FAQ</td><td class="num">up to {{ foreign_faq }}%</td></tr>
-            <tr><td>B</td><td class="num">up to {{ foreign_b }}%</td></tr>
-            <tr><td>Rejected</td><td class="num">above {{ foreign_b }}%</td></tr>
+            <tr><td>A</td><td class="num">{{ t("up to") }} 0.25%</td></tr>
+            <tr><td>FAQ</td><td class="num">{{ t("up to") }} {{ foreign_faq }}%</td></tr>
+            <tr><td>B</td><td class="num">{{ t("up to") }} {{ foreign_b }}%</td></tr>
+            <tr><td>{{ t("Rejected") }}</td><td class="num">{{ t("above") }} {{ foreign_b }}%</td></tr>
           </tbody>
         </table>
-        <h3 class="rules-h">Weight and amount</h3>
-        <p class="small mb0">Net q = gross q &minus; bags &times; empty bag kg &divide; 100<br>
-          Amount = net q &times; MSP &times; grade price<br>
-          <span class="muted">Defaults: 2 bags per quintal, 0.60 kg per empty jute bag.</span></p>
+        <h3 class="rules-h">{{ t("Weight and amount") }}</h3>
+        <p class="small mb0">{{ t("Net q = gross q - bags x empty bag kg / 100") }}<br>
+          {{ t("Amount = net q x MSP x grade price") }}<br>
+          <span class="muted">{{ t("Defaults: 2 bags per quintal, 0.60 kg per empty jute bag.") }}</span></p>
       </div>
     </div>
 
-    <p class="small muted mb0">A different grade is allowed with a written reason. It is saved on the bill and shown to the superadmin as a sensitive action.</p>
+    <p class="small muted mb0">{{ t("A different grade is allowed with a written reason. It is saved on the bill and shown to the superadmin as a sensitive action.") }}</p>
   </div>
 </details>

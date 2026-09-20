@@ -28,6 +28,10 @@
     var detector = null;
     var ready = null;       // promise: a decoder is available
 
+    // the page hands over its messages in the reader's language (data-words on #gate)
+    var WORDS = {};
+    try { WORDS = JSON.parse(root.getAttribute('data-words') || '{}'); } catch (e) { WORDS = {}; }
+    function w(text) { return WORDS[text] || text; }
     function say(text) { msg.textContent = text || ''; }
 
     function loadJsQR() {
@@ -106,11 +110,11 @@
     function start() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             say(window.isSecureContext
-                ? 'This browser cannot open the camera. Take a photo of the pass instead.'
-                : 'The camera only opens on an https:// address. Use the share link, or take a photo of the pass instead.');
+                ? w('This browser cannot open the camera. Take a photo of the pass instead.')
+                : w('The camera only opens on an https:// address. Use the share link, or take a photo of the pass instead.'));
             return;
         }
-        say('Opening the camera...');
+        say(w('Opening the camera...'));
         decoder().then(function () {
             return navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
         }).then(function (s) {
@@ -120,17 +124,17 @@
             startBtn.hidden = true;
             return video.play();
         }).then(function () {
-            say('Point the camera at the QR code on the pass.');
+            say(w('Point the camera at the QR code on the pass.'));
             view.scrollIntoView({ block: 'center', behavior: 'smooth' });
             look();
         }).catch(function (err) {
             stop();
             if (err && err.name === 'NotAllowedError') {
-                say('Camera permission was refused. Allow the camera for this site, or take a photo instead.');
+                say(w('Camera permission was refused. Allow the camera for this site, or take a photo instead.'));
             } else if (!window.isSecureContext) {
-                say('The camera only opens on an https:// address. Take a photo of the pass instead.');
+                say(w('The camera only opens on an https:// address. Take a photo of the pass instead.'));
             } else {
-                say('Could not open the camera. Take a photo of the pass instead.');
+                say(w('Could not open the camera. Take a photo of the pass instead.'));
             }
         });
     }
@@ -175,9 +179,9 @@
     }
 
     function check(code) {
-        say('Checking...');
+        say(w('Checking...'));
         post(root.getAttribute('data-check'), { code: code }).then(show).catch(function (e) {
-            say(e.message || 'Could not reach the server. Try again.');
+            say(e.message || w('Could not reach the server. Try again.'));
         });
     }
 
@@ -194,7 +198,7 @@
     photo.addEventListener('change', function () {
         var file = photo.files && photo.files[0];
         if (!file) { return; }
-        say('Reading the photo...');
+        say(w('Reading the photo...'));
         var img = new Image();
         var url = URL.createObjectURL(file);
         img.onload = function () {
@@ -204,10 +208,10 @@
             }).then(function (text) {
                 URL.revokeObjectURL(url);
                 photo.value = '';
-                if (text) { check(text); } else { say('No QR code found in that photo. Hold the phone closer and try again.'); }
-            }).catch(function () { say('Could not read that photo.'); });
+                if (text) { check(text); } else { say(w('No QR code found in that photo. Hold the phone closer and try again.')); }
+            }).catch(function () { say(w('Could not read that photo.')); });
         };
-        img.onerror = function () { say('Could not open that photo.'); };
+        img.onerror = function () { say(w('Could not open that photo.')); };
         img.src = url;
     });
 

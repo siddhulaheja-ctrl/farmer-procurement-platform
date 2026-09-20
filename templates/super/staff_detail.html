@@ -1,45 +1,48 @@
 {% extends "base.html" %}
 {% from "_macros.html" import audit_changes, audit_target %}
-{% block title %}{{ person.name }}{% endblock %}
+{% block title %}{{ person.name }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('super_staff') }}">{{ icon('arrow-left') }}Member accounts</a>
-</nav>
-
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">{{ person.staff_code }} &middot; {{ person.centre_name or 'Every centre' }}</p>
+    <nav class="breadcrumb" aria-label="{{ t('Breadcrumb') }}">
+      <a href="{{ url_for('super_staff') }}">{{ icon('arrow-left') }}{{ t("Member accounts") }}</a>
+    </nav>
+    <p class="eyebrow">{{ icon('id-card') }}{{ person.staff_code }} &middot; {{ t(person.centre_name) if person.centre_name else t('Every centre') }}</p>
     <h1 class="page-title">{{ person.name }}</h1>
     <div class="meta-row">
-      <span>{% if person.role == 'superadmin' %}<span class="badge blue">Superadmin</span>{% else %}<span class="badge grey">Centre member</span>{% endif %}</span>
-      <span>{% if person.active %}<span class="badge green">Account on</span>{% else %}<span class="badge grey">Account off</span>{% endif %}</span>
-      <span>{{ icon('clock') }}Last sign-in {{ person.last_login|stamp if person.last_login else 'never' }}</span>
+      <span>{% if person.role == 'superadmin' %}<span class="badge blue">{{ t("Superadmin") }}</span>{% else %}<span class="badge grey">{{ t("Centre member") }}</span>{% endif %}</span>
+      <span>{% if person.active %}<span class="badge green">{{ t("Account on") }}</span>{% else %}<span class="badge grey">{{ t("Account off") }}</span>{% endif %}</span>
+      <span>{{ icon('clock') }}{{ t("Last sign-in") }} {{ person.last_login|stamp if person.last_login else t('never') }}</span>
     </div>
   </div>
 </div>
 
 <div class="stat-row">
   <div class="stat {{ 'good' if stats.weighed else 'zero' }}">
-    <div><div class="n">{{ stats.weighed }}</div><div class="l">Loads weighed, 30 days</div></div>
+    <span class="stat-ic">{{ icon('scale') }}</span>
+    <div><div class="n">{{ stats.weighed }}</div><div class="l">{{ t("Loads weighed, 30 days") }}</div></div>
   </div>
   <div class="stat {{ 'good' if stats.closed else 'zero' }}">
-    <div><div class="n">{{ stats.closed }}</div><div class="l">Transactions closed</div></div>
+    <span class="stat-ic">{{ icon('check-circle') }}</span>
+    <div><div class="n">{{ stats.closed }}</div><div class="l">{{ t("Transactions closed") }}</div></div>
   </div>
   <div class="stat {{ 'info' if stats.calls else 'zero' }}">
-    <div><div class="n">{{ stats.calls }}</div><div class="l">Farmers called</div></div>
+    <span class="stat-ic">{{ icon('phone-call') }}</span>
+    <div><div class="n">{{ stats.calls }}</div><div class="l">{{ t("Farmers called") }}</div></div>
   </div>
   <div class="stat {{ 'warn' if stats.sensitive else 'zero' }}">
-    <div><div class="n">{{ stats.sensitive }}</div><div class="l">Money or ID changed by hand</div></div>
+    <span class="stat-ic">{{ icon('alert-triangle') }}</span>
+    <div><div class="n">{{ stats.sensitive }}</div><div class="l">{{ t("Money or ID changed by hand") }}</div></div>
   </div>
 </div>
 
 <div class="grid side">
   <div class="card">
     <div class="card-head">
-      <h2 class="card-title">What they did <span class="count">{{ entries|length }}</span></h2>
+      <h2 class="card-title">{{ icon('list') }}{{ t("What they did") }} <span class="count">{{ entries|length }}</span></h2>
       {% if stats.sensitive %}
-      <a class="btn small secondary" href="{{ url_for('super_activity', staff_id=person.id, sensitive=1) }}">Only the sensitive ones</a>
+      <a class="btn small secondary" href="{{ url_for('super_activity', staff_id=person.id, sensitive=1) }}">{{ t("Only the sensitive ones") }}</a>
       {% endif %}
     </div>
     <div class="card-body">
@@ -50,13 +53,13 @@
           <span class="tl-ic {{ 'amber' if e.sensitive }}">{{ icon(e.icon) }}</span>
           <div class="tl-body">
             <div class="tl-meta">
-              <strong>{{ e.label }}</strong>
+              <strong>{{ t(e.label) }}</strong>
               <span>{{ e.at|stamp }}</span>
-              {% if e.centre_name %}<span>{{ e.centre_name }}</span>{% endif %}
-              {% if e.sensitive %}<span class="badge amber">Sensitive</span>{% endif %}
+              {% if e.centre_name %}<span>{{ t(e.centre_name) }}</span>{% endif %}
+              {% if e.sensitive %}<span class="badge amber">{{ t("Sensitive") }}</span>{% endif %}
             </div>
             <div class="tl-msg">
-              {{ audit_target(e) }}{% if e.detail %} {{ e.detail }}{% endif %}
+              {{ audit_target(e) }}{% if e.detail %} {{ t(e.detail) }}{% endif %}
               {% if e.changes %}<div>{{ audit_changes(e) }}</div>{% endif %}
             </div>
           </div>
@@ -64,55 +67,55 @@
         {% endfor %}
       </ol>
       {% else %}
-        <div class="empty"><strong>Nothing recorded yet.</strong>Every action this person takes will show up here.</div>
+        <div class="empty"><strong>{{ t("Nothing recorded yet.") }}</strong>{{ t("Every action this person takes will show up here.") }}</div>
       {% endif %}
     </div>
   </div>
 
   <div class="stack">
     <div class="card">
-      <div class="card-head"><h2 class="card-title">Account</h2></div>
+      <div class="card-head"><h2 class="card-title">{{ icon('shield') }}{{ t("Account") }}</h2></div>
       <div class="card-body">
         <form method="post">
           <div class="field">
-            <label for="role">Role</label>
+            <label for="role">{{ t("Role") }}</label>
             <select id="role" name="role">
-              <option value="staff" {{ 'selected' if person.role == 'staff' }}>Centre member</option>
-              <option value="superadmin" {{ 'selected' if person.role == 'superadmin' }}>Superadmin</option>
+              <option value="staff" {{ 'selected' if person.role == 'staff' }}>{{ t("Centre member") }}</option>
+              <option value="superadmin" {{ 'selected' if person.role == 'superadmin' }}>{{ t("Superadmin") }}</option>
             </select>
           </div>
           <div class="field">
-            <label for="centre_id">Centre</label>
+            <label for="centre_id">{{ t("Centre") }}</label>
             <select id="centre_id" name="centre_id">
-              <option value="">None &ndash; every centre</option>
+              <option value="">{{ t("None - every centre") }}</option>
               {% for c in centres %}
-                <option value="{{ c.id }}" {{ 'selected' if person.centre_id == c.id }}>{{ c.name }}</option>
+                <option value="{{ c.id }}" {{ 'selected' if person.centre_id == c.id }}>{{ t(c.name) }}</option>
               {% endfor %}
             </select>
           </div>
           <label class="check-row">
             <input type="checkbox" name="active" value="1" {{ 'checked' if person.active }}>
-            <span>Account is on<span class="hint">Switched off, they can't sign in. Their history stays.</span></span>
+            <span>{{ t("Account is on") }}<span class="hint">{{ t("Switched off, they can't sign in. Their history stays.") }}</span></span>
           </label>
           <div class="btn-row mt">
-            <button class="btn" type="submit">{{ icon('check') }}Save</button>
+            <button class="btn wheat" type="submit">{{ icon('check') }}{{ t("Save") }}</button>
           </div>
         </form>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-head"><h2 class="card-title">Reset password</h2></div>
+      <div class="card-head"><h2 class="card-title">{{ icon('lock') }}{{ t("Reset password") }}</h2></div>
       <div class="card-body">
         <form method="post">
           <input type="hidden" name="do" value="password">
           <div class="field">
-            <label for="password">New password</label>
+            <label for="password">{{ t("New password") }}</label>
             <input id="password" name="password" type="password" minlength="6" required>
-            <span class="hint">Tell them in person. It's written to the activity log that you reset it, never the password.</span>
+            <span class="hint">{{ t("Tell them in person. It's written to the activity log that you reset it, never the password.") }}</span>
           </div>
           <div class="btn-row mt">
-            <button class="btn secondary" type="submit">{{ icon('refresh') }}Reset</button>
+            <button class="btn secondary" type="submit">{{ icon('refresh') }}{{ t("Reset") }}</button>
           </div>
         </form>
       </div>

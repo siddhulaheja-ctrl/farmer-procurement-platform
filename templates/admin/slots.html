@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Slot Management{% endblock %}
+{% block title %}{{ t("Slot management") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <h1 class="page-title">Slot management</h1>
+    <p class="eyebrow">{{ icon('calendar') }}{{ t("Slots") }}</p>
+    <h1 class="page-title">{{ t("Slot management") }}</h1>
   </div>
 </div>
 
@@ -12,43 +13,43 @@
   {# centre staff are locked to their own centre, so no choice to offer #}
   {% if not my_centre %}
   <div class="field">
-    <label for="centre_id">Centre</label>
+    <label for="centre_id">{{ icon('building') }} {{ t("Centre") }}</label>
     <select id="centre_id" name="centre_id">
-      <option value="">All centres</option>
+      <option value="">{{ t("All centres") }}</option>
       {% for c in centres %}
-        <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ c.name }}</option>
+        <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ t(c.name) }}</option>
       {% endfor %}
     </select>
   </div>
   {% endif %}
   <div class="field">
-    <label for="date">Date</label>
+    <label for="date">{{ icon('calendar') }} {{ t("Date") }}</label>
     <input type="date" id="date" name="date" value="{{ sel_date }}">
   </div>
-  <div class="actions"><button class="btn" type="submit">{{ icon('sliders') }}Show</button></div>
+  <div class="actions"><button class="btn" type="submit">{{ icon('sliders') }}{{ t("Show") }}</button></div>
 </form>
 
 <div class="grid side">
   <div class="card">
-    <div class="card-head"><h2 class="card-title">Slots on {{ sel_date|nicedate }} <span class="count">{{ slots|length }}</span></h2></div>
+    <div class="card-head"><h2 class="card-title">{{ icon('clock') }}{{ t("Slots on %(date)s")|format(date=sel_date|nicedate) }} <span class="count">{{ slots|length }}</span></h2></div>
     {% if slots %}
     <div class="table-scroll">
       <table class="data">
         <thead>
-          <tr><th>Time window</th><th class="num">Capacity</th>
-              <th class="num">Booked</th><th class="num">Free</th><th>Utilisation</th></tr>
+          <tr><th>{{ t("Time window") }}</th><th class="num">{{ t("Capacity") }}</th>
+              <th class="num">{{ t("Booked") }}</th><th class="num">{{ t("Free") }}</th><th>{{ t("Utilisation") }}</th></tr>
         </thead>
         <tbody>
           {% for s in slots %}
           {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 0 %}
           <tr>
             <td class="nowrap"><strong class="icon-text">{{ icon('clock') }}{{ s.time_window }}</strong>
-              <span class="sub-line">{{ s.centre_name }}</span></td>
+              <span class="sub-line">{{ t(s.centre_name) }}</span></td>
             <td class="num">{{ s.max_capacity }}</td>
             <td class="num">{{ s.booked_count }}</td>
             <td class="num">
               {% if s.max_capacity - s.booked_count > 0 %}{{ s.max_capacity - s.booked_count }}
-              {% else %}<span class="badge red">Full</span>{% endif %}
+              {% else %}<span class="badge red">{{ t("Full") }}</span>{% endif %}
             </td>
             <td>
               <div class="util-cell">
@@ -62,29 +63,29 @@
       </table>
     </div>
     {% else %}
-      <div class="empty"><strong>No slots published for that date.</strong>Create one using the form alongside.</div>
+      <div class="empty"><strong>{{ t("No slots published for that date.") }}</strong>{{ t("Create one using the form alongside.") }}</div>
     {% endif %}
   </div>
 
   <div class="stack">
     <div class="card">
-      <div class="card-head"><h2 class="card-title">Running late</h2></div>
+      <div class="card-head"><h2 class="card-title">{{ icon('hourglass') }}{{ t("Running late") }}</h2></div>
       <div class="card-body">
         {% for c in centres %}
         <form method="post" action="{{ url_for('admin_set_delay', centre_id=c.id) }}" class="delay-row">
           <div>
-            <div class="strong small">{{ c.name }}</div>
+            <div class="strong">{{ t(c.name) }}</div>
             <div class="small">
               {% if c.delay_minutes %}
-                <span class="badge amber">{{ c.delay_minutes }} min behind</span>
-                {% if c.delay_set_at %}<span class="sub-line">set {{ c.delay_set_at|stamp }}</span>{% endif %}
-              {% else %}<span class="badge green">On time</span>{% endif %}
+                <span class="badge amber">{{ t("%(n)s min behind")|format(n=c.delay_minutes) }}</span>
+                {% if c.delay_set_at %}<span class="sub-line">{{ t("set") }} {{ c.delay_set_at|stamp }}</span>{% endif %}
+              {% else %}<span class="badge green">{{ t("On time") }}</span>{% endif %}
             </div>
           </div>
           <div class="delay-input">
             <input type="number" name="delay_minutes" min="0" max="600" step="5"
-                   value="{{ c.delay_minutes }}" aria-label="Minutes behind at {{ c.name }}">
-            <button class="btn small" type="submit">Set</button>
+                   value="{{ c.delay_minutes }}" aria-label="{{ t('Minutes behind at %(centre)s')|format(centre=t(c.name)) }}">
+            <button class="btn small" type="submit">{{ t("Set") }}</button>
           </div>
         </form>
         {% endfor %}
@@ -92,35 +93,35 @@
     </div>
 
     <div class="card">
-      <div class="card-head"><h2 class="card-title">Add or update a slot</h2></div>
+      <div class="card-head"><h2 class="card-title">{{ icon('calendar-plus') }}{{ t("Add or update a slot") }}</h2></div>
       <div class="card-body">
         <form method="post">
           <div class="field">
-            <label for="new_centre">Centre <span class="req">*</span></label>
+            <label for="new_centre">{{ t("Centre") }} <span class="req">*</span></label>
             <select id="new_centre" name="centre_id" required>
               {% for c in centres %}
-                <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ c.name }}</option>
+                <option value="{{ c.id }}" {{ 'selected' if sel_centre == c.id|string }}>{{ t(c.name) }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="field-row two">
             <div class="field">
-              <label for="new_date">Date <span class="req">*</span></label>
+              <label for="new_date">{{ t("Date") }} <span class="req">*</span></label>
               <input type="date" id="new_date" name="date" value="{{ sel_date }}" required>
             </div>
             <div class="field">
-              <label for="time_window">Time window <span class="req">*</span></label>
+              <label for="time_window">{{ t("Time window") }} <span class="req">*</span></label>
               <select id="time_window" name="time_window" required>
                 {% for w in windows %}<option value="{{ w }}">{{ w }}</option>{% endfor %}
               </select>
             </div>
           </div>
           <div class="field">
-            <label for="max_capacity">Maximum farmers <span class="req">*</span></label>
+            <label for="max_capacity">{{ t("Maximum farmers") }} <span class="req">*</span></label>
             <input type="number" id="max_capacity" name="max_capacity" min="1" max="500" value="8" required>
-            <div class="hint">If the slot already exists, its capacity is updated instead.</div>
+            <div class="hint">{{ t("If the slot already exists, its capacity is updated instead.") }}</div>
           </div>
-          <button class="btn block" type="submit">{{ icon('check') }}Save slot</button>
+          <button class="btn wheat block" type="submit">{{ icon('check') }}{{ t("Save slot") }}</button>
         </form>
       </div>
     </div>

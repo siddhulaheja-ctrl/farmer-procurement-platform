@@ -1,44 +1,20 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, payment_badge, risk_badge, track, datetile, crop, alert_ic, alert_label, alert_msg, flag_list, voice_banner %}
+{% from "_macros.html" import status_badge, payment_badge, risk_badge, track, datetile, crop, alert_ic, alert_label, alert_msg, flag_list %}
 {% block title %}{{ t("Dashboard") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <section class="welcome">
   <div class="welcome-text">
-    <h1>{{ t("Namaste") }}, {{ g.farmer.name }}</h1>
+    <p class="eyebrow">{{ icon('sun') }}{{ t("Namaste") }},</p>
+    <h1><span class="mark">{{ g.farmer.name }}</span></h1>
     <div class="meta-row">
       <span>{{ icon('map-pin') }}{{ t(g.farmer.village) }}, {{ t(g.farmer.district) }}</span>
-      
+      {% if g.farmer.agristack_id %}<span>{{ icon('id-card') }}<span class="mono">{{ g.farmer.agristack_id }}</span></span>{% endif %}
     </div>
   </div>
-  <a class="btn wheat large" href="{{ url_for('farmer_centres') }}">{{ icon('calendar-plus') }}{{ t("Book a new slot") }}</a>
 </section>
 
-{{ voice_banner() }}
-
-{% if flags %}
-<div class="notice error">
-  <h3>{{ t("Action needed") }}: {{ flags|length }} {{ t("problem(s) with your registered details") }}</h3>
-  {{ flag_list(flags) }}
-  <a class="btn small" href="{{ url_for('farmer_profile') }}">{{ icon('id-card') }}{{ t("Correct my details") }}</a>
-</div>
-{% endif %}
-
-<div class="stat-row">
-  <div class="stat {{ 'info' if upcoming else 'zero' }}">
-    <div><div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
-  </div>
-  <div class="stat {{ 'good' if paid_amount else 'zero' }}">
-    <div><div class="n">{{ paid_amount|rupee if paid_amount else t("Nothing yet") }}</div><div class="l">{{ t("Received") }}</div></div>
-  </div>
-  <div class="stat {{ 'warn' if pending_amount else 'zero' }}">
-    <div><div class="n">{{ pending_amount|rupee if pending_amount else t("Nothing yet") }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
-  </div>
-  <div class="stat {{ 'bad' if flags else 'good' }}">
-    <div><div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>
-  </div>
-</div>
-
+{%- set artdir = url_for('static', filename='img/art/') -%}
 <div class="list-head">
   <h2>{{ icon('ticket') }}{{ t("Upcoming bookings") }}</h2>
 </div>
@@ -66,8 +42,8 @@
     <div class="bc-foot">
       <span class="token-txt">{{ b.token_no }}</span>
       <div class="btn-row">
-        {% if b.status == 'booked' %}
-          <a class="btn small secondary" href="{{ url_for('farmer_gatepass', booking_id=b.id) }}">{{ icon('printer') }}{{ t("Gate pass") }}</a>
+        {% if b.status in ('booked', 'arrived') %}
+          <a class="btn small secondary" href="{{ url_for('farmer_phone_pass', booking_id=b.id) }}">{{ icon('scan') }}{{ t("Pass") }}</a>
         {% endif %}
         <a class="btn small" href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ t("Open") }}{{ icon('arrow-right') }}</a>
       </div>
@@ -79,12 +55,48 @@
 <div class="card">
   <div class="empty">
     <strong>{{ t("You have no upcoming slots.") }}</strong>
-    <div><a class="btn" href="{{ url_for('farmer_centres') }}">{{ icon('calendar-plus') }}{{ t("Book a new slot") }}</a></div>
+    <div><a class="btn wheat" href="{{ url_for('farmer_centres') }}">{{ icon('calendar-plus') }}{{ t("Book a new slot") }}</a></div>
   </div>
 </div>
 {% endif %}
 
-<div class="grid side" style="margin-top: 26px">
+{# the five things a farmer comes here for, as pictures with a word or two #}
+<nav class="tiles" aria-label="{{ t('What would you like to do?') }}">
+  <a class="tile main" href="{{ url_for('farmer_centres') }}"><img src="{{ artdir }}calendar.svg" width="320" height="240" alt=""><span><strong>{{ t("Book a new slot") }}</strong><br><small>{{ t("Pick a centre, day and time") }}</small></span></a>
+  <a class="tile" href="{{ url_for('farmer_voice') }}"><img src="{{ artdir }}voice.svg" width="320" height="240" alt=""><strong>{{ t("Book by speaking") }}</strong><small>{{ t("No typing needed") }}</small></a>
+  <a class="tile" href="{{ url_for('farmer_payments') }}"><img src="{{ artdir }}bank.svg" width="320" height="240" alt=""><strong>{{ t("My money") }}</strong><small>{{ t("Follow each payment") }}</small></a>
+  <a class="tile" href="{{ url_for('farmer_alerts_page') }}"><img src="{{ artdir }}bell.svg" width="320" height="240" alt=""><strong>{{ t("Alerts") }}</strong><small>{{ t("Rain, slots and money") }}</small>{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
+  <a class="tile" href="{{ url_for('farmer_profile') }}"><img src="{{ artdir }}profile.svg" width="320" height="240" alt=""><strong>{{ t("My Details") }}</strong><small>{{ t("Aadhaar, bank and land") }}</small></a>
+</nav>
+
+{% if flags %}
+<div class="notice error">
+  <h3>{{ t("Action needed") }}: {{ flags|length }} {{ t("problem(s) with your registered details") }}</h3>
+  {{ flag_list(flags) }}
+  <a class="btn small" href="{{ url_for('farmer_profile') }}">{{ icon('id-card') }}{{ t("Correct my details") }}</a>
+</div>
+{% endif %}
+
+<div class="stat-row">
+  <div class="stat {{ 'info' if upcoming else 'zero' }}">
+    <span class="stat-ic">{{ icon('ticket') }}</span>
+    <div><div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
+  </div>
+  <div class="stat {{ 'good' if paid_amount else 'zero' }}">
+    <span class="stat-ic">{{ icon('banknote') }}</span>
+    <div><div class="n">{{ (paid_amount or 0)|rupee }}</div><div class="l">{{ t("Received") }}</div></div>
+  </div>
+  <div class="stat {{ 'warn' if pending_amount else 'zero' }}">
+    <span class="stat-ic">{{ icon('hourglass') }}</span>
+    <div><div class="n">{{ (pending_amount or 0)|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
+  </div>
+  <div class="stat {{ 'bad' if flags else 'good' }}">
+    <span class="stat-ic">{{ icon('alert-triangle' if flags else 'check-circle') }}</span>
+    <div><div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>
+  </div>
+</div>
+
+<div class="grid side section">
   <div class="card">
     <div class="card-head">
       <h2 class="card-title">{{ icon('receipt') }}{{ t("Recent history") }}</h2>
@@ -128,13 +140,13 @@
           {{ alert_ic(a.alert_type) }}
           <div class="tl-body">
             <div class="tl-meta"><strong>{{ alert_label(a.alert_type) }}</strong><span>{{ a.sent_at|stamp }}</span></div>
-            <div class="tl-msg small">{{ alert_msg(a) }}</div>
+            <div class="tl-msg">{{ alert_msg(a) }}</div>
           </div>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-        <p class="muted small mb0">{{ t("No alerts yet.") }}</p>
+        <p class="muted mb0">{{ t("No alerts yet.") }}</p>
       {% endif %}
     </div>
   </div>

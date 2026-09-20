@@ -64,7 +64,7 @@
 
   <p class="gp-note">
     {{ t("Show this pass with your Aadhaar card and bank passbook.") }}
-    {{ t("Issued") }} {{ issued.strftime('%d %b %Y, %H:%M') }}.
+    {{ t("Issued") }} {{ issued|stamp }}.
   </p>
 
   <div class="gp-tear" aria-hidden="true"><span>{{ t("Cut along this line. The office copy stays at the centre.") }}</span></div>

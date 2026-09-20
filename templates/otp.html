@@ -4,21 +4,22 @@
 {% block content %}
 <div class="auth">
   <div class="auth-art">
-    <img src="{{ url_for('static', filename='img/winnowing-uttarakhand.jpg') }}" width="1000" height="1000" alt="">
+    <img src="{{ url_for('static', filename='img/art/otp-lock.svg') }}" width="320" height="240" alt="">
     <h2>{{ t("One more step") }}</h2>
+    <p>{{ t("Never share this code with anyone") }}</p>
   </div>
 
   <div class="auth-form">
-    <p class="eyebrow">{{ icon('smartphone') }}{{ t("Step 2 of 2") }}</p>
+    <p class="eyebrow">{{ icon('lock') }}{{ t("Step 2 of 2") }}</p>
     <h1>{{ t("Verify one-time password") }}</h1>
-    <p class="lede"><strong>+91 {{ phone }}</strong></p>
+    <p class="lede">{{ icon('smartphone') }} <strong>+91 {{ phone }}</strong></p>
     <form method="post">
       <div class="field">
         <label for="otp">{{ t("Enter 6-digit OTP") }} <span class="req">*</span></label>
         <input type="text" id="otp" name="otp" class="otp-input" maxlength="6" inputmode="numeric"
                pattern="[0-9]{6}" required autofocus autocomplete="one-time-code">
       </div>
-      <button class="btn block large" type="submit">{{ icon('check') }}{{ t("Verify and sign in") }}</button>
+      <button class="btn wheat block large" type="submit">{{ icon('check') }}{{ t("Verify and sign in") }}</button>
     </form>
     <p class="auth-alt">
       <a href="{{ url_for('login') }}">{{ icon('arrow-left') }} {{ t("Use a different number") }}</a>

@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="pagehead">
-  <div class="ph-text"><h1 class="page-title">{{ t("Procurement centres") }}</h1></div>
+  <div class="ph-text"><p class="eyebrow">{{ icon('map-pin') }}{{ t("Step 1: pick a centre") }}</p><h1 class="page-title">{{ t("Procurement centres") }}</h1></div>
 </div>
 
 {{ voice_banner() }}
@@ -40,7 +40,7 @@
   {% set mine = c.district == g.farmer.district %}
   <article class="centre {{ 'mine' if mine }}">
     <div class="centre-top">
-      <span class="centre-ic">{{ icon('building') }}</span>
+      <span class="centre-ic"><img src="{{ url_for('static', filename='img/art/mandi.svg') }}" width="320" height="240" alt="" loading="lazy"></span>
       <div class="ct-main">
         <h3><a href="{{ url_for('farmer_centre', centre_id=c.id) }}">{{ t(c.name) }}</a></h3>
         <div class="place">{{ icon('map-pin') }}{{ t(c.location) }}, {{ t(c.district) }}</div>

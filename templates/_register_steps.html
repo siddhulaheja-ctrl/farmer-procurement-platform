@@ -135,10 +135,10 @@
          data-acres="{{ t('acres') }}" data-edit="{{ t('Edit') }}" data-none="{{ t('Not given') }}"></div>
     {% if admin %}
     <div class="field mt">
-      <label for="registered_via">Registration channel</label>
+      <label for="registered_via">{{ t("Registration channel") }}</label>
       <select id="registered_via" name="registered_via">
-        <option value="staff" {{ 'selected' if f.registered_via != 'csc' }}>Procurement centre counter</option>
-        <option value="csc" {{ 'selected' if f.registered_via == 'csc' }}>Common Service Centre operator</option>
+        <option value="staff" {{ 'selected' if f.registered_via != 'csc' }}>{{ t("Procurement centre counter") }}</option>
+        <option value="csc" {{ 'selected' if f.registered_via == 'csc' }}>{{ t("Common Service Centre operator") }}</option>
       </select>
     </div>
     {% endif %}

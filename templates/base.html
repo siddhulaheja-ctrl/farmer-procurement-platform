@@ -2,8 +2,8 @@
 <html lang="{{ lang() }}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0a2a1f">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#183a2c">
 <title>{% block title %}{{ t("Krishi Sutra") }}{% endblock %}</title>
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-180.png') }}">
@@ -11,20 +11,42 @@
 <meta property="og:title" content="Krishi Sutra">
 <meta property="og:description" content="Slot booking and procurement management for government mandis.">
 <meta property="og:type" content="website">
+{# headings and handwriting. without a connection the page falls back to system fonts and still reads #}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+{% if lang() == 'bn' %}
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla&family=Tiro+Devanagari+Hindi&family=Kalam:wght@400&family=Galada&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+{% else %}
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&family=Kalam:wght@400&display=swap" rel="stylesheet">
+{% endif %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gov.css') }}">
 {# in the head, not at the end: it sets the text size before the first paint #}
 <script src="{{ url_for('static', filename='js/a11y.js') }}"></script>
 </head>
-{# staff get a console with a side menu, everyone else a top menu #}
-{%- set staff_layout = g.staff -%}
-<body class="{{ 'is-staff' if g.staff else 'is-public' }}">
+{%- set ep = request.endpoint or '' -%}
+{#- every page has its own drawing beside its title (static/img/art, lab/tools/draw_scenes.py) -#}
+{%- set arts = {
+    'login': 'phone-otp', 'verify_otp': 'otp-lock', 'register': 'register-card', 'register_voice': 'voice',
+    'token_lookup': 'seal', 'receipt_lookup': 'seal', 'policy': 'scroll',
+    'farmer_centres': 'mandi', 'farmer_centre': 'calendar', 'farmer_booking': 'ticket',
+    'farmer_gatepass': 'gate', 'farmer_phone_pass': 'gate', 'farmer_payments': 'bank', 'farmer_payment': 'bank',
+    'farmer_receipt': 'bank', 'farmer_alerts_page': 'bell', 'farmer_profile': 'profile', 'farmer_voice': 'voice',
+    'admin_login': 'counter', 'super_login': 'office', 'admin_dashboard': 'clipboard', 'admin_booking': 'weighbridge',
+    'admin_gate': 'seal', 'admin_slots': 'calendar-grid', 'admin_transactions': 'bank', 'admin_receipt': 'bank',
+    'admin_flags': 'magnifier', 'admin_storage_risk': 'rain-sacks', 'admin_farmers': 'farmers', 'admin_farmer': 'profile',
+    'admin_register_farmer': 'register-card', 'super_overview': 'map', 'super_attention': 'signpost',
+    'super_staff': 'badges', 'super_staff_detail': 'badges', 'super_activity': 'notebook',
+} -%}
+{%- set art = arts.get(ep, 'scarecrow' if not ep else 'basket') -%}
+<body class="{{ 'is-staff' if g.staff else 'is-public' }}{{ ' is-home' if ep == 'home' }}{{ ' has-tabbar' if g.farmer and not g.staff }}"
+      style="--art: url('{{ url_for('static', filename='img/art/' + art + '.svg') }}')">
 <a class="skip-link" href="#main">{{ t("Skip to main content") }}</a>
 
 <div class="govstrip">
   <div class="wrap">
     <span class="gov-id">
       {{ icon('landmark') }}
-      <span>{{ t("Government of India") }}<span class="gov-long"> &middot; {{ t("Ministry of Consumer Affairs, Food & Public Distribution") }} &middot; {{ t("Department of Consumer Affairs") }}</span></span>
+      <span>{{ t("Government of India") }}<span class="gov-long"> &middot; {{ t("Ministry of Consumer Affairs, Food & Public Distribution") }}</span></span>
     </span>
     <span class="util">
       <span class="util-group a11y" role="group" aria-label="{{ t("Display settings") }}">
@@ -33,8 +55,7 @@
         <button type="button" data-fontstep="1" aria-pressed="true" title="{{ t("Normal text size") }}">A</button>
         <button type="button" data-fontstep="3" aria-pressed="false" title="{{ t("Larger text") }}">A<sup>+</sup></button>
       </span>
-      {# a menu, not a row of links, so the strip stays short as languages are added.
-         details/summary opens without script; a11y.js closes it on an outside tap #}
+      {# details/summary opens without script; a11y.js closes it on an outside tap #}
       <details class="langmenu">
         <summary title="{{ t('Language') }}">{{ icon('globe') }}<span lang="{{ lang() }}">{{ languages[lang()] }}</span>{{ icon('chevron-down') }}</summary>
         <ul>
@@ -49,88 +70,95 @@
 
 <header class="topbar">
   <div class="wrap topbar-in">
-    {# the name only, not a link - Home is in the menu #}
-    <div class="brand">
+    <a class="brand" href="{{ url_for('farmer_dashboard') if g.farmer else (url_for('admin_dashboard') if g.staff else url_for('home')) }}">
       {# alt is empty on purpose, the name is written right next to it #}
       <img src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="44" height="44" alt="">
       <span>
         <span class="brand-name">{{ t("Krishi Sutra") }}</span>
         <span class="brand-sub">{{ t("Slot Booking & Procurement Management System") }}</span>
       </span>
-    </div>
+    </a>
 
     {% if not g.staff %}
     <nav class="mainnav" id="mainnav" aria-label="{{ t('Main menu') }}">
       {% if g.farmer %}
-        <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if request.endpoint in ('farmer_dashboard', 'farmer_booking', 'farmer_gatepass', 'farmer_phone_pass') }}">{{ icon('grid') }}{{ t("Dashboard") }}</a>
-        <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if request.endpoint in ('farmer_centres','farmer_centre') }}">{{ icon('calendar-plus') }}{{ t("Book a Slot") }}</a>
-        <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if request.endpoint in ('farmer_payments', 'farmer_payment', 'farmer_receipt') }}">{{ icon('wallet') }}{{ t("Payments") }}</a>
-        <a href="{{ url_for('farmer_alerts_page') }}" class="{{ 'active' if request.endpoint == 'farmer_alerts_page' }}">{{ icon('bell') }}{{ t("Alerts") }}{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
-        <a href="{{ url_for('farmer_profile') }}" class="{{ 'active' if request.endpoint == 'farmer_profile' }}">{{ icon('id-card') }}{{ t("My Details") }}</a>
+        <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if ep in ('farmer_dashboard', 'farmer_booking', 'farmer_gatepass', 'farmer_phone_pass') }}">{{ icon('home') }}{{ t("Dashboard") }}</a>
+        <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if ep in ('farmer_centres', 'farmer_centre', 'farmer_voice') }}">{{ icon('calendar-plus') }}{{ t("Book a Slot") }}</a>
+        <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if ep in ('farmer_payments', 'farmer_payment', 'farmer_receipt') }}">{{ icon('wallet') }}{{ t("Payments") }}</a>
+        <a href="{{ url_for('farmer_alerts_page') }}" class="{{ 'active' if ep == 'farmer_alerts_page' }}">{{ icon('bell') }}{{ t("Alerts") }}{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
+        <a href="{{ url_for('farmer_profile') }}" class="{{ 'active' if ep == 'farmer_profile' }}">{{ icon('id-card') }}{{ t("My Details") }}</a>
       {% else %}
-        <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">{{ icon('home') }}{{ t("Home") }}</a>
+        <a href="{{ url_for('home') }}" class="{{ 'active' if ep == 'home' }}">{{ icon('home') }}{{ t("Home") }}</a>
+        <a href="{{ url_for('home') }}#msp">{{ icon('wheat') }}{{ t("Crop rates") }}</a>
         <a href="{{ url_for('home') }}#weather">{{ icon('cloud-sun') }}{{ t("Weather") }}</a>
-        <a href="{{ url_for('register') }}" class="{{ 'active' if request.endpoint == 'register' }}">{{ icon('user-plus') }}{{ t("Register") }}</a>
-        <a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint in ('login','verify_otp') }}">{{ icon('log-in') }}{{ t("Farmer Sign In") }}</a>
-        <a href="{{ url_for('admin_login') }}" class="{{ 'active' if request.endpoint == 'admin_login' }}">{{ icon('shield') }}{{ t("Centre Members") }}</a>
+        <a href="{{ url_for('admin_login') }}" class="{{ 'active' if ep in ('admin_login', 'super_login') }}">{{ icon('building') }}{{ t("Centre Members") }}</a>
       {% endif %}
     </nav>
+    {% endif %}
+
+    {% if not g.farmer and not g.staff %}
+    {# the two doors, on every public page: register, and sign in as the filled one #}
+    <span class="doors">
+      <a class="door" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register") }}</a>
+      <a class="door login" href="{{ url_for('login') }}">{{ icon('log-in') }}<span class="long">{{ t("Farmer") }}&nbsp;</span>{{ t("Sign in") }}</a>
+    </span>
     {% endif %}
 
     {% if g.farmer or g.staff %}
     <div class="account">
       {% set who = g.farmer or g.staff %}
       {% if g.staff %}<span class="acc-id">{{ g.staff.staff_code }}</span>{% endif %}
-      <span class="acc-name">{{ who.name }}<small>{{ t("Farmer") if g.farmer else (g.staff.centre_name or 'District superadmin') }}</small></span>
+      <span class="acc-name">{{ who.name }}<small>{{ t("Farmer") if g.farmer else (t(g.staff.centre_name) if g.staff.centre_name else t('District superadmin')) }}</small></span>
       <a class="iconbtn" href="{{ url_for('logout') if g.farmer else url_for('admin_logout') }}" title="{{ t('Sign out') }}">{{ icon('log-out') }}<span class="sr">{{ t("Sign out") }}</span></a>
     </div>
     {% endif %}
 
-    {# phones only: the menu folds behind this - the top menu, or a member's
-       side menu. a11y.js opens it; without script the menu just stays out #}
+    {% if not g.farmer %}
+    {# phones: the menu folds behind this - the top menu, or a member's side menu. a11y.js opens it #}
     <button type="button" class="navtoggle" aria-controls="mainnav" aria-expanded="false"
             data-open="{{ t('Menu') }}" data-close="{{ t('Close') }}">{{ icon('menu') }}<span class="sr">{{ t("Menu") }}</span></button>
+    {% endif %}
   </div>
+  <div class="progress" aria-hidden="true"><i></i></div>
 </header>
 
-<div class="frame {{ 'console' if staff_layout }}">
-  {% if staff_layout %}
-  {# same id as the public menu (never both on one page), so one hamburger works for either #}
-  <nav class="sidenav" id="mainnav" aria-label="Members menu">
+<div class="frame {{ 'console' if g.staff }}">
+  {% if g.staff %}
+  {# same id as the public menu (never both on one page), so one button opens either #}
+  <nav class="sidenav" id="mainnav" aria-label="{{ t('Members menu') }}">
     {% if g.staff.role == 'superadmin' %}
-    <span class="side-label">Superadmin</span>
-    <a href="{{ url_for('super_overview') }}" class="{{ 'active' if request.endpoint == 'super_overview' }}">{{ icon('trending-up') }}Overview</a>
-    <a href="{{ url_for('super_attention') }}" class="{{ 'active' if request.endpoint == 'super_attention' }}">{{ icon('alert-triangle') }}Needs attention{% if attention_count %}<span class="pill">{{ attention_count }}</span>{% endif %}</a>
-    <a href="{{ url_for('super_staff') }}" class="{{ 'active' if request.endpoint in ('super_staff', 'super_staff_detail') }}">{{ icon('users') }}Members</a>
-    <a href="{{ url_for('super_activity') }}" class="{{ 'active' if request.endpoint == 'super_activity' }}">{{ icon('list') }}Activity log</a>
+    <span class="side-label">{{ t("District superadmin") }}</span>
+    <a href="{{ url_for('super_overview') }}" class="{{ 'active' if ep == 'super_overview' }}">{{ icon('trending-up') }}{{ t("Overview") }}</a>
+    <a href="{{ url_for('super_attention') }}" class="{{ 'active' if ep == 'super_attention' }}">{{ icon('alert-triangle') }}{{ t("Needs attention") }}{% if attention_count %}<span class="pill">{{ attention_count }}</span>{% endif %}</a>
+    <a href="{{ url_for('super_staff') }}" class="{{ 'active' if ep in ('super_staff', 'super_staff_detail') }}">{{ icon('users') }}{{ t("Member accounts") }}</a>
+    <a href="{{ url_for('super_activity') }}" class="{{ 'active' if ep == 'super_activity' }}">{{ icon('list') }}{{ t("Activity log") }}</a>
     {% endif %}
-    <span class="side-label">Today</span>
-    <a href="{{ url_for('admin_gate') }}" class="{{ 'active' if request.endpoint == 'admin_gate' }}">{{ icon('scan') }}Gate scan</a>
-    <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint in ('admin_dashboard', 'admin_booking', 'admin_receipt') }}">{{ icon('grid') }}Bookings</a>
-    <a href="{{ url_for('admin_slots') }}" class="{{ 'active' if request.endpoint == 'admin_slots' }}">{{ icon('layers') }}Slots</a>
-    <span class="side-label">Money and records</span>
-    <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if request.endpoint == 'admin_transactions' }}">{{ icon('receipt') }}Payments</a>
-    <a href="{{ url_for('admin_flags') }}" class="{{ 'active' if request.endpoint == 'admin_flags' }}">{{ icon('flag') }}Data flags</a>
+    <span class="side-label">{{ t("Today") }}</span>
+    <a href="{{ url_for('admin_gate') }}" class="{{ 'active' if ep == 'admin_gate' }}">{{ icon('scan') }}{{ t("Gate scan") }}</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if ep in ('admin_dashboard', 'admin_booking', 'admin_receipt') }}">{{ icon('clipboard-check') }}{{ t("Bookings") }}</a>
+    <a href="{{ url_for('admin_slots') }}" class="{{ 'active' if ep == 'admin_slots' }}">{{ icon('calendar') }}{{ t("Slots") }}</a>
+    <span class="side-label">{{ t("Money and records") }}</span>
+    <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if ep == 'admin_transactions' }}">{{ icon('banknote') }}{{ t("Payments") }}</a>
+    <a href="{{ url_for('admin_flags') }}" class="{{ 'active' if ep == 'admin_flags' }}">{{ icon('flag') }}{{ t("Data flags") }}</a>
     {% if g.staff.role != 'superadmin' %}
-    <a href="{{ url_for('admin_storage_risk') }}" class="{{ 'active' if request.endpoint == 'admin_storage_risk' }}">{{ icon('cloud-rain') }}Storage risk</a>
+    <a href="{{ url_for('admin_storage_risk') }}" class="{{ 'active' if ep == 'admin_storage_risk' }}">{{ icon('cloud-rain') }}{{ t("Storage risk") }}</a>
     {% endif %}
-    <span class="side-label">Farmers</span>
-    <a href="{{ url_for('admin_farmers') }}" class="{{ 'active' if request.endpoint in ('admin_farmers','admin_farmer') }}">{{ icon('users') }}All farmers</a>
-    <a href="{{ url_for('admin_register_farmer') }}" class="{{ 'active' if request.endpoint == 'admin_register_farmer' }}">{{ icon('user-plus') }}Register farmer</a>
+    <span class="side-label">{{ t("Farmers") }}</span>
+    <a href="{{ url_for('admin_farmers') }}" class="{{ 'active' if ep in ('admin_farmers', 'admin_farmer') }}">{{ icon('users') }}{{ t("All farmers") }}</a>
+    <a href="{{ url_for('admin_register_farmer') }}" class="{{ 'active' if ep == 'admin_register_farmer' }}">{{ icon('user-plus') }}{{ t("Register farmer") }}</a>
     <div class="side-card">
-      <strong>{{ g.staff.centre_name or 'Superadmin, every centre' }}</strong>
-      Signed in as {{ g.staff.staff_code }}
+      <strong>{{ t(g.staff.centre_name) if g.staff.centre_name else t("Every centre") }}</strong>
+      {{ t("Signed in as") }} {{ g.staff.staff_code }}
     </div>
   </nav>
   {% endif %}
 
-  <main class="page {{ '' if staff_layout else 'wrap' }}" id="main">
+  <main class="page {{ '' if g.staff else 'wrap' }}" id="main">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages if not category.startswith('toast-') %}
         <div class="notice {{ category if category in ['success','warning','error','info'] else 'info' }}" role="status">{{ message }}</div>
       {% endfor %}
-      {# toasts pop up in a corner and go away by themselves (toast.js):
-         for something that just happened, like a slot being booked #}
+      {# toasts pop up in a corner and go away by themselves (toast.js) #}
       <div class="toasts">
         {% for category, message in messages if category.startswith('toast-') %}
         {% set kind = category[6:] %}
@@ -147,21 +175,33 @@
   </main>
 </div>
 
+{% if g.farmer and not g.staff %}
+{# phones: the farmer's five places as big icons along the bottom, like an app #}
+<nav class="tabbar" aria-label="{{ t('Main menu') }}">
+  <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if ep in ('farmer_dashboard', 'farmer_booking', 'farmer_gatepass', 'farmer_phone_pass') }}">{{ icon('home') }}<span>{{ t("Home") }}</span></a>
+  <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if ep in ('farmer_centres', 'farmer_centre', 'farmer_voice') }}">{{ icon('calendar-plus') }}<span>{{ t("Book") }}</span></a>
+  <a href="{{ url_for('farmer_payments') }}" class="{{ 'active' if ep in ('farmer_payments', 'farmer_payment', 'farmer_receipt') }}">{{ icon('wallet') }}<span>{{ t("Money") }}</span></a>
+  <a href="{{ url_for('farmer_alerts_page') }}" class="{{ 'active' if ep == 'farmer_alerts_page' }}">{{ icon('bell') }}<span>{{ t("Alerts") }}</span>{% if g.unread %}<span class="pill">{{ g.unread }}</span>{% endif %}</a>
+  <a href="{{ url_for('farmer_profile') }}" class="{{ 'active' if ep == 'farmer_profile' }}">{{ icon('id-card') }}<span>{{ t("Details") }}</span></a>
+</nav>
+{% endif %}
+
 <footer class="site{{ ' lean' if g.farmer or g.staff }}">
   <div class="wrap">
     <div class="foot-top">
       <div class="foot-brand">
         <div class="fb-row">
-          <img src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="44" height="44" alt="">
+          <img src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="46" height="46" alt="">
           <strong>{{ t("Krishi Sutra") }}</strong>
         </div>
+        <p>{{ t("From the field to the bank, one slot at a time.") }}</p>
       </div>
       <div>
         <h4>{{ t("Related links") }}</h4>
         <ul>
-          <li><a href="https://consumeraffairs.nic.in/" rel="noopener">Department of Consumer Affairs</a></li>
-          <li><a href="https://dfpd.gov.in/" rel="noopener">Department of Food &amp; Public Distribution</a></li>
-          <li><a href="https://fci.gov.in/" rel="noopener">Food Corporation of India</a></li>
+          <li><a href="https://consumeraffairs.nic.in/" rel="noopener">{{ t("Department of Consumer Affairs") }}</a></li>
+          <li><a href="https://dfpd.gov.in/" rel="noopener">{{ t("Department of Food & Public Distribution") }}</a></li>
+          <li><a href="https://fci.gov.in/" rel="noopener">{{ t("Food Corporation of India") }}</a></li>
           <li><a href="https://www.enam.gov.in/" rel="noopener">e-NAM</a></li>
           <li><a href="https://agmarknet.gov.in/" rel="noopener">Agmarknet</a></li>
           <li><a href="https://pmkisan.gov.in/" rel="noopener">PM-KISAN</a></li>
@@ -178,7 +218,7 @@
       <div>
         <h4>{{ t("Contact") }}</h4>
         <ul class="foot-contact">
-          <li>{{ icon('headset') }}<span>{{ t("Kisan Call Centre (national)") }}<br><strong>1800-180-1551</strong></span></li>
+          <li>{{ icon('headset') }}<span>{{ t("Kisan Call Centre (national)") }}<br><strong><a href="tel:18001801551">1800-180-1551</a></strong></span></li>
           <li>{{ icon('map-pin') }}<span>{{ t("District Supply Office") }}<br>{{ t("Rudrapur, Udham Singh Nagar") }}<br>{{ t("Uttarakhand 263153") }}</span></li>
         </ul>
       </div>
@@ -189,7 +229,7 @@
           <li>{{ t("Last updated on") }} <strong>{{ last_updated.strftime('%d-%m-%Y') }}</strong></li>
           <li>{{ t("Visitors") }} <span class="counter">{{ '%08d'|format(visits) }}</span></li>
           {% if not g.farmer and not g.staff %}
-          <li><a href="{{ url_for('super_login') }}">District superadmin sign in</a></li>
+          <li><a href="{{ url_for('super_login') }}">{{ t("District superadmin sign in") }}</a></li>
           {% endif %}
         </ul>
       </div>
@@ -197,13 +237,12 @@
 
     {# every photo, who took it and where it came from. same list in static/img/credits.json #}
     <div class="photo-credit">
-      Photographs from Wikimedia Commons, all
-      <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">CC BY-SA 4.0</a>, cropped and resized &mdash;
-      <a href="https://commons.wikimedia.org/wiki/File:Farmer_manually_harvesting_rice_in_Raichur,_Karnataka.jpg" rel="noopener">Nanditha Gogate, WELL Labs</a> (harvesting paddy, Raichur);
-      <a href="https://commons.wikimedia.org/wiki/File:An_Indian_Farmer_in_Grain_Markeet.jpg" rel="noopener">Geet Arts</a> (a farmer at a grain market);
-      <a href="https://commons.wikimedia.org/wiki/File:Labourers_working_in_a_grain_market.jpg" rel="noopener">Raman Deep</a> (a grain market yard);
-      <a href="https://commons.wikimedia.org/wiki/File:Rice_winnowing,_Uttarakhand,_India.jpg" rel="noopener">Yann</a> (winnowing rice, Uttarakhand);
-      <a href="https://commons.wikimedia.org/wiki/File:View_of_CWC_Base_Depot,_Bamanheri,_Muzaffarnagar.jpg" rel="noopener">Prabhat1729</a> (CWC depot, Bamanheri).
+      {{ t("Photographs from Wikimedia Commons, cropped and resized") }} &mdash;
+      <a href="https://commons.wikimedia.org/wiki/File:Farmer_manually_harvesting_rice_in_Raichur,_Karnataka.jpg" rel="noopener">Nanditha Gogate, WELL Labs</a>;
+      <a href="https://commons.wikimedia.org/wiki/File:Rice_winnowing,_Uttarakhand,_India.jpg" rel="noopener">Yann</a>;
+      <a href="https://commons.wikimedia.org/wiki/File:View_of_CWC_Base_Depot,_Bamanheri,_Muzaffarnagar.jpg" rel="noopener">Prabhat1729</a>
+      &mdash; <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">CC BY-SA 4.0</a>.
+      {{ t("Drawings made for this portal.") }}
     </div>
 
     <div class="foot-bottom">
@@ -236,13 +275,14 @@
       <p class="cel-token">{{ cel.token }}</p>
       <p class="cel-when">{{ t(cel.centre) }}<br>{{ cel.date|nicedate }} ({{ cel.date|dayname }}) &middot; {{ cel.window }}</p>
       {% if cel.risk %}<p class="cel-risk">{{ icon('cloud-rain') }}<span>{{ t("Rain is expected before your slot. Keep your crop covered.") }}</span></p>{% endif %}
-      <form method="dialog"><button class="btn large block cel-done" type="submit">{{ t("Done") }}</button></form>
+      <form method="dialog"><button class="btn large block cel-done" type="submit">{{ icon('check') }}{{ t("Done") }}</button></form>
     </div>
   </div>
 </dialog>
 {% endif %}
 {# per-page scripts go last, so nothing waits on them #}
 <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+<script src="{{ url_for('static', filename='js/progress.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,26 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Member accounts{% endblock %}
+{% block title %}{{ t("Member accounts") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">District superadmin</p>
-    <h1 class="page-title">Member accounts</h1>
-    <p class="page-sub">Who can sign in, which centre they're locked to, and what each person has done today.</p>
+    <p class="eyebrow">{{ icon('shield') }}{{ t("District superadmin") }}</p>
+    <h1 class="page-title">{{ t("Member accounts") }}</h1>
+    <p class="page-sub">{{ t("Who can sign in, which centre they're locked to, and what each person has done today.") }}</p>
   </div>
 </div>
 
 <div class="grid side wide-main">
   <div class="card">
     <div class="card-head">
-      <h2 class="card-title">Accounts <span class="count">{{ staff|length }}</span></h2>
+      <h2 class="card-title">{{ icon('users') }}{{ t("Accounts") }} <span class="count">{{ staff|length }}</span></h2>
     </div>
     <div class="table-scroll">
       <table class="data">
         <thead>
-          <tr><th>Person</th><th>Centre</th><th>Role</th>
-              <th class="num">Weighed</th><th class="num">Closed</th><th class="num">Flags cleared</th><th class="num">Calls</th>
-              <th>Last sign-in</th><th>Account</th></tr>
+          <tr><th>{{ t("Person") }}</th><th>{{ t("Centre") }}</th><th>{{ t("Role") }}</th>
+              <th class="num">{{ t("Weighed") }}</th><th class="num">{{ t("Closed") }}</th><th class="num">{{ t("Flags cleared") }}</th><th class="num">{{ t("Calls") }}</th>
+              <th>{{ t("Last sign-in") }}</th><th>{{ t("Account") }}</th></tr>
         </thead>
         <tbody>
           {% for s in staff %}
@@ -33,14 +33,14 @@
                 </div>
               </div>
             </td>
-            <td>{{ s.centre_name or 'Every centre' }}</td>
-            <td>{% if s.role == 'superadmin' %}<span class="badge blue">Superadmin</span>{% else %}<span class="badge grey">Centre member</span>{% endif %}</td>
+            <td>{{ t(s.centre_name) if s.centre_name else t('Every centre') }}</td>
+            <td>{% if s.role == 'superadmin' %}<span class="badge blue">{{ t("Superadmin") }}</span>{% else %}<span class="badge grey">{{ t("Centre member") }}</span>{% endif %}</td>
             <td class="num">{{ s.weighed or 0 }}</td>
             <td class="num">{{ s.closed or 0 }}</td>
             <td class="num">{{ s.flags or 0 }}</td>
             <td class="num">{{ s.calls or 0 }}</td>
-            <td class="nowrap">{{ s.last_login|stamp if s.last_login else 'Never' }}</td>
-            <td>{% if s.active %}<span class="badge green">On</span>{% else %}<span class="badge grey">Off</span>{% endif %}</td>
+            <td class="nowrap">{{ s.last_login|stamp if s.last_login else t('Never') }}</td>
+            <td>{% if s.active %}<span class="badge green">{{ t("On") }}</span>{% else %}<span class="badge grey">{{ t("Off") }}</span>{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -48,43 +48,43 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-head"><h2 class="card-title">Add an account</h2></div>
+  <div class="card taped">
+    <div class="card-head"><h2 class="card-title">{{ icon('user-plus') }}{{ t("Add an account") }}</h2></div>
     <div class="card-body">
       <form method="post">
         <div class="field">
-          <label for="name">Name</label>
+          <label for="name">{{ t("Name") }}</label>
           <input id="name" name="name" value="{{ form.get('name', '') }}" required>
         </div>
         <div class="field">
-          <label for="staff_code">Member code</label>
+          <label for="staff_code">{{ t("Member code") }}</label>
           <input id="staff_code" name="staff_code" class="mono" value="{{ form.get('staff_code', '') }}"
                  maxlength="12" placeholder="RUD03" required>
-          <span class="hint">What they sign in with. 3 to 12 letters and numbers.</span>
+          <span class="hint">{{ t("What they sign in with. 3 to 12 letters and numbers.") }}</span>
         </div>
         <div class="field">
-          <label for="password">Starting password</label>
+          <label for="password">{{ t("Starting password") }}</label>
           <input id="password" name="password" type="password" minlength="6" required>
         </div>
         <div class="field">
-          <label for="role">Role</label>
+          <label for="role">{{ t("Role") }}</label>
           <select id="role" name="role">
-            <option value="staff" {{ 'selected' if form.get('role') != 'superadmin' }}>Centre member</option>
-            <option value="superadmin" {{ 'selected' if form.get('role') == 'superadmin' }}>Superadmin</option>
+            <option value="staff" {{ 'selected' if form.get('role') != 'superadmin' }}>{{ t("Centre member") }}</option>
+            <option value="superadmin" {{ 'selected' if form.get('role') == 'superadmin' }}>{{ t("Superadmin") }}</option>
           </select>
         </div>
         <div class="field">
-          <label for="centre_id">Centre</label>
+          <label for="centre_id">{{ t("Centre") }}</label>
           <select id="centre_id" name="centre_id">
-            <option value="">None &ndash; superadmins see every centre</option>
+            <option value="">{{ t("None - superadmins see every centre") }}</option>
             {% for c in centres %}
-              <option value="{{ c.id }}" {{ 'selected' if form.get('centre_id') == c.id|string }}>{{ c.name }}</option>
+              <option value="{{ c.id }}" {{ 'selected' if form.get('centre_id') == c.id|string }}>{{ t(c.name) }}</option>
             {% endfor %}
           </select>
-          <span class="hint">Centre members only ever see bookings at this one centre.</span>
+          <span class="hint">{{ t("Centre members only ever see bookings at this one centre.") }}</span>
         </div>
         <div class="btn-row mt">
-          <button class="btn" type="submit">{{ icon('check') }}Create account</button>
+          <button class="btn wheat" type="submit">{{ icon('check') }}{{ t("Create account") }}</button>
         </div>
       </form>
     </div>

@@ -5,7 +5,7 @@
    allows, on white, so a gate scanner reads it in sunlight. #}
 {% block content %}
 <div class="phone-pass">
-  <p class="pp-say">{{ t("Show this at the gate") }}</p>
+  <p class="pp-say">{{ icon('scan') }} {{ t("Show this at the gate") }}</p>
   <div class="pp-qr">{{ qr_svg|safe }}</div>
   <div class="pp-token">{{ b.token_no }}</div>
   <div class="pp-when">{{ t(b.centre_name) }}<br>{{ b.date|nicedate }} ({{ b.date|dayname }}) &middot; {{ b.time_window }}</div>

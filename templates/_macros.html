@@ -56,15 +56,35 @@
   </span>
 {%- endmacro %}
 
-{# a forecast day's picture. words beat numbers when the api gives us words #}
-{% macro wx_glyph(day) -%}
-  {%- set desc = (day.description or '')|lower -%}
-  {#- the sky decides the picture. humidity used to turn a clear day cloudy -#}
-  {%- if day.rain_mm > 0.5 or 'rain' in desc or 'drizzle' in desc or 'storm' in desc or 'thunder' in desc -%}{{ icon('cloud-rain') }}
-  {%- elif 'overcast' in desc or 'broken' in desc or 'mist' in desc or 'haze' in desc or 'fog' in desc or 'smoke' in desc -%}{{ icon('cloud') }}
-  {%- elif 'cloud' in desc -%}{{ icon('cloud-sun') }}
-  {%- else -%}{{ icon('sun-fill', 'wx-sun') }}{%- endif -%}
+{# sun, cloud, rain or storm, from the forecast's words and the rain it expects #}
+{% macro wx_kind(desc, rain) -%}
+  {%- set s = (desc or '')|lower -%}
+  {%- if 'thunder' in s or 'storm' in s -%}storm
+  {%- elif 'rain' in s or 'drizzle' in s or 'shower' in s or (rain or 0) >= 2 -%}rain
+  {%- elif 'clear' in s -%}sun
+  {%- elif 'few' in s or 'scattered' in s -%}partly
+  {%- elif 'cloud' in s or 'overcast' in s or 'mist' in s or 'haze' in s or 'fog' in s or 'smoke' in s -%}cloud
+  {%- else -%}sun{%- endif -%}
 {%- endmacro %}
+
+{# the picture for it, drawn in colour and gently moving (gov.css .wx-svg) #}
+{% macro wx_icon(kind) -%}
+{%- set cloud = 'M17 50h31a10 10 0 0 0 1.5-19.9A14 14 0 0 0 22.8 27 12 12 0 0 0 17 50z' -%}
+{%- set sun -%}
+<g class="sun"><g class="rays" stroke="#e0a800" stroke-width="2.4" stroke-linecap="round"><path d="M48 32h6M43.3 43.3l4.3 4.3M32 48v6M20.7 43.3l-4.3 4.3M16 32h-6M20.7 20.7l-4.3-4.3M32 16v-6M43.3 20.7l4.3-4.3"/></g><circle cx="32" cy="32" r="11" fill="#f6c343" stroke="#d99a06" stroke-width="1.6"/></g>
+{%- endset -%}
+<svg class="wx-svg wx-{{ kind }}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+{%- if kind == 'sun' -%}{{ sun|safe }}
+{%- elif kind == 'partly' -%}<g transform="translate(-7 -9) scale(.85)">{{ sun|safe }}</g><g class="cloud-front"><path d="{{ cloud }}" transform="translate(5 3)" fill="#f5f7f8" stroke="#7d8fa0" stroke-width="1.6"/></g>
+{%- elif kind == 'cloud' -%}<g class="cloud-back"><path d="{{ cloud }}" transform="translate(-9 -11) scale(.85)" fill="#d6dee4" stroke="#8a9aa8" stroke-width="1.6"/></g><g class="cloud-front"><path d="{{ cloud }}" transform="translate(4 2)" fill="#f5f7f8" stroke="#7d8fa0" stroke-width="1.6"/></g>
+{%- elif kind == 'rain' -%}<g class="rain" stroke="#3b78b8" stroke-width="2.4" stroke-linecap="round"><path d="M24 50l-3 8"/><path d="M34 50l-3 8"/><path d="M44 50l-3 8"/></g><g class="cloud-front"><path d="{{ cloud }}" transform="translate(0 -8)" fill="#e2e8ed" stroke="#6f8294" stroke-width="1.6"/></g>
+{%- else -%}<g class="cloud-front"><path d="{{ cloud }}" transform="translate(0 -9)" fill="#c9d1d8" stroke="#5d6d7c" stroke-width="1.6"/></g><path class="bolt" d="M34 42l-8 11h6l-4 9 12-13h-6l4-7z" fill="#f2c230" stroke="#c99700" stroke-width="1.4" stroke-linejoin="round"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}
+
+{# a forecast day's (or hour's) picture #}
+{% macro wx_glyph(day) -%}{{ wx_icon(wx_kind(day.description, day.rain_mm)) }}{%- endmacro %}
 
 {# the way into booking by voice, big and plain: many farmers will never type #}
 {% macro voice_banner() -%}
@@ -246,7 +266,7 @@
     <span class="i-text">{{ flag_text(fl) }}</span>
     {% if resolve %}
     <form method="post" action="{{ url_for('admin_resolve_flag', flag_id=fl.id) }}">
-      <button class="btn small secondary" type="submit">{{ icon('check') }}Mark verified</button>
+      <button class="btn small secondary" type="submit">{{ icon('check') }}{{ t("Mark verified") }}</button>
     </form>
     {% endif %}
   </li>
@@ -265,7 +285,7 @@
 {# an activity entry's before and after, e.g. processing -> completed #}
 {% macro audit_changes(e) -%}
   {%- for c in e.changes -%}
-  <span class="change">{% if c.field %}<b>{{ c.field }}</b>{% endif %}<s>{{ c.before }}</s>{{ icon('arrow-right') }}<ins>{{ c.after }}</ins></span>
+  <span class="change">{% if c.field %}<b>{{ t(c.field) }}</b>{% endif %}<s>{{ c.before }}</s>{{ icon('arrow-right') }}<ins>{{ c.after }}</ins></span>
   {%- endfor -%}
 {%- endmacro %}
 

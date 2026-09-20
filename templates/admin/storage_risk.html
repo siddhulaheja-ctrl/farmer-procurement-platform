@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% from "_macros.html" import risk_badge, crop %}
-{% block title %}Storage Risk{% endblock %}
+{% block title %}{{ t("Storage risk") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <h1 class="page-title">Storage risk watchlist</h1>
+    <p class="eyebrow">{{ icon('cloud-rain') }}{{ t("Rain on the way") }}</p>
+    <h1 class="page-title">{{ t("Storage risk watchlist") }}</h1>
   </div>
 </div>
 
@@ -13,27 +14,31 @@
 {% set low = rows|selectattr('storage_risk', 'equalto', 'low')|list|length %}
 <div class="stat-row">
   <div class="stat {{ 'bad' if high else 'zero' }}">
-    <div><div class="n">{{ high }}</div><div class="l">High risk</div></div>
+    <span class="stat-ic">{{ icon('cloud-rain') }}</span>
+    <div><div class="n">{{ high }}</div><div class="l">{{ t("High risk") }}</div></div>
   </div>
   <div class="stat {{ 'warn' if low else 'zero' }}">
-    <div><div class="n">{{ low }}</div><div class="l">Low risk</div></div>
+    <span class="stat-ic">{{ icon('cloud') }}</span>
+    <div><div class="n">{{ low }}</div><div class="l">{{ t("Low risk") }}</div></div>
   </div>
   <div class="stat {{ 'good' if rows|length - high - low else 'zero' }}">
-    <div><div class="n">{{ rows|length - high - low }}</div><div class="l">No risk found</div></div>
+    <span class="stat-ic">{{ icon('sun') }}</span>
+    <div><div class="n">{{ rows|length - high - low }}</div><div class="l">{{ t("No risk found") }}</div></div>
   </div>
   <div class="stat {{ 'info' if rows else 'zero' }}">
-    <div><div class="n">{{ rows|length }}</div><div class="l">Upcoming bookings</div></div>
+    <span class="stat-ic">{{ icon('ticket') }}</span>
+    <div><div class="n">{{ rows|length }}</div><div class="l">{{ t("Upcoming bookings") }}</div></div>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-head"><h2 class="card-title">Watchlist <span class="count">{{ rows|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">{{ icon('eye') }}{{ t("Watchlist") }} <span class="count">{{ rows|length }}</span></h2></div>
   {% if rows %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Risk</th><th>Farmer</th><th>Slot</th>
-            <th class="num">Days away</th><th>Crop</th><th class="num">Est. qty</th><th></th></tr>
+        <tr><th>{{ t("Risk") }}</th><th>{{ t("Farmer") }}</th><th>{{ t("Slot") }}</th>
+            <th class="num">{{ t("Days away") }}</th><th>{{ t("Crop") }}</th><th class="num">{{ t("Est. qty") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for r in rows %}
@@ -44,11 +49,11 @@
             <div class="who">
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=r.farmer_id) }}">{{ r.farmer_name }}</a>
-                <span class="sub-line">{{ r.village }}</span>
+                <span class="sub-line">{{ t(r.village) }}</span>
               </div>
             </div>
           </td>
-          <td class="nowrap"><strong>{{ r.date|nicedate }}</strong><span class="sub-line">{{ r.centre_name }}</span></td>
+          <td class="nowrap"><strong>{{ r.date|nicedate }}</strong><span class="sub-line">{{ t(r.centre_name) }}</span></td>
           <td class="num"><span class="days-away {{ 'far' if away is number and away >= 5 }}">{{ away }}</span></td>
           <td>{{ crop(r.crop_type) }}</td>
           <td class="num nowrap">{{ '%.1f'|format(r.estimated_quantity) }}</td>
@@ -56,10 +61,10 @@
             <div class="btn-row" style="justify-content:flex-end">
               {% if r.storage_risk == 'high' %}
               <form method="post" action="{{ url_for('admin_call', booking_id=r.id) }}">
-                <button class="btn small" type="submit">{{ icon('phone-call') }}Call</button>
+                <button class="btn small" type="submit">{{ icon('phone-call') }}{{ t("Call") }}</button>
               </form>
               {% endif %}
-              <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=r.id) }}">Open</a>
+              <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=r.id) }}">{{ t("Open") }}</a>
             </div>
           </td>
         </tr>
@@ -68,8 +73,7 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">No upcoming bookings.</div>
+    <div class="empty">{{ t("No upcoming bookings.") }}</div>
   {% endif %}
 </div>
-
 {% endblock %}

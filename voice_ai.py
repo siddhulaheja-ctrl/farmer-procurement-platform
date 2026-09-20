@@ -104,8 +104,6 @@ class Unavailable(Exception):
     """Gemini can't answer right now; use the offline fallback."""
 
 
-def enabled():
-    return bool(API_KEY)
 
 
 def warm():

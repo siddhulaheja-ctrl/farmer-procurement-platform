@@ -5,6 +5,7 @@
    camera app: genuine or not, and nothing about whose it is. #}
 {% block content %}
 <section class="verify {{ 'good' if genuine else 'bad' }}" aria-live="polite">
+  <img class="verify-art" src="{{ url_for('static', filename='img/art/seal.svg') }}" width="320" height="240" alt="">
   <div class="vf-mark">{{ icon('check' if genuine else 'x') }}</div>
   {% if genuine %}
     <h1>{{ t("Genuine gate pass") if kind == 'pass' else t("Genuine purchase receipt") }}</h1>

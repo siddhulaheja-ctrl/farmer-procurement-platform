@@ -1,71 +1,71 @@
 {% extends "base.html" %}
 {% from "_macros.html" import audit_changes, audit_target %}
-{% block title %}Activity log{% endblock %}
+{% block title %}{{ t("Activity log") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">District superadmin</p>
-    <h1 class="page-title">Activity log</h1>
-    <p class="page-sub">Every action members take adds one line here. Lines are only ever added, never edited or removed, and Aadhaar and account numbers are masked.</p>
+    <p class="eyebrow">{{ icon('shield') }}{{ t("District superadmin") }}</p>
+    <h1 class="page-title">{{ t("Activity log") }}</h1>
+    <p class="page-sub">{{ t("Every action members take adds one line here. Lines are only ever added, never edited or removed, and Aadhaar and account numbers are masked.") }}</p>
   </div>
 </div>
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="centre_id">Centre</label>
+    <label for="centre_id">{{ icon('building') }} {{ t("Centre") }}</label>
     <select id="centre_id" name="centre_id">
-      <option value="">All centres</option>
+      <option value="">{{ t("All centres") }}</option>
       {% for c in centres %}
-        <option value="{{ c.id }}" {{ 'selected' if sel.get('centre_id') == c.id|string }}>{{ c.name }}</option>
+        <option value="{{ c.id }}" {{ 'selected' if sel.get('centre_id') == c.id|string }}>{{ t(c.name) }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="field">
-    <label for="staff_id">Person</label>
+    <label for="staff_id">{{ icon('user') }} {{ t("Person") }}</label>
     <select id="staff_id" name="staff_id">
-      <option value="">Anyone</option>
+      <option value="">{{ t("Anyone") }}</option>
       {% for s in staff %}
         <option value="{{ s.id }}" {{ 'selected' if sel.get('staff_id') == s.id|string }}>{{ s.name }} ({{ s.staff_code }})</option>
       {% endfor %}
     </select>
   </div>
   <div class="field">
-    <label for="action">Action</label>
+    <label for="action">{{ icon('list') }} {{ t("Action") }}</label>
     <select id="action" name="action">
-      <option value="">Any action</option>
+      <option value="">{{ t("Any action") }}</option>
       {% for key, a in actions.items() %}
-        <option value="{{ key }}" {{ 'selected' if sel.get('action') == key }}>{{ a[0] }}</option>
+        <option value="{{ key }}" {{ 'selected' if sel.get('action') == key }}>{{ t(a[0]) }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="field">
-    <label for="days">When</label>
+    <label for="days">{{ icon('calendar') }} {{ t("When") }}</label>
     <select id="days" name="days">
-      <option value="">All time</option>
-      <option value="1" {{ 'selected' if sel.get('days') == '1' }}>Today</option>
-      <option value="7" {{ 'selected' if sel.get('days') == '7' }}>Last 7 days</option>
-      <option value="30" {{ 'selected' if sel.get('days') == '30' }}>Last 30 days</option>
+      <option value="">{{ t("All time") }}</option>
+      <option value="1" {{ 'selected' if sel.get('days') == '1' }}>{{ t("Today") }}</option>
+      <option value="7" {{ 'selected' if sel.get('days') == '7' }}>{{ t("Last 7 days") }}</option>
+      <option value="30" {{ 'selected' if sel.get('days') == '30' }}>{{ t("Last 30 days") }}</option>
     </select>
   </div>
   <label class="check-row inline">
     <input type="checkbox" name="sensitive" value="1" {{ 'checked' if sel.get('sensitive') }}>
-    <span>Only money or ID changed by hand</span>
+    <span>{{ t("Only money or ID changed by hand") }}</span>
   </label>
   <div class="actions">
-    <button class="btn" type="submit">{{ icon('sliders') }}Apply</button>
-    <a class="btn secondary" href="{{ url_for('super_activity') }}">Reset</a>
+    <button class="btn" type="submit">{{ icon('sliders') }}{{ t("Apply") }}</button>
+    <a class="btn secondary" href="{{ url_for('super_activity') }}">{{ t("Reset") }}</a>
   </div>
 </form>
 
 <div class="card">
   <div class="card-head">
-    <h2 class="card-title">Entries <span class="count">{{ entries|length }}</span></h2>
+    <h2 class="card-title">{{ icon('list') }}{{ t("Entries") }} <span class="count">{{ entries|length }}</span></h2>
   </div>
   {% if entries %}
   <div class="table-scroll">
     <table class="data">
-      <thead><tr><th>When</th><th>Who</th><th>What</th><th>About</th><th>Centre</th></tr></thead>
+      <thead><tr><th>{{ t("When") }}</th><th>{{ t("Who") }}</th><th>{{ t("What") }}</th><th>{{ t("About") }}</th><th>{{ t("Centre") }}</th></tr></thead>
       <tbody>
         {% for e in entries %}
         <tr class="{{ 'row-review' if e.sensitive }}">
@@ -79,21 +79,21 @@
             </div>
           </td>
           <td>
-            <span class="act">{{ icon(e.icon) }} {{ e.label }}</span>
-            {% if e.sensitive %}<span class="badge amber">Sensitive</span>{% endif %}
+            <span class="act icon-text">{{ icon(e.icon) }} {{ t(e.label) }}</span>
+            {% if e.sensitive %}<span class="badge amber">{{ t("Sensitive") }}</span>{% endif %}
           </td>
           <td>
-            {{ audit_target(e) }}{% if e.detail %} <span class="sub-line">{{ e.detail }}</span>{% endif %}
+            {{ audit_target(e) }}{% if e.detail %} <span class="sub-line">{{ t(e.detail) }}</span>{% endif %}
             {% if e.changes %}<div>{{ audit_changes(e) }}</div>{% endif %}
           </td>
-          <td>{{ e.centre_name or '&ndash;'|safe }}</td>
+          <td>{{ t(e.centre_name) if e.centre_name else '&ndash;'|safe }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
-    <div class="empty"><strong>No activity matches these filters.</strong>Try a wider date range or a different person.</div>
+    <div class="empty"><strong>{{ t("No activity matches these filters.") }}</strong>{{ t("Try a wider date range or a different person.") }}</div>
   {% endif %}
 </div>
 {% endblock %}

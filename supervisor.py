@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 
 import audit
 from db import query
+from i18n import t
 
 # what counts as needing a look. kept here so they can be argued with
 HELD_DAYS = 2              # a held payment older than this
@@ -230,18 +231,18 @@ def needs_attention():
         ((today - timedelta(days=REJECT_WINDOW_DAYS)).isoformat(),))]
 
     return [
-        {"key": "held", "title": "Payments held", "icon": "banknote", "tone": "bad",
-         "rule": "Held for %d days or more" % HELD_DAYS, "items": held},
-        {"key": "flags", "title": "Flags cleared without a fix", "icon": "flag", "tone": "warn",
-         "rule": "%d or more in %d days, over %d times the team average"
+        {"key": "held", "title": t("Payments held"), "icon": "banknote", "tone": "bad",
+         "rule": t("Held for %d days or more") % HELD_DAYS, "items": held},
+        {"key": "flags", "title": t("Flags cleared without a fix"), "icon": "flag", "tone": "warn",
+         "rule": t("%d or more in %d days, over %d times the team average")
                  % (FLAG_MIN, FLAG_WINDOW_DAYS, FLAG_RATIO),
          "items": flag_outliers},
-        {"key": "overrides", "title": "Payment status changed by hand", "icon": "receipt",
-         "tone": "warn", "rule": "Last %d days" % OVERRIDE_WINDOW_DAYS, "items": overrides},
-        {"key": "late", "title": "Centres running late", "icon": "hourglass", "tone": "warn",
-         "rule": "%d minutes or more behind" % LATE_MINUTES, "items": late},
-        {"key": "rejected", "title": "Loads rejected at the gate", "icon": "x-circle",
-         "tone": "neutral", "rule": "Last %d days" % REJECT_WINDOW_DAYS, "items": rejected},
+        {"key": "overrides", "title": t("Payment status changed by hand"), "icon": "receipt",
+         "tone": "warn", "rule": t("Last %d days") % OVERRIDE_WINDOW_DAYS, "items": overrides},
+        {"key": "late", "title": t("Centres running late"), "icon": "hourglass", "tone": "warn",
+         "rule": t("%d minutes or more behind") % LATE_MINUTES, "items": late},
+        {"key": "rejected", "title": t("Loads rejected at the gate"), "icon": "x-circle",
+         "tone": "neutral", "rule": t("Last %d days") % REJECT_WINDOW_DAYS, "items": rejected},
     ]
 
 

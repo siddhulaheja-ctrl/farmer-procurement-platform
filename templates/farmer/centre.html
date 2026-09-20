@@ -3,12 +3,12 @@
 {% block title %}{{ t(centre.name) }}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('farmer_centres') }}">{{ icon('building') }}{{ t("Procurement centres") }}</a>{{ icon('chevron-right') }}<span>{{ t(centre.name) }}</span>
-</nav>
-
 <div class="pagehead">
   <div class="ph-text">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ url_for('farmer_centres') }}">{{ icon('building') }}{{ t("Procurement centres") }}</a>{{ icon('chevron-right') }}<span>{{ t(centre.name) }}</span>
+    </nav>
+    <p class="eyebrow">{{ icon('calendar-plus') }}{{ t("Step 2: pick a day and time") }}</p>
     <h1 class="page-title">{{ t(centre.name) }}</h1>
     <div class="meta-row">
       <span>{{ icon('map-pin') }}{{ t(centre.location) }}, {{ t(centre.district) }}</span>

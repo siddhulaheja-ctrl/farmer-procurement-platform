@@ -4,23 +4,23 @@
 <div class="gate-card {{ v.tone }}" data-code="{{ r.code }}">
   <div class="gc-head">
     <span class="gc-mark">{{ icon('check-circle' if v.tone == 'ok' else ('alert-triangle' if v.tone == 'warn' else ('x-circle' if v.tone == 'bad' else 'info'))) }}</span>
-    <h2>{{ v.title }}</h2>
+    <h2>{{ v.title_local or v.title }}</h2>
   </div>
   {% if r.done == 'checkin' or r.done == 'checkin_anyway' %}
-    <p class="gc-done">{{ icon('check') }}Let in. Queue no. <b>{{ b.gate_queue }}</b>. Send them to the weighbridge.</p>
+    <p class="gc-done">{{ icon('check') }}{{ t("Let in. Queue no. %(n)s. Send them to the weighbridge.")|format(n=b.gate_queue) }}</p>
   {% elif r.done == 'checkout' %}
-    <p class="gc-done">{{ icon('check') }}Marked out at {{ b.gate_out_at[11:16] }}.</p>
+    <p class="gc-done">{{ icon('check') }}{{ t("Marked out at %(time)s.")|format(time=b.gate_out_at[11:16]) }}</p>
   {% else %}
-    <p>{{ v.detail }}</p>
+    <p>{{ v.detail_local or v.detail }}</p>
   {% endif %}
 
   {% if b and v.code != 'not_genuine' %}
   <dl class="kv gc-facts">
-    <dt>Farmer</dt><dd>{{ b.farmer_name }} <span class="sub-line">{{ b.village }}</span></dd>
-    <dt>Aadhaar</dt><dd class="mono">{{ b.aadhaar_number|mask }} <span class="sub-line">match the last four with their card</span></dd>
-    <dt>Slot</dt><dd>{{ b.date|nicedate }} ({{ b.date|dayname }}), {{ b.time_window }} <span class="sub-line">{{ b.centre_name }}</span></dd>
-    <dt>Crop</dt><dd>{{ b.crop_type }}, about {{ '%.0f'|format(b.estimated_quantity) }} quintals <span class="sub-line token-txt">{{ b.token_no }}</span></dd>
-    <dt>Pass</dt><dd>{% if r.genuine %}<span class="badge green">Genuine, signed</span>{% elif r.genuine is none %}<span class="badge amber">Typed by hand</span>{% endif %}</dd>
+    <dt>{{ icon('user') }}{{ t("Farmer") }}</dt><dd>{{ b.farmer_name }} <span class="sub-line">{{ t(b.village) }}</span></dd>
+    <dt>{{ icon('id-card') }}{{ t("Aadhaar") }}</dt><dd class="mono">{{ b.aadhaar_number|mask }} <span class="sub-line">{{ t("match the last four with their card") }}</span></dd>
+    <dt>{{ icon('calendar') }}{{ t("Slot") }}</dt><dd>{{ b.date|nicedate }} ({{ b.date|dayname }}), {{ b.time_window }} <span class="sub-line">{{ t(b.centre_name) }}</span></dd>
+    <dt>{{ icon('wheat') }}{{ t("Crop") }}</dt><dd>{{ t(b.crop_type) }}, {{ t("about") }} {{ '%.0f'|format(b.estimated_quantity) }} {{ t("quintals") }} <span class="sub-line token-txt">{{ b.token_no }}</span></dd>
+    <dt>{{ icon('shield') }}{{ t("Pass") }}</dt><dd>{% if r.genuine %}<span class="badge green">{{ t("Genuine, signed") }}</span>{% elif r.genuine is none %}<span class="badge amber">{{ t("Typed by hand") }}</span>{% endif %}</dd>
   </dl>
   {% endif %}
 
@@ -28,20 +28,20 @@
   <div class="btn-row gc-actions">
     {% if not r.done %}
       {% if v.action == 'checkin' %}
-        <button type="button" class="btn go large" data-action="checkin">{{ icon('log-in') }}Mark arrived</button>
+        <button type="button" class="btn go large" data-action="checkin">{{ icon('log-in') }}{{ t("Mark arrived") }}</button>
       {% elif v.action == 'checkin_anyway' %}
         <div class="field gc-note">
-          <label for="gate-note">Why let them in anyway?</label>
-          <input type="text" id="gate-note" name="note" placeholder="e.g. centre has room, superadmin agreed">
+          <label for="gate-note">{{ t("Why let them in anyway?") }}</label>
+          <input type="text" id="gate-note" name="note" placeholder="{{ t('e.g. centre has room, superadmin agreed') }}">
         </div>
-        <button type="button" class="btn large" data-action="checkin_anyway">{{ icon('log-in') }}Let in anyway</button>
+        <button type="button" class="btn large" data-action="checkin_anyway">{{ icon('log-in') }}{{ t("Let in anyway") }}</button>
       {% elif v.action == 'checkout' %}
-        <button type="button" class="btn go large" data-action="checkout">{{ icon('log-out') }}Mark out at gate</button>
+        <button type="button" class="btn go large" data-action="checkout">{{ icon('log-out') }}{{ t("Mark out at gate") }}</button>
       {% endif %}
     {% endif %}
     {% if b and v.code not in ('not_genuine', 'wrong_centre') %}
-      <a class="btn secondary" href="{{ url_for('admin_booking', booking_id=b.id) }}">{{ icon('eye') }}Open booking</a>
+      <a class="btn secondary" href="{{ url_for('admin_booking', booking_id=b.id) }}">{{ icon('eye') }}{{ t("Open booking") }}</a>
     {% endif %}
-    <button type="button" class="btn ghost" data-next>{{ icon('scan') }}Scan next</button>
+    <button type="button" class="btn ghost" data-next>{{ icon('scan') }}{{ t("Scan next") }}</button>
   </div>
 </div>

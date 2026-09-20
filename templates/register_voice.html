@@ -4,12 +4,12 @@
 {# the conversation runs on voice.js, the same as booking by speaking: the page
    says the question, listens, sends the answer and says the next one #}
 {% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('register') }}">{{ icon('arrow-left') }}{{ t("Back to the form") }}</a>
-</nav>
-
 <div class="pagehead">
   <div class="ph-text">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ url_for('register') }}">{{ icon('arrow-left') }}{{ t("Back to the form") }}</a>
+    </nav>
+    <p class="eyebrow">{{ icon('mic') }}{{ t("No typing needed") }}</p>
     <h1 class="page-title">{{ t("Register by speaking") }}</h1>
     <p class="page-sub">{{ t("One question at a time. Speak, type, or tap a button. Nothing is saved until you say yes at the end.") }}</p>
   </div>

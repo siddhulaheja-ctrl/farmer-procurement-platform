@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Assisted Registration{% endblock %}
+{% block title %}{{ t("Register a farmer") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">Assisted registration</p>
-    <h1 class="page-title">Register a farmer</h1>
+    <p class="eyebrow">{{ icon('user-plus') }}{{ t("Assisted registration") }}</p>
+    <h1 class="page-title">{{ t("Register a farmer") }}</h1>
   </div>
 </div>
 
@@ -17,14 +17,14 @@
   </div>
 
   <div class="stack">
-    <div class="card tint">
-      <div class="card-head"><h2 class="card-title">Check the documents in front of you</h2></div>
+    <div class="card taped">
+      <div class="card-head"><h2 class="card-title">{{ icon('clipboard-check') }}{{ t("Check the documents in front of you") }}</h2></div>
       <div class="card-body">
         <ul class="checklist">
-          <li>{{ icon('ticket') }}Farmer ID card &mdash; fills in the rest</li>
-          <li>{{ icon('id-card') }}Aadhaar card &mdash; all 12 digits</li>
-          <li>{{ icon('landmark') }}Bank passbook &mdash; account, IFSC and the name as printed</li>
-          <li>{{ icon('map-pin') }}Khasra / khatauni extract &mdash; every land record they farm</li>
+          <li>{{ icon('ticket') }}{{ t("Farmer ID card - fills in the rest") }}</li>
+          <li>{{ icon('id-card') }}{{ t("Aadhaar card - all 12 digits") }}</li>
+          <li>{{ icon('landmark') }}{{ t("Bank passbook - account, IFSC and the name as printed") }}</li>
+          <li>{{ icon('map-pin') }}{{ t("Khasra / khatauni extract - every land record they farm") }}</li>
         </ul>
       </div>
     </div>

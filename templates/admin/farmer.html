@@ -1,38 +1,37 @@
 {% extends "base.html" %}
 {% from "_macros.html" import status_badge, payment_badge, flag_list, crop %}
-{% block title %}{{ farmer.name }}{% endblock %}
+{% block title %}{{ farmer.name }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('admin_farmers') }}">{{ icon('users') }}Farmers</a>{{ icon('chevron-right') }}<span>{{ farmer.name }}</span>
-</nav>
-
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">Farmer record</p>
+    <nav class="breadcrumb" aria-label="{{ t('Breadcrumb') }}">
+      <a href="{{ url_for('admin_farmers') }}">{{ icon('users') }}{{ t("Farmers") }}</a>{{ icon('chevron-right') }}<span>{{ farmer.name }}</span>
+    </nav>
+    <p class="eyebrow">{{ icon('id-card') }}{{ t("Farmer record") }}</p>
     <h1 class="page-title">{{ farmer.name }}</h1>
     <div class="meta-row">
       <span>{{ icon('phone') }}{{ farmer.phone_number }}</span>
-      <span>{{ icon('map-pin') }}{{ farmer.village }}, {{ farmer.district }}</span>
-      <span>{{ icon('user-plus') }}Registered via {{ farmer.registered_via|upper }} on {{ farmer.created_at|nicedate }}</span>
-      {% if farmer.agristack_id %}<span>{{ icon('id-card') }}Farmer ID <b class="mono">{{ farmer.agristack_id }}</b></span>{% endif %}
-      <span>{{ icon('map-pin') }}{{ lands|length }} land record{{ '' if lands|length == 1 else 's' }}</span>
+      <span>{{ icon('map-pin') }}{{ t(farmer.village) }}, {{ t(farmer.district) }}</span>
+      <span>{{ icon('user-plus') }}{{ t("Registered via %(via)s on %(date)s")|format(via=farmer.registered_via|upper, date=farmer.created_at|nicedate) }}</span>
+      {% if farmer.agristack_id %}<span>{{ icon('id-card') }}{{ t("Farmer ID") }} <b class="mono">{{ farmer.agristack_id }}</b></span>{% endif %}
+      <span>{{ icon('map-pin') }}{{ t("%(n)d land record(s)")|format(n=lands|length) }}</span>
     </div>
   </div>
 </div>
 
 {% if flags %}
 <div class="notice error">
-  <h3>{{ flags|length }} unresolved issue{{ 's' if flags|length != 1 }}</h3>
+  <h3>{{ t("%(n)d unresolved issue(s)")|format(n=flags|length) }}</h3>
   {{ flag_list(flags, resolve=True) }}
 </div>
 {% else %}
-<div class="notice success">All validation checks pass for this record.</div>
+<div class="notice success">{{ t("All validation checks pass for this record.") }}</div>
 {% endif %}
 
 <div class="grid side">
   <div class="card">
-    <div class="card-head"><h2 class="card-title">Correct record</h2></div>
+    <div class="card-head"><h2 class="card-title">{{ icon('sliders') }}{{ t("Correct record") }}</h2></div>
     <div class="card-body">
       <form method="post">
         {% with f = farmer, show_phone = false %}
@@ -41,27 +40,27 @@
         {# only staff can say this - it's checked with the bank, not typed by the farmer #}
         <label class="checkline">
           <input type="checkbox" name="aadhaar_seeded" value="1" {{ 'checked' if farmer.aadhaar_seeded }}>
-          <span>Aadhaar is linked to this bank account<small>Checked with the bank or the NPCI mapper. A payment to an unlinked account comes back.</small></span>
+          <span>{{ t("Aadhaar is linked to this bank account") }}<small>{{ t("Checked with the bank or the NPCI mapper. A payment to an unlinked account comes back.") }}</small></span>
         </label>
         <div class="btn-row mt">
-          <button class="btn" type="submit">{{ icon('refresh') }}Save and re-validate</button>
-          <a class="btn secondary" href="{{ url_for('admin_farmers') }}">Back</a>
+          <button class="btn wheat" type="submit">{{ icon('refresh') }}{{ t("Save and re-validate") }}</button>
+          <a class="btn secondary" href="{{ url_for('admin_farmers') }}">{{ t("Back") }}</a>
         </div>
       </form>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-head"><h2 class="card-title">Booking history <span class="count">{{ bookings|length }}</span></h2></div>
+    <div class="card-head"><h2 class="card-title">{{ icon('ticket') }}{{ t("Booking history") }} <span class="count">{{ bookings|length }}</span></h2></div>
     {% if bookings %}
     <div class="table-scroll">
       <table class="data">
-        <thead><tr><th>Token</th><th>Date</th><th>Status</th><th>Payment</th></tr></thead>
+        <thead><tr><th>{{ t("Token") }}</th><th>{{ t("Date") }}</th><th>{{ t("Status") }}</th><th>{{ t("Payment") }}</th></tr></thead>
         <tbody>
           {% for b in bookings %}
           <tr>
             <td><a class="token-txt" href="{{ url_for('admin_booking', booking_id=b.id) }}">{{ b.token_no }}</a>
-              <span class="sub-line">{{ b.crop_type }}</span></td>
+              <span class="sub-line">{{ t(b.crop_type) }}</span></td>
             <td class="nowrap small">{{ b.date|nicedate }}</td>
             <td>{{ status_badge(b.status) }}</td>
             <td>{{ payment_badge(b.payment_status) }}</td>
@@ -71,7 +70,7 @@
       </table>
     </div>
     {% else %}
-      <div class="empty">No bookings yet.</div>
+      <div class="empty">{{ t("No bookings yet.") }}</div>
     {% endif %}
   </div>
 </div>

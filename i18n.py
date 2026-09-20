@@ -9,7 +9,7 @@ The bengali table needs a native speaker to read it over.
 TODO: move this to flask-babel before adding the rest of the 22
 """
 
-from flask import session
+from flask import has_request_context, session
 
 HINDI = {
     'Indicative rates per quintal, and the rise over the previous season': 'प्रति क्विंटल सांकेतिक दरें, और पिछले सत्र से बढ़ोतरी',
@@ -950,6 +950,12 @@ from lang.bn import BENGALI  # noqa: E402
 LANGUAGES = {"en": "English", "hi": "हिन्दी", "bn": "বাংলা"}
 TABLES = {"hi": HINDI, "bn": BENGALI}
 
+# the field-notebook redesign's strings (staff screens, run-time labels)
+from lang.theme import HI as _THEME_HI, BN as _THEME_BN  # noqa: E402
+for _table, _extra in ((HINDI, _THEME_HI), (BENGALI, _THEME_BN)):
+    for _english, _local in _extra.items():
+        _table.setdefault(_english, _local)
+
 # village names live with the village list
 from villages import NAMES as _VILLAGE_NAMES  # noqa: E402
 for _code, _names in _VILLAGE_NAMES.items():
@@ -964,6 +970,9 @@ def get_lang():
 
 
 def t(text):
-    """Translate one string. Anything a table is missing stays in english."""
+    """Translate one string. Anything a table is missing stays in english, and
+    so does anything asked for outside a request (a script, a background job)."""
+    if not has_request_context():
+        return text
     table = TABLES.get(get_lang())
     return table.get(text, text) if table else text

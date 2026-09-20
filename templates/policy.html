@@ -2,21 +2,20 @@
 {% block title %}{{ t(title) }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="{{ url_for('home') }}">{{ icon('home') }}{{ t("Home") }}</a>{{ icon('chevron-right') }}<span>{{ t(title) }}</span>
-</nav>
-
 <div class="pagehead">
   <div class="ph-text">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ url_for('home') }}">{{ icon('home') }}{{ t("Home") }}</a>{{ icon('chevron-right') }}<span>{{ t(title) }}</span>
+    </nav>
     <h1 class="page-title">{{ t(title) }}</h1>
     <p class="page-sub">{{ t("Last updated on") }} {{ last_updated.strftime('%d-%m-%Y') }}</p>
   </div>
 </div>
 
 <div class="grid side">
-  <div class="card">
+  <div class="card taped">
     <div class="card-body prose">
-      {% for para in paragraphs %}<p>{{ para }}</p>{% endfor %}
+      {% for para in paragraphs %}<p>{{ t(para) }}</p>{% endfor %}
     </div>
   </div>
 

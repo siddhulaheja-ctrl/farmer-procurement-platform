@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% from "_macros.html" import audit_changes, audit_target %}
-{% block title %}Needs attention{% endblock %}
+{% block title %}{{ t("Needs attention") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <p class="eyebrow">District superadmin</p>
-    <h1 class="page-title">Needs attention</h1>
-    <p class="page-sub">Things a person should look at. Each list says the rule that put something on it, so nothing shows up here without a reason.</p>
+    <p class="eyebrow">{{ icon('shield') }}{{ t("District superadmin") }}</p>
+    <h1 class="page-title">{{ t("Needs attention") }}</h1>
+    <p class="page-sub">{{ t("Things a person should look at. Each list says the rule that put something on it, so nothing shows up here without a reason.") }}</p>
   </div>
 </div>
 
@@ -31,21 +31,21 @@
           <div class="who">
             <div class="who-text">
               <a href="{{ url_for('admin_farmer', farmer_id=it.farmer_id) }}">{{ it.farmer_name }}</a>
-              <span class="sub-line">{{ it.token_no }} &middot; {{ it.centre_name }}</span>
+              <span class="sub-line">{{ it.token_no }} &middot; {{ t(it.centre_name) }}</span>
             </div>
           </div>
-          <div class="attn-fact"><strong>{{ it.total_amount|rupee }}</strong><span>held {{ it.days }} days</span></div>
-          <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=it.booking_id) }}">Open{{ icon('arrow-right') }}</a>
+          <div class="attn-fact"><strong>{{ it.total_amount|rupee }}</strong><span>{{ t("held %(n)s days")|format(n=it.days) }}</span></div>
+          <a class="btn small secondary" href="{{ url_for('admin_booking', booking_id=it.booking_id) }}">{{ t("Open") }}{{ icon('arrow-right') }}</a>
 
         {% elif s.key == 'flags' %}
           <div class="who">
             <div class="who-text">
               <a href="{{ url_for('super_staff_detail', staff_id=it.id) }}">{{ it.name }}</a>
-              <span class="sub-line">{{ it.staff_code }} &middot; {{ it.centre_name }}</span>
+              <span class="sub-line">{{ it.staff_code }} &middot; {{ t(it.centre_name) }}</span>
             </div>
           </div>
-          <div class="attn-fact"><strong>{{ it.n }} cleared</strong><span>team average {{ '%.1f'|format(it.team_mean) }}</span></div>
-          <a class="btn small secondary" href="{{ url_for('super_activity', staff_id=it.id, action='flag_verified') }}">See which{{ icon('arrow-right') }}</a>
+          <div class="attn-fact"><strong>{{ t("%(n)s cleared")|format(n=it.n) }}</strong><span>{{ t("team average") }} {{ '%.1f'|format(it.team_mean) }}</span></div>
+          <a class="btn small secondary" href="{{ url_for('super_activity', staff_id=it.id, action='flag_verified') }}">{{ t("See which") }}{{ icon('arrow-right') }}</a>
 
         {% elif s.key == 'overrides' %}
           <div class="who">
@@ -60,26 +60,26 @@
         {% elif s.key == 'late' %}
           <div class="who">
             <div class="who-text">
-              <strong>{{ it.name }}</strong>
-              <span class="sub-line">{% if it.delay_set_at %}set {{ it.delay_set_at|stamp }}{% endif %}</span>
+              <strong>{{ t(it.name) }}</strong>
+              <span class="sub-line">{% if it.delay_set_at %}{{ t("set") }} {{ it.delay_set_at|stamp }}{% endif %}</span>
             </div>
           </div>
-          <div class="attn-fact"><strong>{{ it.delay_minutes }} minutes</strong><span>behind</span></div>
+          <div class="attn-fact"><strong>{{ t("%(n)s minutes")|format(n=it.delay_minutes) }}</strong><span>{{ t("behind") }}</span></div>
 
         {% elif s.key == 'rejected' %}
           <div class="who">
             <div class="who-text">
               <a href="{{ url_for('admin_farmer', farmer_id=it.farmer_id) }}">{{ it.farmer_name }}</a>
-              <span class="sub-line">{{ it.village }} &middot; {{ it.centres }}</span>
+              <span class="sub-line">{{ t(it.village) }} &middot; {{ it.centres }}</span>
             </div>
           </div>
-          <div class="attn-fact"><strong>{{ it.n }} rejected</strong><span>last on {{ it.last_date|nicedate }}</span></div>
+          <div class="attn-fact"><strong>{{ t("%(n)s rejected")|format(n=it.n) }}</strong><span>{{ t("last on %(date)s")|format(date=it.last_date|nicedate) }}</span></div>
         {% endif %}
       </li>
       {% endfor %}
     </ul>
     {% else %}
-    <p class="attn-clear">{{ icon('check-circle') }}Nothing here right now.</p>
+    <p class="attn-clear">{{ icon('check-circle') }}{{ t("Nothing here right now.") }}</p>
     {% endif %}
   </section>
   {% endfor %}

@@ -158,7 +158,7 @@ def register_filters(app):
             d = datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
         except (TypeError, ValueError):
             return value
-        return d.strftime("%d %b %Y")
+        return "%s %s %d" % (d.strftime("%d"), t(d.strftime("%b")), d.year)
 
     @app.template_filter("dayname")
     def dayname(value):
@@ -221,7 +221,8 @@ def register_filters(app):
     @app.template_filter("stamp")
     def stamp(value):
         try:
-            return datetime.fromisoformat(str(value)).strftime("%d %b %Y, %H:%M")
+            dt = datetime.fromisoformat(str(value))
+            return "%s %s %d, %s" % (dt.strftime("%d"), t(dt.strftime("%b")), dt.year, dt.strftime("%H:%M"))
         except (TypeError, ValueError):
             return value
 
@@ -245,7 +246,7 @@ def staff_required(fn):
         # its next click, not whenever the cookie happens to expire
         if not g.get("staff"):
             session.pop("staff_id", None)
-            flash("Member sign-in required.", "warning")
+            flash(t("Member sign-in required."), "warning")
             return redirect(url_for("admin_login"))
         return fn(*a, **kw)
     return wrapper
@@ -258,7 +259,7 @@ def superadmin_required(fn):
     def wrapper(*a, **kw):
         if not g.get("staff"):
             session.pop("staff_id", None)
-            flash("Superadmin sign-in required.", "warning")
+            flash(t("Superadmin sign-in required."), "warning")
             return redirect(url_for("super_login"))
         if g.staff["role"] != "superadmin":
             abort(403)
@@ -348,7 +349,8 @@ def register_routes(app):
                                 "today": days[0], "rain_3d": round(sum(x["rain_mm"] for x in days), 1),
                                 "wet_days": sum(1 for x in days if x["rain_mm"] > 0.5)})
             source = "live" if outlook and all(o["source"] == "live" for o in outlook) else ("mock" if outlook else None)
-        return render_template("home.html", msp=core.MSP, msp_prev=core.MSP_PREVIOUS, districts=districts, picked=picked,
+        # design_lab.py renders the same data into a trial design instead
+        return render_template(g.get("home_template", "home.html"), msp=core.MSP, msp_prev=core.MSP_PREVIOUS, districts=districts, picked=picked,
                                forecast=forecast, place=place, source=source, outlook=outlook,
                                day=day, hours=hours)
 
@@ -1334,21 +1336,21 @@ def register_routes(app):
             # one message for a wrong code, a wrong password and a switched-off
             # account, so the form can't be used to find out which codes exist
             if s is None or not s["active"] or not accounts.check_password(s["password"], pwd):
-                flash("Invalid member code or password.", "error")
+                flash(t("Invalid member code or password."), "error")
                 return render_template(template, roster=accounts.DEMO_STAFF, demo_password=accounts.DEMO_PASSWORD, code=code)
             if s["role"] != role:
                 # right password, wrong door. only said once the password is
                 # right, so it gives nothing away
                 other = (("super_login", "superadmin sign in") if s["role"] == "superadmin"
                          else ("admin_login", "centre member sign in"))
-                flash(Markup('This account signs in on the <a href="%s">%s</a> page.')
-                      % (url_for(other[0]), other[1]), "warning")
+                flash(Markup(t('This account signs in on the <a href="%s">%s</a> page.'))
+                      % (url_for(other[0]), t(other[1])), "warning")
                 return render_template(template, roster=accounts.DEMO_STAFF, demo_password=accounts.DEMO_PASSWORD, code=code)
             session["staff_id"] = s["id"]
             execute("UPDATE staff SET last_login = ? WHERE id = ?",
                     (datetime.now().isoformat(timespec="seconds"), s["id"]))
             audit.record(s, "sign_in")
-            flash("Signed in as %s." % s["name"], "success")
+            flash(t("Signed in as %s.") % s["name"], "success")
             return redirect(url_for(landing))
         return render_template(template, roster=accounts.DEMO_STAFF, demo_password=accounts.DEMO_PASSWORD, code="")
 
@@ -1431,7 +1433,7 @@ def register_routes(app):
     def admin_arrive(booking_id):
         b = _scoped_booking(booking_id)
         if b["status"] != "booked":
-            flash("Only a booked entry can be marked as arrived.", "error")
+            flash(t("Only a booked entry can be marked as arrived."), "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
         def number(field, low=0.0, high=None):
             v = float(request.form.get(field))
@@ -1446,20 +1448,20 @@ def register_routes(app):
             moisture = number("moisture", 0, 40)
             foreign = number("foreign_matter", 0, 30)
         except (TypeError, ValueError):
-            flash("Enter the gross weight, number of bags, bag weight, moisture and foreign matter.", "error")
+            flash(t("Enter the gross weight, number of bags, bag weight, moisture and foreign matter."), "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
         actual = core.net_quantity(gross, bags, bag_kg)
         if actual <= 0:
-            flash("The bags weigh more than the gross weight. Check the readings.", "error")
+            flash(t("The bags weigh more than the gross weight. Check the readings."), "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
         grade = request.form.get("quality_grade")
         if grade not in core.GRADES:
-            flash("Select a quality grade.", "error")
+            flash(t("Select a quality grade."), "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
         suggested = core.suggest_grade(b["crop_type"], moisture, foreign)
         note = (request.form.get("grade_note") or "").strip()
         if grade != suggested and len(note) < 5:
-            flash("The readings suggest grade %s. Write why you picked %s." % (suggested, grade), "error")
+            flash(t("The readings suggest grade %s. Write why you picked %s.") % (suggested, grade), "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
 
         rate, total = core.compute_amount(b["crop_type"], actual, grade)
@@ -1496,7 +1498,7 @@ def register_routes(app):
         audit.record(g.staff, "weigh", farmer_id=b["farmer_id"], booking_id=booking_id,
                      centre_id=b["centre_id"],
                      detail="%.1f quintals of %s, grade %s" % (actual, b["crop_type"], grade))
-        flash("Recorded: %.1f quintals, grade %s." % (actual, grade), "success")
+        flash(t("Recorded: %.1f quintals, grade %s.") % (actual, grade), "success")
         return _after_write(booking_id)
 
     @app.route("/admin/booking/<int:booking_id>/call", methods=["POST"])
@@ -1511,8 +1513,8 @@ def register_routes(app):
         # order matters. status first, or a cancelled booking gets read out
         # as "your slot is booked, please come" - which it did for a while.
         if b["status"] == "cancelled":
-            flash("That booking was cancelled, so there is nothing to tell them. "
-                  "Ring them from the farmer's page instead.", "error")
+            flash(t("That booking was cancelled, so there is nothing to tell them. "
+                  "Ring them from the farmer's page instead."), "error")
             return redirect(request.referrer
                             or url_for("admin_booking", booking_id=booking_id))
 
@@ -1556,11 +1558,11 @@ def register_routes(app):
         b = _scoped_booking(booking_id)
         txn = query("SELECT * FROM transactions WHERE booking_id = ?", (booking_id,), one=True)
         if txn is None:
-            flash("Record the weighed quantity before completing the transaction.", "error")
+            flash(t("Record the weighed quantity before completing the transaction."), "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
 
         if b["status"] != "arrived":
-            flash("This transaction is already closed.", "error")
+            flash(t("This transaction is already closed."), "error")
             return redirect(url_for("admin_booking", booking_id=booking_id))
         execute("UPDATE bookings SET status='completed' WHERE id=?", (booking_id,))
         # receipt first, then a bill, a hold (details still wrong) or nothing to pay
@@ -1568,7 +1570,7 @@ def register_routes(app):
         if stage == "nil":
             audit.record(g.staff, "close", farmer_id=b["farmer_id"], booking_id=booking_id,
                          centre_id=b["centre_id"], detail="Rejected, nothing payable")
-            flash("Closed. Rejected produce, so there is nothing to pay. Receipt issued.", "success")
+            flash(t("Closed. Rejected produce, so there is nothing to pay. Receipt issued."), "success")
             return _after_write(booking_id)
         blocking = [f for f in unresolved_flags(b["farmer_id"]) if f["severity"] == "blocking"]
         if stage == "held":
@@ -1582,8 +1584,8 @@ def register_routes(app):
                            "सही दस्तावेज़ लेकर अपने केंद्र जाएं।" % len(blocking))
             audit.record(g.staff, "payment_held", farmer_id=b["farmer_id"], booking_id=booking_id,
                          centre_id=b["centre_id"], detail="%d blocking flag(s) open" % len(blocking))
-            flash("Transaction closed and receipt issued, but the payment is HELD - the farmer has %d "
-                  "blocking detail problem(s). Fix the record, then release it." % len(blocking), "warning")
+            flash(t("Transaction closed and receipt issued, but the payment is HELD - the farmer has %d "
+                  "blocking detail problem(s). Fix the record, then release it.") % len(blocking), "warning")
             return _after_write(booking_id)
 
         alerts_mod.raise_alert(
@@ -1599,7 +1601,7 @@ def register_routes(app):
             % int(txn["total_amount"] or 0), booking_id=booking_id)
         audit.record(g.staff, "close", farmer_id=b["farmer_id"], booking_id=booking_id,
                      centre_id=b["centre_id"], detail="Rs %s to be paid" % format(int(txn["total_amount"] or 0), ","))
-        flash("Transaction closed. Receipt issued and the bill is ready for the next payment batch.", "success")
+        flash(t("Transaction closed. Receipt issued and the bill is ready for the next payment batch."), "success")
         return _after_write(booking_id)
 
     def _scoped_txn(txn_id):
@@ -1655,14 +1657,14 @@ def register_routes(app):
         ready = [r for r in payments.register(_my_centre(), "billed")]
         batch = payments.send(ready, g.staff, _my_centre())
         if batch is None:
-            flash("No bills are waiting for the bank.", "info")
+            flash(t("No bills are waiting for the bank."), "info")
         else:
             audit.record(g.staff, "payment_batch", ref_id=batch["id"],
                          detail="%s: %d bill%s, Rs %s" % (batch["batch_no"], batch["items"],
                                                           "s" if batch["items"] != 1 else "",
                                                           format(int(batch["amount"]), ",")))
-            flash("Batch %s sent: %d bill%s, %s. The bank answers in about %d seconds."
-                  % (batch["batch_no"], batch["items"], "s" if batch["items"] != 1 else "",
+            flash(t("Batch %s sent: %d bill(s), %s. The bank answers in about %d seconds.")
+                  % (batch["batch_no"], batch["items"],
                      "Rs " + format(int(batch["amount"]), ","), payments.CREDIT_SECONDS), "toast-success")
         return _back_to(url_for("admin_transactions"))
 
@@ -1672,20 +1674,20 @@ def register_routes(app):
         """One bill now, or a returned one again once its details are fixed."""
         x = _scoped_txn(txn_id)
         if x["pay_stage"] not in ("billed", "returned"):
-            flash("Only a bill ready for the bank or a returned payment can be sent.", "error")
+            flash(t("Only a bill ready for the bank or a returned payment can be sent."), "error")
             return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
         again = x["pay_stage"] == "returned"
         if again:
             failing = [c["label"] for c in payments.checks(x) if not c["ok"]]
             if failing and not request.form.get("anyway"):
-                flash("Still failing: %s. Fix the farmer's record first, or the bank will return it again."
+                flash(t("Still failing: %s. Fix the farmer's record first, or the bank will return it again.")
                       % ", ".join(failing), "error")
                 return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
         batch = payments.send([x], g.staff, x["centre_id"])
         audit.record(g.staff, "payment_resend" if again else "payment_batch", farmer_id=x["farmer_id"],
                      booking_id=x["booking_id"], ref_id=txn_id, centre_id=x["centre_id"],
                      detail="%s: Rs %s" % (batch["batch_no"], format(int(x["total_amount"] or 0), ",")))
-        flash("Sent to the bank in %s. The answer comes in about %d seconds."
+        flash(t("Sent to the bank in %s. The answer comes in about %d seconds.")
               % (batch["batch_no"], payments.CREDIT_SECONDS), "toast-success")
         return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
 
@@ -1696,9 +1698,9 @@ def register_routes(app):
         if payments.release(x, g.staff):
             audit.record(g.staff, "payment_release", farmer_id=x["farmer_id"], booking_id=x["booking_id"],
                          ref_id=txn_id, centre_id=x["centre_id"], detail="Rs %s" % format(int(x["total_amount"] or 0), ","))
-            flash("Released. The bill is ready for the bank.", "success")
+            flash(t("Released. The bill is ready for the bank."), "success")
         else:
-            flash("It can't be released while the farmer still has a blocking detail problem.", "error")
+            flash(t("It can't be released while the farmer still has a blocking detail problem."), "error")
         return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
 
     @app.route("/admin/transaction/<int:txn_id>/payment", methods=["POST"])
@@ -1712,10 +1714,10 @@ def register_routes(app):
         if new not in payments.STAGES:
             abort(400)
         if len(reason) < 8:
-            flash("Write why you are changing it by hand (at least a few words).", "error")
+            flash(t("Write why you are changing it by hand (at least a few words)."), "error")
             return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
         if new == x["pay_stage"]:
-            flash("It is already at that stage.", "info")
+            flash(t("It is already at that stage."), "info")
             return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
         payments.override(x, new, reason, g.staff)
         amount = int(x["total_amount"] or 0)
@@ -1726,7 +1728,7 @@ def register_routes(app):
         audit.record(g.staff, "payment_manual", farmer_id=x["farmer_id"], booking_id=x["booking_id"],
                      ref_id=txn_id, centre_id=x["centre_id"], detail="Rs %s - %s" % (format(amount, ","), reason),
                      before=payments.STAGES[x["pay_stage"]][1], after=payments.STAGES[new][1])
-        flash("Stage set to '%s' by hand. This shows in the superadmin's activity log." % payments.STAGES[new][1],
+        flash(t("Stage set to '%s' by hand. This shows in the superadmin's activity log.") % t(payments.STAGES[new][1]),
               "warning")
         return _back_to(url_for("admin_booking", booking_id=x["booking_id"]))
 
@@ -1812,7 +1814,7 @@ def register_routes(app):
                                   "name_match": "नाम"}.get(f["field_flagged"], f["field_flagged"]))
         audit.record(g.staff, "flag_verified", farmer_id=f["farmer_id"], ref_id=flag_id,
                      detail="%s: %s" % (f["field_flagged"], f["detail"]))
-        flash("Flag marked resolved.", "success")
+        flash(t("Flag marked resolved."), "success")
         return redirect(request.referrer or url_for("admin_flags"))
 
     @app.route("/admin/farmer/<int:farmer_id>", methods=["GET", "POST"])
@@ -1849,8 +1851,8 @@ def register_routes(app):
                              farmer_id=farmer_id, before=before, after=after,
                              detail=", ".join(audit.FIELD_LABELS[k] for k in changed))
             problems = validate_and_flag(farmer_id)
-            flash("Details updated. %s" % ("%d issue(s) remain." % len(problems) if problems
-                                           else "All checks now pass."),
+            flash(t("Details updated. %s") % (t("%d issue(s) remain.") % len(problems) if problems
+                                           else t("All checks now pass.")),
                   "warning" if problems else "success")
             return redirect(url_for("admin_farmer", farmer_id=farmer_id))
         bookings = query(_BOOKING_SELECT + " WHERE b.farmer_id = ? ORDER BY s.date DESC",
@@ -1890,8 +1892,8 @@ def register_routes(app):
                      detail="CSC operator" if request.form.get("registered_via") == "csc"
                      else "At the counter")
         n = len(result["problems"])
-        flash("Farmer registered. %s" % ("%d verification issue(s) flagged for follow-up." % n
-                                         if n else "All verification checks passed."),
+        flash(t("Farmer registered. %s") % (t("%d verification issue(s) flagged for follow-up.") % n
+                                         if n else t("All verification checks passed.")),
               "warning" if n else "success")
         return redirect(url_for("admin_farmer", farmer_id=result["farmer_id"]))
 
@@ -1905,7 +1907,7 @@ def register_routes(app):
                 on = request.form.get("date")
                 datetime.strptime(on, "%Y-%m-%d")
             except (TypeError, ValueError):
-                flash("Fill in centre, date and capacity correctly.", "error")
+                flash(t("Fill in centre, date and capacity correctly."), "error")
                 return redirect(url_for("admin_slots"))
             if not _in_my_centre(centre_id):
                 abort(403)
@@ -1919,13 +1921,13 @@ def register_routes(app):
                     audit.record(g.staff, "capacity_change", ref_id=existing["id"],
                                  centre_id=centre_id, detail="%s, %s" % (on, tw),
                                  before=existing["max_capacity"], after=cap)
-                flash("Capacity updated for that slot.", "success")
+                flash(t("Capacity updated for that slot."), "success")
             else:
                 slot_id = execute("INSERT INTO slots (centre_id, date, time_window, max_capacity,"
                                   " booked_count) VALUES (?,?,?,?,0)", (centre_id, on, tw, cap))
                 audit.record(g.staff, "slot_create", ref_id=slot_id, centre_id=centre_id,
                              detail="%s, %s, %d farmers" % (on, tw, cap))
-                flash("Slot created.", "success")
+                flash(t("Slot created."), "success")
             return redirect(url_for("admin_slots", centre_id=centre_id, date=on))
 
         centre_id = _my_centre() or request.args.get("centre_id") or ""
@@ -1951,7 +1953,7 @@ def register_routes(app):
         try:
             mins = int(request.form.get("delay_minutes") or 0)
         except ValueError:
-            flash("Enter the delay in whole minutes.", "error")
+            flash(t("Enter the delay in whole minutes."), "error")
             return redirect(request.referrer or url_for("admin_slots"))
         mins = max(0, min(600, mins))
         if not _in_my_centre(centre_id):
@@ -1966,7 +1968,7 @@ def register_routes(app):
                  centre_id))
         audit.record(g.staff, "delay_set", ref_id=centre_id, centre_id=centre_id,
                      before=old["delay_minutes"], after=mins)
-        flash("Running %d minutes behind." % mins if mins else "Marked as running on time.",
+        flash(t("Running %d minutes behind.") % mins if mins else t("Marked as running on time."),
               "success")
         return redirect(request.referrer or url_for("admin_slots"))
 
@@ -1976,7 +1978,7 @@ def register_routes(app):
         # offering an earlier slot is done at the centre, by the people who
         # know which slots they can open. the supervisor does not work this list
         if g.staff["role"] == "superadmin":
-            flash("Storage risk is handled by centre members.", "info")
+            flash(t("Storage risk is handled by centre members."), "info")
             return redirect(url_for("super_overview"))
         rows = query(
             "SELECT b.*, s.date, s.time_window, s.centre_id, s.max_capacity, s.booked_count,"
@@ -2026,7 +2028,7 @@ def register_routes(app):
                      centre_id, form["role"]))
                 audit.record(g.staff, "staff_create", ref_id=sid, centre_id=centre_id,
                              detail="%s (%s)" % (form["name"].strip(), code))
-                flash("Account %s created." % code, "success")
+                flash(t("Account %s created.") % code, "success")
                 return redirect(url_for("super_staff_detail", staff_id=sid))
         return render_template("super/staff.html", staff=supervisor.staff_rows(),
                                centres=_centres_visible(), roles=accounts.ROLES, form=form)
@@ -2043,14 +2045,14 @@ def register_routes(app):
             if request.form.get("do") == "password":
                 pwd = request.form.get("password") or ""
                 if len(pwd) < 6:
-                    flash("A password needs at least 6 characters.", "error")
+                    flash(t("A password needs at least 6 characters."), "error")
                 else:
                     execute("UPDATE staff SET password = ? WHERE id = ?",
                             (accounts.hash_password(pwd), staff_id))
                     audit.record(g.staff, "password_reset", ref_id=staff_id,
                                  centre_id=person["centre_id"],
                                  detail="%s (%s)" % (person["name"], person["staff_code"]))
-                    flash("Password reset for %s." % person["staff_code"], "success")
+                    flash(t("Password reset for %s.") % person["staff_code"], "success")
             else:
                 error = _staff_form_error(request.form, new=False, person=person)
                 if error:
@@ -2072,7 +2074,7 @@ def register_routes(app):
                         audit.record(g.staff, "staff_update", ref_id=staff_id,
                                      centre_id=new["centre_id"], before=before, after=after,
                                      detail="%s (%s)" % (person["name"], person["staff_code"]))
-                        flash("Saved.", "success")
+                        flash(t("Saved."), "success")
             return redirect(url_for("super_staff_detail", staff_id=staff_id))
         return render_template("super/staff_detail.html", person=person,
                                stats=supervisor.staff_stats(staff_id),
@@ -2102,7 +2104,7 @@ def register_routes(app):
         # back to the page they signed in on
         supervisor = bool(g.get("staff")) and g.staff["role"] == "superadmin"
         session.pop("staff_id", None)
-        flash("Member signed out.", "success")
+        flash(t("Member signed out."), "success")
         return redirect(url_for("super_login" if supervisor else "admin_login"))
 
     # The IVR runs as its own service (see farmer-ivr/). It has no database,

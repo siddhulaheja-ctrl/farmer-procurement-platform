@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="pagehead">
-  <div class="ph-text"><h1 class="page-title">{{ t("Farmer registration") }}</h1></div>
+  <div class="ph-text"><p class="eyebrow">{{ icon('user-plus') }}{{ t("Five short steps") }}</p><h1 class="page-title">{{ t("Farmer registration") }}</h1></div>
 </div>
 
 {# for anyone who would rather talk than type #}
@@ -13,6 +13,7 @@
     <strong>{{ t("Register by speaking") }}</strong>
     <span>{{ t("Answer a few questions out loud. Your details are read back before anything is saved.") }}</span>
   </span>
+  <span class="vb-go">{{ icon('arrow-right') }}</span>
 </a>
 
 <div class="grid side">

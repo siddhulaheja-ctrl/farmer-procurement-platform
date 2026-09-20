@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% from "_macros.html" import field_icon %}
-{% block title %}Data Validation Flags{% endblock %}
+{% block title %}{{ t("Data flags") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
 <div class="pagehead">
   <div class="ph-text">
-    <h1 class="page-title">Data mismatch queue</h1>
+    <p class="eyebrow">{{ icon('flag') }}{{ t("Data flags") }}</p>
+    <h1 class="page-title">{{ t("Data mismatch queue") }}</h1>
   </div>
 </div>
 
@@ -13,65 +14,69 @@
 {% set warnings = flags|selectattr('severity', 'equalto', 'warning')|list|length %}
 <div class="stat-row">
   <div class="stat {{ 'bad' if blocking else 'zero' }}">
-    <div><div class="n">{{ blocking }}</div><div class="l">Blocking a payment</div></div>
+    <span class="stat-ic">{{ icon('x-circle') }}</span>
+    <div><div class="n">{{ blocking }}</div><div class="l">{{ t("Blocking a payment") }}</div></div>
   </div>
   <div class="stat {{ 'warn' if warnings else 'zero' }}">
-    <div><div class="n">{{ warnings }}</div><div class="l">Warnings</div></div>
+    <span class="stat-ic">{{ icon('alert-triangle') }}</span>
+    <div><div class="n">{{ warnings }}</div><div class="l">{{ t("Warnings") }}</div></div>
   </div>
   <div class="stat {{ 'info' if flags else 'zero' }}">
-    <div><div class="n">{{ flags|map(attribute='farmer_id')|unique|list|length }}</div><div class="l">Farmers affected</div></div>
+    <span class="stat-ic">{{ icon('users') }}</span>
+    <div><div class="n">{{ flags|map(attribute='farmer_id')|unique|list|length }}</div><div class="l">{{ t("Farmers affected") }}</div></div>
   </div>
   <div class="stat {{ 'info' if flags else 'zero' }}">
-    <div><div class="n">{{ flags|length }}</div><div class="l">Shown</div></div>
+    <span class="stat-ic">{{ icon('list') }}</span>
+    <div><div class="n">{{ flags|length }}</div><div class="l">{{ t("Shown") }}</div></div>
   </div>
 </div>
 
 <form method="get" class="filter-bar">
   <div class="field">
-    <label for="status">Show</label>
+    <label for="status">{{ icon('eye') }} {{ t("Show") }}</label>
     <select id="status" name="status">
-      <option value="unresolved" {{ 'selected' if sel_status == 'unresolved' }}>Unresolved</option>
-      <option value="resolved" {{ 'selected' if sel_status == 'resolved' }}>Resolved</option>
-      <option value="all" {{ 'selected' if sel_status == 'all' }}>All</option>
+      <option value="unresolved" {{ 'selected' if sel_status == 'unresolved' }}>{{ t("Unresolved") }}</option>
+      <option value="resolved" {{ 'selected' if sel_status == 'resolved' }}>{{ t("Resolved") }}</option>
+      <option value="all" {{ 'selected' if sel_status == 'all' }}>{{ t("All") }}</option>
     </select>
   </div>
-  <div class="actions"><button class="btn" type="submit">{{ icon('sliders') }}Apply</button></div>
+  <div class="actions"><button class="btn" type="submit">{{ icon('sliders') }}{{ t("Apply") }}</button></div>
 </form>
 
 <div class="card">
-  <div class="card-head"><h2 class="card-title">Flags <span class="count">{{ flags|length }}</span></h2></div>
+  <div class="card-head"><h2 class="card-title">{{ icon('flag') }}{{ t("Flags") }} <span class="count">{{ flags|length }}</span></h2></div>
   {% if flags %}
   <div class="table-scroll">
     <table class="data">
       <thead>
-        <tr><th>Severity</th><th>Farmer</th><th>Field</th><th>Detail</th><th>Flagged</th><th></th></tr>
+        <tr><th>{{ t("Severity") }}</th><th>{{ t("Farmer") }}</th><th>{{ t("Field") }}</th><th>{{ t("Detail") }}</th><th>{{ t("Flagged") }}</th><th></th></tr>
       </thead>
       <tbody>
         {% for f in flags %}
         <tr>
-          <td><span class="sev {{ f.severity }}">{{ icon('x-circle' if f.severity == 'blocking' else 'alert-triangle') }}{{ f.severity }}</span></td>
+          <td><span class="sev {{ f.severity }}">{{ icon('x-circle' if f.severity == 'blocking' else 'alert-triangle') }}{{ t(f.severity|capitalize) }}</span></td>
           <td>
             <div class="who">
               <div class="who-text">
                 <a href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ f.farmer_name }}</a>
-                <span class="sub-line">{{ f.district }}</span>
+                <span class="sub-line">{{ t(f.district) }}</span>
               </div>
             </div>
           </td>
-          <td class="nowrap"><span class="icon-text">{{ field_icon(f.field_flagged) }}{{ f.field_flagged|replace('_',' ')|title }}</span></td>
+          <td class="nowrap"><span class="icon-text">{{ field_icon(f.field_flagged) }}{{ t(f.field_flagged|replace('_',' ')|title) }}</span></td>
           <td class="small" style="min-width: 260px">{{ f.detail }}</td>
           <td class="small muted nowrap">{{ f.flagged_at|nicedate }}</td>
           <td class="nowrap">
             {% if f.status == 'unresolved' %}
               <div class="btn-row">
-                <a class="btn small" href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ icon('sliders') }}Correct</a>
+                <a class="btn small" href="{{ url_for('admin_farmer', farmer_id=f.farmer_id) }}">{{ icon('sliders') }}{{ t("Correct") }}</a>
                 <form method="post" action="{{ url_for('admin_resolve_flag', flag_id=f.id) }}">
                   <button class="btn small secondary" type="submit"
-                          title="Mark as verified against physical documents">{{ icon('check') }}Verified</button>
+                          title="{{ t('Mark as verified against physical documents') }}">{{ icon('check') }}{{ t("Verified") }}</button>
                 </form>
               </div>
             {% else %}
-              <span class="badge green">Resolved</span>
+              <span class="badge green">{{ t("Resolved") }}</span>
             {% endif %}
           </td>
         </tr>
@@ -80,8 +85,7 @@
     </table>
   </div>
   {% else %}
-    <div class="empty"><strong>Nothing in the queue.</strong>Every record passes its checks.</div>
+    <div class="empty"><strong>{{ t("Nothing in the queue.") }}</strong>{{ t("Every record passes its checks.") }}</div>
   {% endif %}
 </div>
-
 {% endblock %}
