@@ -475,8 +475,11 @@ input[type=checkbox], input[type=radio] { accent-color: var(--green); }
 
 /* --------------------------------------------------------------- badges */
 
-.badge { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 1px 10px; border-radius: 999px; border: 1px solid; font-size: .8rem; font-weight: 700; line-height: 1.5; }
-.badge .ic { width: .95em; height: .95em; }
+.badge { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 3px 11px; border-radius: 999px; border: 1px solid; font-size: .92rem; font-weight: 700; line-height: 1.45; }
+.badge .ic { width: 1.05em; height: 1.05em; flex: none; }
+/* staff read these a hundred at a time down a table, so keep theirs compact */
+.is-staff .badge { padding: 1px 9px; font-size: .8rem; line-height: 1.5; }
+.is-staff .badge .ic { width: .95em; height: .95em; }
 .badge.grey  { background: var(--neutral-bg); border-color: var(--neutral-line); color: var(--neutral); }
 .badge.blue  { background: var(--info-bg); border-color: var(--info-line); color: var(--info); }
 .badge.green { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok); }
@@ -570,7 +573,12 @@ td .who { min-width: 13rem; }
 .sub-line { display: block; font-size: .85rem; color: var(--muted); }
 td .who-text .sub-line { white-space: nowrap; }
 .money, td.num, th.num, .stat .n { font-variant-numeric: tabular-nums; }
-.money { font-weight: 700; }
+/* money is the one figure a farmer is hunting for, so it is the biggest thing
+   in its row: serif and ink, the way the date tile and the stat numbers read */
+.money { font-family: var(--serif); font-weight: 400; font-size: 1.3rem; line-height: 1.15; color: var(--ink); }
+.is-staff .money { font-size: 1.1rem; }
+/* stacked on a phone the label is already alongside, so it can go bigger still */
+@media (max-width: 759px) { table.data.stack td.money { font-size: 1.5rem; } }
 
 dl.kv { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 620px) { dl.kv { grid-template-columns: minmax(140px, 38%) minmax(0, 1fr); } }

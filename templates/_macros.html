@@ -1,33 +1,36 @@
 {# Colour only for what needs someone to act. Normal progress - booked,
    completed, paid - is plain text, so the failed payment or the high risk
    row is the thing that stands out when you run your eye down a table. #}
+{# every badge carries an icon and a colour as well as the word, so a farmer who
+   reads slowly can tell these apart at a glance. Three signals, not one: colour
+   on its own would fail anyone colourblind. #}
 {% macro status_badge(s) -%}
-  {% if s == 'booked' %}<span class="state">{{ t("Booked") }}</span>
-  {% elif s == 'arrived' %}<span class="state">{{ t("Arrived") }}</span>
-  {% elif s == 'completed' %}<span class="state">{{ t("Completed") }}</span>
-  {% elif s == 'cancelled' %}<span class="state off">{{ t("Cancelled") }}</span>
+  {% if s == 'booked' %}<span class="badge blue">{{ icon('calendar-check') }}{{ t("Booked") }}</span>
+  {% elif s == 'arrived' %}<span class="badge amber">{{ icon('map-pin') }}{{ t("Arrived") }}</span>
+  {% elif s == 'completed' %}<span class="badge green">{{ icon('check-circle') }}{{ t("Completed") }}</span>
+  {% elif s == 'cancelled' %}<span class="badge grey">{{ icon('x-circle') }}{{ t("Cancelled") }}</span>
   {% else %}<span class="state">{{ s }}</span>{% endif %}
 {%- endmacro %}
 
 {% macro payment_badge(s) -%}
-  {% if s == 'completed' %}<span class="state">{{ t("Paid") }}</span>
-  {% elif s == 'processing' %}<span class="state">{{ t("Processing") }}</span>
-  {% elif s == 'pending' %}<span class="state">{{ t("Pending") }}</span>
-  {% elif s == 'failed' %}<span class="badge red">{{ t("Failed") }}</span>
+  {% if s == 'completed' %}<span class="badge green">{{ icon('banknote') }}{{ t("Paid") }}</span>
+  {% elif s == 'processing' %}<span class="badge blue">{{ icon('hourglass') }}{{ t("Processing") }}</span>
+  {% elif s == 'pending' %}<span class="badge grey">{{ icon('clock') }}{{ t("Pending") }}</span>
+  {% elif s == 'failed' %}<span class="badge red">{{ icon('x-circle') }}{{ t("Failed") }}</span>
   {% else %}<span class="state off">&mdash;</span>{% endif %}
 {%- endmacro %}
 
 {% macro risk_badge(r) -%}
-  {% if r == 'high' %}<span class="badge red">{{ t("High risk") }}</span>
-  {% elif r == 'low' %}<span class="state warn">{{ t("Low risk") }}</span>
+  {% if r == 'high' %}<span class="badge red">{{ icon('cloud-rain') }}{{ t("High risk") }}</span>
+  {% elif r == 'low' %}<span class="badge amber">{{ icon('cloud-sun') }}{{ t("Low risk") }}</span>
   {% else %}<span class="state off">{{ t("None") }}</span>{% endif %}
 {%- endmacro %}
 
 {% macro grade_badge(g) -%}
-  {% if g == 'A' %}<span class="state">{{ t("Grade A") }}</span>
-  {% elif g == 'FAQ' %}<span class="state">{{ t("FAQ") }}</span>
-  {% elif g == 'B' %}<span class="badge amber">{{ t("Grade B") }}</span>
-  {% elif g == 'Rejected' %}<span class="badge red">{{ t("Rejected") }}</span>
+  {% if g == 'A' %}<span class="badge green">{{ icon('award') }}{{ t("Grade A") }}</span>
+  {% elif g == 'FAQ' %}<span class="badge green">{{ icon('check-circle') }}{{ t("FAQ") }}</span>
+  {% elif g == 'B' %}<span class="badge amber">{{ icon('award') }}{{ t("Grade B") }}</span>
+  {% elif g == 'Rejected' %}<span class="badge red">{{ icon('x-circle') }}{{ t("Rejected") }}</span>
   {% else %}<span class="state off">&mdash;</span>{% endif %}
 {%- endmacro %}
 
@@ -150,12 +153,12 @@
    needs status, payment_status and actual_quantity on the row #}
 {# where the money is. payments.py has the stages #}
 {% macro stage_badge(stage) -%}
-  {% if stage == 'credited' %}<span class="badge green">{{ t("Credited") }}</span>
-  {% elif stage == 'sent' %}<span class="badge blue">{{ t("Sent to bank") }}</span>
-  {% elif stage == 'billed' %}<span class="state">{{ t("Bill ready") }}</span>
-  {% elif stage == 'weighed' %}<span class="state">{{ t("Weighed") }}</span>
-  {% elif stage == 'returned' %}<span class="badge red">{{ t("Returned by bank") }}</span>
-  {% elif stage == 'held' %}<span class="badge red">{{ t("Payment held") }}</span>
+  {% if stage == 'credited' %}<span class="badge green">{{ icon('banknote') }}{{ t("Credited") }}</span>
+  {% elif stage == 'sent' %}<span class="badge blue">{{ icon('hourglass') }}{{ t("Sent to bank") }}</span>
+  {% elif stage == 'billed' %}<span class="badge grey">{{ icon('receipt') }}{{ t("Bill ready") }}</span>
+  {% elif stage == 'weighed' %}<span class="badge grey">{{ icon('scale') }}{{ t("Weighed") }}</span>
+  {% elif stage == 'returned' %}<span class="badge red">{{ icon('x-circle') }}{{ t("Returned by bank") }}</span>
+  {% elif stage == 'held' %}<span class="badge red">{{ icon('alert-triangle') }}{{ t("Payment held") }}</span>
   {% elif stage == 'nil' %}<span class="state off">{{ t("Nothing payable") }}</span>
   {% else %}<span class="state off">&mdash;</span>{% endif %}
 {%- endmacro %}
