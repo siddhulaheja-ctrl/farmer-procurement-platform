@@ -133,6 +133,14 @@ Then copy the files that aren't in git into `/srv/krishi`: `procurement.db`,
 After pushing new code: `sudo bash /srv/krishi/deploy/update.sh`.
 Logs: `journalctl -u krishi -f`.
 
+The database is backed up every night at 02:30 to `/var/backups/krishi`
+(two weeks kept). Backup now: `sudo krishi-backup`. To pull the latest one
+to this PC:
+
+```bash
+ssh -i ~/.ssh/krishi_azure azureuser@172.198.152.215 'sudo sh -c "cat \$(ls -t /var/backups/krishi/*.gz | head -1)"' > procurement-backup.db.gz
+```
+
 ## Files
 
 | file | what it does |

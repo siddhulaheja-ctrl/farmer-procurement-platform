@@ -58,6 +58,8 @@ ufw allow 80
 ufw allow 443
 ufw --force enable
 
+bash "$APP/deploy/backup.sh"
+
 systemctl daemon-reload
 systemctl enable krishi
 systemctl reload caddy || systemctl restart caddy
