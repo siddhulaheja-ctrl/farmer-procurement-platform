@@ -128,13 +128,39 @@ def icon(name, cls=""):
 
 # App factory
 
+def _secret_key():
+    """The key that signs login cookies and the gate pass QR codes.
+
+    SECRET_KEY in .env if it is set. Otherwise one is made at random the first
+    time and kept in .secret_key (never committed), so it stays the same from
+    one start to the next: a pass printed yesterday still checks out at the
+    gate today. The old fixed key was public on github, which let anyone
+    forge a login or a gate pass on the share link."""
+    if os.environ.get("SECRET_KEY"):
+        return os.environ["SECRET_KEY"]
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".secret_key")
+    if os.path.exists(path):
+        with open(path) as f:
+            key = f.read().strip()
+        if key:
+            return key
+    key = os.urandom(32).hex()
+    with open(path, "w") as f:
+        f.write(key)
+    return key
+
+
 def create_app():
     app = Flask(__name__)
     # behind share_demo's cloudflare tunnel the QR codes have to carry the
     # public https address, not localhost
     from werkzeug.middleware.proxy_fix import ProxyFix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-    app.secret_key = os.environ.get("SECRET_KEY", "sih-2026-ps26032-demo-key")
+    app.secret_key = _secret_key()
+    # pick up edited templates without a restart. debug mode used to do this,
+    # but debug is off now (its debugger must never reach the share link) and
+    # a server left running kept serving the page as it was when it started
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.teardown_appcontext(db.close_db)
     db.migrate()
     app.jinja_env.globals["t"] = t
@@ -2390,4 +2416,7 @@ app = create_app()
 if __name__ == "__main__":
     if not os.path.exists(db.DB_PATH):
         print("No database found. Run:  python seed.py")
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # the debugger runs code typed into a browser, so it stays off unless
+    # asked for: never on the public share link. FLASK_DEBUG=1 in .env for development
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1", host="0.0.0.0",
+            port=int(os.environ.get("PORT", 5000)))
