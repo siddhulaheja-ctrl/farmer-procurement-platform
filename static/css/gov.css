@@ -845,7 +845,7 @@ body:has(.actionbar) .assistant-panel { bottom: 158px; height: min(520px, calc(1
 .mic-status { margin: 10px 0 0; min-height: 1.4em; font-family: var(--hand); font-size: 1.05rem; color: var(--red); }
 .voice-eg { list-style: none; margin: 0 0 12px; padding: 0; }
 .voice-eg li { padding: 9px 0 9px 30px; border-bottom: 1px dashed var(--rule-2); color: var(--ink-2); font-family: var(--hand); font-size: 1.1rem; position: relative; }
-.voice-eg li::before { content: "C"; position: absolute; left: 2px; top: 2px; font-family: var(--serif); font-size: 2rem; line-height: 1; color: var(--red); }
+.voice-eg li::before { content: "\201C"; position: absolute; left: 2px; top: 2px; font-family: var(--serif); font-size: 2rem; line-height: 1; color: var(--red); }
 table.understood th { width: 30%; text-align: left; vertical-align: top; }
 table.understood .heard { display: block; margin-top: 2px; font-family: var(--hand); font-size: .92rem; color: var(--red); }
 .voice-slot { margin: 0 0 16px; }
@@ -1180,7 +1180,7 @@ table.rules tr.is-this td { background: var(--ok-bg); font-weight: 700; }
     background: #fff; color: var(--muted); font-family: var(--serif); font-size: 1.35rem; }
 .stepper-head li::after { content: ""; position: absolute; top: 1.45rem; left: calc(50% + 1.6rem); right: calc(-50% + 1.6rem); border-top: 2.5px dashed var(--rule-dark); }
 .stepper-head li:last-child::after { display: none; }
-.stepper-head li.done::before { content: "¹3"; background: var(--green); border-color: var(--green); color: #fff; }
+.stepper-head li.done::before { content: "\2713"; background: var(--green); border-color: var(--green); color: #fff; }
 .stepper-head li.done::after { border-top-style: solid; border-color: var(--green); }
 .stepper-head li.current { color: var(--ink); }
 .stepper-head li.current::before { border-color: var(--ink); color: var(--ink); box-shadow: 3px 3px 0 var(--red); }
@@ -1619,7 +1619,7 @@ hr.rule { border: 0; border-top: 1px dashed var(--rule-dark); margin: 18px 0; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 72px); }
 @media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
 .entry figure { margin: 0 0 18px; padding: 10px; background: var(--card); border: 1px solid var(--rule); overflow: hidden; transition: transform .5s cubic-bezier(.2, .7, .2, 1), box-shadow .5s; }
-.entry img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); }
+.entry img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); }
 .entry:nth-child(1) figure { transform: rotate(-.6deg); }
 .entry:nth-child(2) figure { transform: rotate(.5deg); }
 .entry:hover figure { transform: rotate(0deg) translateY(-4px); box-shadow: 0 22px 34px -26px var(--shadow); }
