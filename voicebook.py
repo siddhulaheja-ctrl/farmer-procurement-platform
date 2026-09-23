@@ -1,16 +1,8 @@
-"""Book a slot by speaking.
+"""Voice booking: word-list parser for centre / day / time / crop / quantity
+(english, hinglish, hindi, bengali) and picking a free slot for it.
 
-Chrome turns what the farmer says into text in the browser. This module reads
-that text and picks out the five things a booking needs - centre, day, time,
-crop and quantity - then finds a real open slot that fits.
-
-No AI model and no api: the portal only has to recognise a few dozen words
-(five centres, six crops, day and time words, numbers followed by "quintal"),
-so a word list in English, Hinglish, Hindi and Bengali covers it. It runs
-offline, costs nothing, and the farmer's words never leave the server.
-
-Nothing here books anything. propose() suggests a slot, the farmer checks it
-and presses Confirm, and that goes through the normal core.book_slot rules.
+Works offline. voice_ai.py tries gemini first and this fills in the gaps.
+Nothing here books, propose() only suggests.
 """
 
 import re
@@ -30,7 +22,6 @@ DIGITS = str.maketrans("०१२३४५६७८९০১২৩৪৫৬৭�
 
 
 def normalise(text):
-    """Lowercase, ascii digits, one spelling for sounds speech engines write two ways."""
     s = unicodedata.normalize("NFC", text or "").translate(DIGITS).lower()
     s = s.replace("़", "")                  # hindi nukta: हफ़्ते and हफ्ते are the same word
     s = s.replace("ँ", "ं")            # chandrabindu and anusvara: गेहूँ, गेहूं
@@ -39,10 +30,8 @@ def normalise(text):
 
 
 # ---- near misses -------------------------------------------------------------
-# speech engines rarely spell a place the way we do: "rudarpoor", "haldvani",
-# "kicha", "कुंटल". so words are compared by roughly how they sound, and longer
-# ones may be a letter or two out. short words must sound exactly the same, or
-# everyday words like "do" and "se" would turn into something else.
+# "rudarpoor", "haldvani", "kicha", "कुंटल"... compare by rough sound, longer
+# words can be a letter or two off. short ones must match exactly ("do", "se")
 
 ROMAN_SOUNDS = (("ph", "f"), ("sh", "s"), ("ch", "\x01"), ("kh", "k"), ("gh", "g"), ("th", "t"),
                 ("dh", "d"), ("bh", "b"), ("ck", "k"), ("q", "k"), ("c", "k"), ("w", "v"), ("z", "j"),
@@ -53,7 +42,7 @@ INDIC_SOUNDS = str.maketrans({"्": None, "্": None, "ी": "ि", "ू": "�
 
 
 def sound(word):
-    """A rough spelling of how a word sounds: long and short vowels, sh and s, w and v merge."""
+    # crude phonetic key
     w = word.translate(INDIC_SOUNDS)
     for a, b in ROMAN_SOUNDS:
         w = w.replace(a, b)
@@ -61,7 +50,7 @@ def sound(word):
 
 
 def _distance(a, b, limit):
-    """Edit distance between two strings, giving up once it passes limit."""
+    # levenshtein with early exit
     if abs(len(a) - len(b)) > limit:
         return limit + 1
     prev = list(range(len(b) + 1))
@@ -76,8 +65,7 @@ def _distance(a, b, limit):
 
 
 # ---- word lists --------------------------------------------------------------
-# keyed by what the rest of the portal calls it, so the answer drops straight
-# into a query. centre names must match procurement_centres.name.
+# keys must match the db (procurement_centres.name etc)
 
 CENTRES = {
     "Rudrapur Mandi Samiti": ["rudrapur", "rudarpur", "rudra pur", "रुद्रपुर", "रुद्रपूर", "রুদ্রপুর"],
@@ -182,7 +170,6 @@ HALF_MORE = ["saadhe", "sadhe", "साढ़े"]      # saadhe teen = 3.5
 
 
 def _lookup(table):
-    """value -> spellings, turned into spelling -> value and one regex alternation."""
     out = {}
     for value, words in table.items():
         for w in words:
@@ -226,7 +213,6 @@ CROP_RE = re.compile(B + "(%s)" % CROP_ALT + E)
 
 
 def _sounds_like(tables):
-    """(words in the alias, its sound, the alias, most letters it may be out by)."""
     out = []
     for table, most in tables:
         words = [w for ws in table.values() for w in ws] if isinstance(table, dict) else table
@@ -244,7 +230,7 @@ SOUNDS_LIKE = _sounds_like([(CENTRES, 2), (DISTRICTS, 2), (CROPS, 2), (WEEKDAYS,
 
 
 def _correct(text):
-    """Swap near misses for a spelling the patterns know: "rudarpoor" becomes "rudrapur"."""
+    # "rudarpoor" -> "rudrapur"
     tokens = text.split(" ")
     out, i = [], 0
     while i < len(tokens):
@@ -276,7 +262,6 @@ def _number(token):
 
 
 def _start_hour(hour, pm, part):
-    """The window a spoken hour falls in, as its start hour, or None outside 08-16."""
     if (pm or part in ("afternoon", "evening")) and hour < 12:
         hour += 12
     elif hour <= 7:
@@ -287,7 +272,6 @@ def _start_hour(hour, pm, part):
 
 
 def _day_of_month(day, month, today):
-    """15 September, or "15 tarikh" meaning the next 15th. None if it can't be a date."""
     if month:
         for year in (today.year, today.year + 1):
             try:
@@ -310,11 +294,7 @@ def _day_of_month(day, month, today):
 
 
 def parse(text, today=None):
-    """What a spoken booking request asks for. Every field may be None.
-
-    heard maps each field to the words it came from, so the page can show
-    "Day: Tomorrow (heard: kal)" and the farmer can see why.
-    """
+    # heard = the words each field came from, shown as "(heard: kal)"
     today = today or date.today()
     work = _correct(normalise(text))
     out = {"centre": None, "district": None, "crop": None, "day": None, "day_kind": None,
@@ -433,11 +413,7 @@ def parse(text, today=None):
 
 
 def best_parse(candidates, today=None):
-    """Parse each guess at what was said and keep the one that found the most.
-
-    The browser sends its top few guesses. The first candidate is what is in
-    the text box, so on a tie the farmer's own (possibly corrected) text wins.
-    """
+    # candidates[0] is the text box, so it wins ties
     def found(p):
         return sum(1 for f in ("crop", "day", "hours", "quantity") if p[f]) \
             + (1 if p["centre"] or p["district"] else 0) - (1 if p["date_unclear"] else 0)
@@ -458,12 +434,7 @@ def window_label(start_hour):
 
 
 def propose(parsed, farmer):
-    """The best open slot for a parsed request, or the reason there isn't one.
-
-    Tries the exact day and time first, then keeps the day and drops the time,
-    then keeps the time and drops the day, then anything - and says which, so
-    the farmer is never handed a different day without being told.
-    """
+    # exact day+time, then same day, then same time, then anything. notes say which
     from core import ACTIVE_STATUSES, MAX_ACTIVE_BOOKINGS
 
     result = {"slot": None, "notes": [], "problem": None, "accepted": []}
@@ -543,10 +514,8 @@ def propose(parsed, farmer):
     return result
 
 
-# ---- the spoken conversation -------------------------------------------------
-# after the slot is read out, the farmer answers out loud: yes books it, no
-# stops, and anything with booking details in it ("no, 30 quintals") is a
-# correction that gets a fresh suggestion.
+# ---- replies -----------------------------------------------------------------
+# "no, 30 quintals" is a correction, not a no
 
 YES = ["haan", "han", "haa", "ha", "haanji", "haan ji", "ha ji", "hanji", "ji haan", "ji", "yes", "yeah",
        "yep", "ok", "okay", "theek hai", "thik hai", "thik he", "theek he", "sahi hai", "kar do", "kardo",
@@ -563,9 +532,8 @@ YES_RE = re.compile(B + "(%s)" % _alt(YES) + E)
 NO_RE = re.compile(B + "(%s)" % _alt(NO) + E)
 
 
-# ---- cancelling a booking ------------------------------------------------------
-# "meri booking cancel kar do". These words also mean "no" in reply to a slot
-# read back, so this is only ever read from the farmer's opening sentence.
+# ---- cancelling ----------------------------------------------------------------
+# only checked on the first sentence, in a reply these words just mean "no"
 CANCEL = ["cancel", "cancle", "cancil", "kensal", "kainsil", "radd", "rad kar", "rad kardo", "nirast",
           "रद्द", "कैंसिल", "कैन्सिल", "निरस्त",
           "বাতিল", "ক্যানসেল", "ক্যানসিল"]
@@ -588,13 +556,12 @@ ORDINALS = {"1": 1, "pehli": 1, "pehla": 1, "pahli": 1, "first": 1, "पहल�
 
 
 def wants_cancel(text):
-    """True when an opening sentence asks to cancel a booking already made."""
     s = normalise(text)
     return bool(CANCEL_RE.search(s) or NOT_COMING_RE.search(s))
 
 
 def which_one(text, most):
-    """"dusri wali" or "2" -> 2, when there are that many. None if no number was said."""
+    # "dusri wali" -> 2
     for word in normalise(text).split(" "):
         n = ORDINALS.get(word)
         if n and n <= most:
@@ -603,7 +570,7 @@ def which_one(text, most):
 
 
 def answer_kind(text):
-    """'yes', 'no' or None for a reply to "shall I book it?". No wins a tie: never book on a maybe."""
+    # no wins a tie
     s = normalise(text)
     if not s:
         return None
@@ -615,7 +582,6 @@ def answer_kind(text):
 
 
 def merge(request, reply):
-    """The request so far, with whatever the farmer said in reply taking its place."""
     out = dict(request)
     out["heard"] = dict(request["heard"])
     if reply["crop"]:
@@ -656,7 +622,6 @@ _QUESTION_PHRASES = [(normalise(p), topic) for topic, phrases in QUESTIONS.items
 
 
 def question_topic(text):
-    """Which question a sentence asks, from the list above, or None."""
     s = normalise(text)
     for phrase, topic in _QUESTION_PHRASES:
         if phrase in s:
@@ -665,11 +630,6 @@ def question_topic(text):
 
 
 def fill_gaps(primary, backup):
-    """primary's answers, with backup's for anything primary left empty.
-
-    The AI reads the sentence first; the parser, which already read it too,
-    fills in whatever the AI missed.
-    """
     out = dict(primary)
     out["heard"] = dict(primary["heard"])
 
@@ -699,7 +659,6 @@ WINDOW_SPOKEN = {8: "8 to 10 in the morning", 10: "10 to 12 in the morning",
 
 
 def spoken_day(iso, today=None):
-    """'Tomorrow, 15 September' - read out, "2026-09-15" is just noise."""
     d = date.fromisoformat(str(iso)[:10])
     ahead = (d - (today or date.today())).days
     name = t("Today") if ahead == 0 else t("Tomorrow") if ahead == 1 else t(d.strftime("%A"))
@@ -712,7 +671,6 @@ def spoken_window(time_window):
 
 
 def spoken_token(token):
-    """PC02-S100-001 one character at a time, in its groups, slow enough to write down."""
     return ", ".join(" ".join(part) for part in str(token).split("-"))
 
 

@@ -1,6 +1,4 @@
-/* The weighbridge form. Works out the net weight and suggests a grade from
-   the moisture and foreign matter as they are typed, the same way core.py
-   does, and asks for a reason only when the grade picked differs. */
+/* weighbridge form: net weight and suggested grade as you type (same rules as core.py) */
 (function () {
     var form = document.getElementById('weigh-form');
     if (!form) { return; }
@@ -32,7 +30,6 @@
         var net = Math.max(0, num('gross_weight') - (num('bags') || 0) * (num('bag_weight_kg') || 0) / 100);
         suggested = suggest(num('moisture'), num('foreign_matter'));
         if (suggested) {
-            // the words come from the page, in its language
             var label = grade.querySelector('option[value="' + suggested + '"]');
             hint.textContent = (hint.getAttribute('data-suggest') || 'Suggested') + ': ' + (label ? label.textContent : suggested);
             if (!touched) { grade.value = suggested; }

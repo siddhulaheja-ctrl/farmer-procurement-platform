@@ -1,17 +1,6 @@
-"""Registering by speaking: one question at a time, then everything read back.
-
-The portal asks, the farmer answers out loud (or types, or taps a button), and
-each answer is checked before the next question. A Farmer ID fills in most of
-it from the registry, so that farmer only confirms who they are, says their
-mobile number and any land the registry doesn't know about.
-
-Each answer is understood by Gemini first - it copes with number words,
-Hinglish and names in Devanagari - and by the small parsers here when it can't
-be reached. Whatever either says is checked with the same rules as the form,
-so nothing wrong gets in just because the AI said so.
-
-The conversation lives in the session. state["step"] is the question waiting
-for an answer.
+"""Registration by voice, one question at a time. Gemini first, the small
+parsers here if it's down, and every answer goes through the same checks as
+the form. State lives in the session, state["step"] is the pending question.
 """
 
 import re
@@ -291,9 +280,7 @@ def _ask_ai(field, question, text, guesses):
 
 
 def _understand_village(text, guesses, question, district):
-    """A village has to be one on the district's list. The list itself finds
-    most answers - it knows the Hindi and Bengali spellings - and the AI gets
-    the list to pick from when it doesn't."""
+    # try the list first, then let the AI pick from it
     for candidate in [text] + list(guesses):
         found = villages.match(district, candidate)
         if found:
@@ -310,8 +297,7 @@ def _understand_village(text, guesses, question, district):
 
 
 def understand(field, text, guesses=(), question="", district=""):
-    """(intent, value, source). intent is answer, yes, no, skip, invalid (a
-    value came through but breaks the rules) or unclear."""
+    # -> (intent, value, source). intent: answer/yes/no/skip/invalid/unclear
     if field == "village":
         return _understand_village(text, guesses, question, district)
     source = "parser"
@@ -391,7 +377,6 @@ def current(state, problem=None, heard=None, source=None):
 
 
 def _after(state, field):
-    """The next question once `field` has its answer."""
     if field == "land":
         return "more_land"
     if state["back"]:
@@ -409,7 +394,6 @@ def _miss(state, problem, heard, source):
 
 
 def advance(state, text, guesses=()):
-    """Take one answer and move on. Returns the next step to show and say."""
     step = state["step"]
     if step == "done":
         return current(state)
@@ -492,7 +476,6 @@ def advance(state, text, guesses=()):
 
 
 def as_form(state):
-    """The collected answers as the registration form would have posted them."""
     d = state["data"]
     pairs = [("name", d.get("name", "")), ("phone_number", d.get("phone", "")), ("village", d.get("village", "")),
              ("district", d.get("district", "")), ("aadhaar_number", d.get("aadhaar", "")),
@@ -507,7 +490,6 @@ def as_form(state):
 
 
 def failed(state, result):
-    """Registration refused the answers: go back to the one at fault."""
     state["step"] = {"name": "name", "phone": "phone", "aadhaar": "aadhaar", "farmer_id": "farmer_id",
                      "district": "district", "village": "village", "land": "land"}.get(
         result.get("field"), "confirm")

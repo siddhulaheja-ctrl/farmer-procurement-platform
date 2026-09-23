@@ -8,9 +8,6 @@
   <a href="{{ url_for('farmer_booking', booking_id=b.id) }}">{{ b.token_no }}</a>{{ icon('chevron-right') }}<span>{{ t("Gate pass") }}</span>
 </nav>
 
-{# Laid out like the printed forms at a mandi gate: a form number and serial,
-   particulars in ruled boxes, blanks the weighbridge clerk fills in by hand,
-   and an office copy the farmer tears off and leaves at the counter. #}
 <div class="gatepass">
   <header class="gp-head">
     <img class="gp-crest" src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="48" height="48" alt="">
@@ -31,8 +28,6 @@
       <div class="t">{{ b.token_no }}</div>
       <div class="gp-when">{{ b.date|nicedate }} ({{ b.date|dayname }}) &middot; {{ b.time_window }}</div>
     </div>
-    {# scanned at the gate to check the farmer in, and checked for being
-       genuine. the token beside it still gets read out if the code will not scan #}
     <div class="qr-box">
       {{ qr_svg|safe }}
       <div class="k">{{ t("Get this scanned at the gate") }}</div>

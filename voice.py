@@ -3,8 +3,7 @@
 The whole message goes in the api request (inline ncco), so vonage never calls
 back to us. No webhook, no server, it runs from here.
 
-Staff screens ring the farmer's own number. The seeded farmers are all us, with
-numbers registered in vonage, so the calls land. Anyone who signs up with a
+Staff screens ring the farmer's own number (ours are verified in vonage). A
 made up 900000 number goes to DEMO_NUMBER instead so a stray click can't dial a
 stranger. Run this file directly to dial whatever you type.
 
@@ -35,26 +34,23 @@ env.load()
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# our app from the vonage dashboard
 APP_ID = os.environ.get("VONAGE_APPLICATION_ID",
                         "fb926ccb-0da7-4d10-814f-9a3ae05428e3").strip()
 # vonage wants this filled in even though it swaps in its own number
 FROM_NUMBER = os.environ.get("VONAGE_NUMBER", "").strip() or "12345678901"
-# where placeholder numbers get sent. real phone, so it lives in .env
 DEMO_NUMBER = os.environ.get("VOICE_DEMO_NUMBER", "").strip()
+CALLS_PER_DAY = int(os.environ.get("CALLS_PER_DAY", "20"))
 KEY_PATH = os.environ.get("VONAGE_PRIVATE_KEY_PATH",
                           os.path.join(HERE, "farmer-ivr", "private.key"))
 
 VOICE = {"en": "en-IN", "hi": "hi-IN"}
 
-# Talk has volume but no speed, so pacing comes from ssml
 def _level():
-    # a typo in the env var used to kill the app on startup
     try:
         v = float(os.environ.get("VOICE_LEVEL", "1"))
     except ValueError:
         return 1.0
-    return max(-1.0, min(1.0, v))       # outside -1..1 vonage just rejects it
+    return max(-1.0, min(1.0, v))
 
 
 LEVEL = _level()
@@ -68,12 +64,11 @@ def _style():
     try:
         return int(os.environ.get("VOICE_STYLE", "").strip())
     except ValueError:
-        return None            # let vonage pick its default
+        return None
 
 
 STYLE = _style()
 
-# the hindi voices vonage has. 0 is standard only, the rest also do premium
 HI_STYLES = [0, 1, 3, 4, 5, 6]
 
 
@@ -82,7 +77,7 @@ MONTHS_HI = ["जनवरी", "फरवरी", "मार्च", "अप्
 
 
 def spoken_date(iso):
-    """2026-09-14 -> '14 सितंबर'. Reading the raw date out loud sounds awful."""
+    """2026-09-14 -> '14 सितंबर'"""
     try:
         _y, m, d = str(iso)[:10].split("-")
         return "%d %s" % (int(d), MONTHS_HI[int(m) - 1])
@@ -91,7 +86,6 @@ def spoken_date(iso):
 
 
 def spell_token(token):
-    """Spaced out and slow. People write this down off the call."""
     if not token:
         return ""
     groups = [" ".join(part) for part in str(token).split("-")]
@@ -104,8 +98,7 @@ def _escape(text):
 
 
 def to_ssml(message, token=None):
-    """Build the ssml. Escape first then add tags, or a farmer called
-    "A & B" breaks the xml. {{token}} is where the token goes."""
+    # escape before adding tags
     body = _escape(message)
     if token:
         body = body.replace("{{token}}", spell_token(token))
@@ -116,7 +109,6 @@ def to_ssml(message, token=None):
 
 
 def plain(message, token=None):
-    """Same thing without the tags, for the screen and the log."""
     text = str(message)
     if token:
         text = text.replace("{{token}}", ", ".join(" ".join(p)
@@ -124,14 +116,11 @@ def plain(message, token=None):
     return text.replace("{{token}}", "")
 
 
-# nobody real is in this block
 PLACEHOLDER_PREFIX = "900000"
 
 
 def target_for(phone):
-    """Who we actually ring. Real numbers go through; the 900000 block is
-    what people type when they're just looking around, so those go to the team
-    phone. Returns (number, was_redirected)."""
+    # fake 900000 numbers ring the demo phone instead. -> (number, redirected)
     number = to_e164(phone)
     local = number[2:] if number.startswith("91") else number
     if not local or local.startswith(PLACEHOLDER_PREFIX):
@@ -157,7 +146,6 @@ def _private_key():
 
 
 def status():
-    """What is set up, so the screens can say whether calls are real."""
     missing = []
     if not APP_ID:
         missing.append("VONAGE_APPLICATION_ID")
@@ -171,9 +159,7 @@ def status():
 
 
 def _log(line):
-    """print() dies on the hindi when stdout is a plain windows console
-    (cp1252), and that came back as a 500 from the Call button. Drop to ascii
-    instead of raising."""
+    # windows console (cp1252) can't print hindi
     try:
         print(line)
     except UnicodeEncodeError:
@@ -181,12 +167,7 @@ def _log(line):
 
 
 def place_call(phone, message, lang="hi", token=None):
-    """Ring the number and read out the message.
-
-    Put {{token}} in the message and pass token= to get it read slowly.
-    Returns (ok, detail), never raises - a failed call should be a message on
-    screen, not a 500 mid-demo.
-    """
+    # -> (ok, detail), doesn't raise. {{token}} in message gets read out slowly
     number = to_e164(phone)
     if not number:
         return False, "No phone number on that record."
@@ -223,8 +204,7 @@ def place_call(phone, message, lang="hi", token=None):
 
 
 def sample_voices(phone, premium=True):
-    """One call reading the same line in every hindi voice, announcing each
-    style number, so we can pick instead of guessing. Cheaper than six calls."""
+    # one call that reads a line in every hindi voice
     number = to_e164(phone)
     if not number:
         return False, "No phone number given."
@@ -237,7 +217,7 @@ def sample_voices(phone, premium=True):
 
         actions = []
         for st in HI_STYLES:
-            usable = premium and st != 0          # style 0 has no premium voice
+            usable = premium and st != 0          # no premium for style 0
             actions.append(Talk(text="<speak>Style %d</speak>" % st,
                                 language="en-IN", level=LEVEL))
             actions.append(Talk(text="<speak>%s</speak>" % line, language="hi-IN",
@@ -252,8 +232,15 @@ def sample_voices(phone, premium=True):
         return False, "Vonage refused the call: %s" % e
 
 
+def calls_today():
+    from db import query
+    row = query("SELECT COUNT(*) FROM alerts_log WHERE alert_type = 'voice_call'"
+                " AND message LIKE 'Call placed%' AND message NOT LIKE '%Dry run%'"
+                " AND sent_at >= ?", (datetime.now().date().isoformat(),), one=True)
+    return row[0]
+
+
 def log_call(farmer_id, message, ok, detail, booking_id=None):
-    """Keep a record on the alerts page of what we rang about."""
     from alerts import raise_alert
     prefix = "Call placed" if ok else "Call failed"
     at = datetime.now().strftime("%H:%M")

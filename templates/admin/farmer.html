@@ -37,7 +37,6 @@
         {% with f = farmer, show_phone = false %}
           {% include "_farmer_fields.html" %}
         {% endwith %}
-        {# only staff can say this - it's checked with the bank, not typed by the farmer #}
         <label class="checkline">
           <input type="checkbox" name="aadhaar_seeded" value="1" {{ 'checked' if farmer.aadhaar_seeded }}>
           <span>{{ t("Aadhaar is linked to this bank account") }}<small>{{ t("Checked with the bank or the NPCI mapper. A payment to an unlinked account comes back.") }}</small></span>

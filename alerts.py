@@ -1,7 +1,5 @@
-"""Writes alerts into alerts_log.
-
-'app' ones actually show up for the farmer. 'sms' and 'ivr' are only saved
-in the table for now - the IVR part will read them later.
+"""alerts_log helpers. Only 'app' alerts reach the farmer right now, 'sms' and
+'ivr' rows just sit in the table for the IVR to pick up.
 TODO: hook up Fast2SMS
 """
 
@@ -10,14 +8,11 @@ from datetime import datetime
 from db import execute, query
 from i18n import HINDI
 
-# ivr rows that aren't a call log are the words a phone call reads out. they
-# belong to the helpline, and on the farmer's screen they just repeat the
-# in-app alert next to them
+# ivr rows are call scripts, they'd just repeat the app alert on screen
 FARMER_VISIBLE = "NOT (channel = 'ivr' AND alert_type != 'voice_call')"
 
 
 def hi(text):
-    """Hindi name of a centre, crop or place, for building hindi messages."""
     return HINDI.get(text, text)
 
 

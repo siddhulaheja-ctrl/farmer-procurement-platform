@@ -1,9 +1,5 @@
-"""Hindi and Bengali for the field-notebook redesign: the notebook pages, the
-centre members' and superadmin's screens (translated from here on), and the
-labels built at run time (stage names, audit actions, weekday names).
-
-Merged into i18n.TABLES. Keyed on the english, like HINDI and BENGALI.
-The Bengali needs a native speaker to read it over, like lang/bn.py.
+"""More hindi / bengali: staff and superadmin screens, and labels built at
+run time (stage names, audit actions, weekdays). Merged into i18n.TABLES.
 """
 
 HI = {
@@ -36,6 +32,10 @@ HI = {
     "A footpath between fields of mustard and wheat": "सरसों और गेहूं के खेतों के बीच एक पगडंडी",
     "Flooded rice fields in the Ziro valley, Arunachal Pradesh": "अरुणाचल प्रदेश की ज़ीरो घाटी में पानी भरे धान के खेत",
     "A password needs at least 6 characters.": "पासवर्ड में कम से कम 6 अक्षर होने चाहिए।",
+    "Today's call limit is reached. Calls start again tomorrow.": "आज की कॉल सीमा पूरी हो गई। कल से फिर कॉल हो सकेंगी।",
+    "Capacity can't be less than the %d farmers already booked.": "क्षमता पहले से बुक %d किसानों से कम नहीं हो सकती।",
+    "This Aadhaar number is already registered to another farmer.": "यह आधार नंबर पहले से किसी दूसरे किसान के नाम पंजीकृत है।",
+    "Prototype for Smart India Hackathon 2026, not a government service. Do not enter real Aadhaar or bank details.": "स्मार्ट इंडिया हैकाथॉन 2026 का प्रोटोटाइप, कोई सरकारी सेवा नहीं। असली आधार या बैंक विवरण न डालें।",
     "Aadhaar card - all 12 digits": "आधार कार्ड - सभी 12 अंक",
     "Aadhaar is linked to this bank account": "आधार इस बैंक खाते से जुड़ा है",
     "Aadhaar linked to bank": "आधार बैंक से जुड़ा",
@@ -207,6 +207,10 @@ BN = {
     "A footpath between fields of mustard and wheat": "সরষে আর গমের খেতের মাঝে একটি আলপথ",
     "Flooded rice fields in the Ziro valley, Arunachal Pradesh": "অরুণাচল প্রদেশের জিরো উপত্যকায় জলে ভরা ধানখেত",
     "A password needs at least 6 characters.": "পাসওয়ার্ডে অন্তত ৬টি অক্ষর লাগবে।",
+    "Today's call limit is reached. Calls start again tomorrow.": "আজকের কলের সীমা শেষ। কাল থেকে আবার কল করা যাবে।",
+    "Capacity can't be less than the %d farmers already booked.": "ধারণক্ষমতা আগে থেকে বুক করা %d জন কৃষকের কম হতে পারে না।",
+    "This Aadhaar number is already registered to another farmer.": "এই আধার নম্বর আগেই অন্য একজন কৃষকের নামে নিবন্ধিত।",
+    "Prototype for Smart India Hackathon 2026, not a government service. Do not enter real Aadhaar or bank details.": "স্মার্ট ইন্ডিয়া হ্যাকাথন ২০২৬-এর প্রোটোটাইপ, কোনো সরকারি পরিষেবা নয়। আসল আধার বা ব্যাংকের তথ্য দেবেন না।",
     "Aadhaar card - all 12 digits": "আধার কার্ড - ১২টি অঙ্কই",
     "Aadhaar is linked to this bank account": "আধার এই ব্যাংক অ্যাকাউন্টের সঙ্গে যুক্ত",
     "Aadhaar linked to bank": "আধার ব্যাংকের সঙ্গে যুক্ত",

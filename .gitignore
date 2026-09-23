@@ -1,4 +1,4 @@
-# Local database - regenerate with `python seed.py`
+# the database has real phone numbers and passwords
 procurement.db
 *.db-journal
 
@@ -20,7 +20,6 @@ env/
 .DS_Store
 Thumbs.db
 
-# ...but the example file is meant to be committed
 !.env.example
 
 # Generated at share time, not worth committing
@@ -29,8 +28,6 @@ LAST_SHARE_LINK.txt
 # the IVR is its own repo with its own render service
 farmer-ivr/
 
-# local settings and keys
-.env
 
 # generated docs, not part of the code
 docs/
@@ -38,5 +35,4 @@ docs/
 # speech model for server-side recognition, fetched with `python speech_to_text.py download`
 models/
 
-# signs logins and gate passes; made on first start, never shared
 .secret_key

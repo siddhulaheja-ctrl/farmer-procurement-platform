@@ -1,14 +1,9 @@
-"""Ink-and-wash drawings for the portal's pages, in the field-notebook style.
+"""Generates the page illustrations in static/img/art/.
 
-    python lab/tools/draw_scenes.py            # every drawing
+    python lab/tools/draw_scenes.py            # all
     python lab/tools/draw_scenes.py gate bank  # just these
 
-Writes static/img/art/<name>.svg. Each is a small scene for one part of the
-portal: a phone with a code for signing in, a procurement shed for centres, a
-bank for payments, a scarecrow for a missing page. Lines are wobbled a little
-and every shape gets a second, fainter pass, so they read as drawn by hand; the
-colour is a flat wash set slightly off the outline, the way watercolour misses
-the pencil. Fixed seeds, so re-running gives the same pictures.
+Fixed random seeds so the output doesn't change between runs.
 """
 import math
 import os
@@ -99,7 +94,6 @@ class Scene:
                                            % (self._d(again, closed), stroke, f(max(0.8, w * .45))))
 
     def blob(self, pts, fill, alpha=0.6, layer="back"):
-        """a wash with no line: the pale ground a scene stands on"""
         pts = catmull(self._apply(pts), True)
         self.layers[layer].append('<path d="%s" fill="%s" fill-opacity="%s"/>' % (self._d(pts, True), WASH.get(fill, fill), alpha))
 
@@ -130,7 +124,6 @@ class Scene:
         self.layers["top"].append('<circle cx="%s" cy="%s" r="%s" fill="%s"/>' % (f(x), f(y), f(r), color))
 
     def ground(self, x1=24, x2=296, y=214, tufts=5):
-        """the pencilled patch of soil with a few blades of grass that every scene stands on"""
         pts = [(x1 + (x2 - x1) * i / 8, y + math.sin(i * 1.3) * 2) for i in range(9)]
         self.shape(pts, closed=False, w=1.8, smooth=True, fine=False)
         for i in range(tufts):
@@ -180,7 +173,7 @@ def catmull(pts, closed, n=6):
 # ------------------------------------------------------------ small pieces used by several scenes
 
 def sack(d, x, y, s=1.0, fill="cream", tie=True):
-    """a jute sack, standing, bottom centre at (x, y)"""
+    # (x, y) = bottom centre
     w, h = 34 * s, 42 * s
     d.shape([(x - w * .42, y - h * .78), (x - w * .5, y - h * .3), (x - w * .46, y), (x + w * .46, y), (x + w * .5, y - h * .3),
              (x + w * .42, y - h * .78), (x + w * .2, y - h * .92), (x - w * .2, y - h * .92)], fill=fill, smooth=True, w=2)
@@ -227,7 +220,7 @@ def sun(d, cx, cy, r=16):
 
 
 def rupee(d, x, y, s=1.0, stroke=INK, w=2.2):
-    """the ₹ sign drawn as strokes, (x, y) its top left"""
+    # (x, y) = top left
     d.line(x, y, x + 14 * s, y, stroke=stroke, w=w)
     d.line(x, y + 5 * s, x + 14 * s, y + 5 * s, stroke=stroke, w=w)
     d.lines([(x, y), (x + 6 * s, y), (x + 10 * s, y + 2.5 * s), (x + 10 * s, y + 5 * s), (x + 7 * s, y + 9 * s), (x + 1 * s, y + 9 * s)],
@@ -251,7 +244,7 @@ def qr(d, x, y, s=40, seed=3):
 
 
 def person(d, x, y, s=1.0, turban="terra", shirt="white", scarf=None):
-    """a farmer from the chest up, (x, y) the bottom centre"""
+    # (x, y) = bottom centre
     d.shape([(x - 28 * s, y), (x - 26 * s, y - 22 * s), (x - 12 * s, y - 32 * s), (x + 12 * s, y - 32 * s), (x + 26 * s, y - 22 * s), (x + 28 * s, y)],
             fill=shirt, smooth=True, w=2)
     d.lines([(x - 6 * s, y - 32 * s), (x, y - 24 * s), (x + 6 * s, y - 32 * s)], w=1.6)
@@ -372,7 +365,6 @@ def _oval(cx, cy, rx, ry, n=16):
 
 
 def pin():
-    """a small thumbtack, for the corner of a card pinned to the page"""
     d = Scene("pin", 44, 54)
     d.blob(_oval(23, 49, 8, 3), "stone", .35)
     d.line(22, 28, 19, 46, w=2, stroke="#6b4a2f")
@@ -857,7 +849,6 @@ def basket():
 
 
 def footer_field():
-    """a strip of grass and wheat heads for the top edge of the footer, one colour"""
     d = Scene("footer-field", 480, 60, seed=5)
     c = "#183a2c"
     pts = [(0, 60), (0, 40)]

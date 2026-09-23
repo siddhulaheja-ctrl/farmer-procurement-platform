@@ -1,9 +1,4 @@
-/* Live search on the farmers list.
-
-   The list follows the box as you type, and emptying the box brings everyone
-   back. The server still does the searching - same centre scope, same limit
-   of 200 - so a farmer beyond the first page of results can still be found.
-   This only asks it without reloading the page. */
+/* live search on the farmers list, fetches ?partial=1 from the server */
 (function () {
     var WAIT = 180;   // ms after the last key before asking
 
@@ -29,11 +24,10 @@
                 .then(function (html) {
                     if (mine !== latest) { return; }   // an older answer arriving late
                     results.innerHTML = html;
-                    // keep the address in step, so a refresh or a shared link keeps the search
                     var url = window.location.pathname + (q ? '?q=' + encodeURIComponent(q) : '');
                     window.history.replaceState(null, '', url);
                 })
-                .catch(function () { /* the list just stays as it was */ });
+                .catch(function () {});
         }
 
         box.addEventListener('input', function () {

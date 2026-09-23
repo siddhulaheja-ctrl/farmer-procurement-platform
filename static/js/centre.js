@@ -1,11 +1,5 @@
-/* Weather on a centre's slot page.
-
-   Tapping a day in the forecast shows it hour by hour. Choosing a slot opens
-   that day's weather under it, picks out the readings around the chosen time,
-   sums them up in one line, and warns if rain is likely then.
-
-   Everything is already in the page; this only shows and hides it. Without
-   script the forecast and today's hours are still there. */
+/* centre page weather: hourly view for a day, and the weather for the picked slot.
+   everything is already in the html, this just shows / hides it. */
 (function () {
     document.addEventListener('DOMContentLoaded', function () {
         var i;
@@ -54,8 +48,7 @@
             }
             if (!panel) { return; }
 
-            // readings are three hours apart, so take the ones within an hour
-            // either side of the window
+            // 3-hourly readings, take the ones within an hour of the window
             var rows = panel.querySelectorAll('tr[data-hour]');
             var temps = [];
             var chance = 0;
@@ -89,7 +82,7 @@
 
         for (i = 0; i < radios.length; i++) {
             radios[i].addEventListener('change', function () { showSlot(this); });
-            // a slot still ticked after coming back to the page
+            // back button keeps the radio checked
             if (radios[i].checked) { showSlot(radios[i]); }
         }
     });

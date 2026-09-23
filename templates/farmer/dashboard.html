@@ -59,8 +59,6 @@
 </div>
 {% endif %}
 
-{# the five things a farmer comes here for, as pictures with a word or two.
-   the three marked "dup" are also in the phone tab bar, so they hide there #}
 <nav class="tiles" aria-label="{{ t('What would you like to do?') }}">
   <a class="tile main" href="{{ url_for('farmer_centres') }}"><img src="{{ artdir }}calendar.svg" width="320" height="240" alt=""><span><strong>{{ t("Book a new slot") }}</strong><br><small>{{ t("Pick a centre, day and time") }}</small></span></a>
   <a class="tile" href="{{ url_for('farmer_voice') }}"><img src="{{ artdir }}voice.svg" width="320" height="240" alt=""><span><strong>{{ t("Book by speaking") }}</strong><br><small>{{ t("No typing needed") }}</small></span></a>
@@ -78,7 +76,6 @@
 {% endif %}
 
 <div class="stat-row">
-  {# on a phone the bookings list above already says this, so it hides there #}
   <div class="stat dup {{ 'info' if upcoming else 'zero' }}">
     <span class="stat-ic">{{ icon('ticket') }}</span>
     <div><div class="n">{{ upcoming|length }}</div><div class="l">{{ t("Upcoming slots") }}</div></div>
@@ -91,7 +88,6 @@
     <span class="stat-ic">{{ icon('hourglass') }}</span>
     <div><div class="n">{{ (pending_amount or 0)|rupee }}</div><div class="l">{{ t("Awaiting payment") }}</div></div>
   </div>
-  {# the "action needed" notice above carries this, so it hides on a phone #}
   <div class="stat dup {{ 'bad' if flags else 'good' }}">
     <span class="stat-ic">{{ icon('alert-triangle' if flags else 'check-circle') }}</span>
     <div><div class="n">{{ flags|length }}</div><div class="l">{{ t("Open detail issues") }}</div></div>

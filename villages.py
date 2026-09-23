@@ -1,13 +1,5 @@
-"""Villages and towns a farmer can pick, by district.
-
-A typed village could be anything - a spelling nobody else uses, a
-neighbour's name, a blank that says "-". A list means every farmer from
-Jwalapur is from the same Jwalapur, which the weather lookup, the help chat's
-distances and any report by village all rely on.
-
-Demo data: real places in each district, ten or so each, including every
-village the seeded farmers and the Farmer ID registry use.
-TODO: the state's village directory (LGD codes) in production
+"""Village list per district, so village is picked not typed.
+TODO: use the LGD village directory
 """
 
 import difflib
@@ -24,8 +16,7 @@ VILLAGES = {
                  "Lalkuan", "Mehragaon", "Ramnagar"],
 }
 
-# how each is written in hindi and bengali. i18n.py adds these to its tables,
-# and match() uses them to recognise a name said in either script
+# also used by i18n.py
 NAMES = {
     "hi": {
         "Bazpur": "बाजपुर", "Dineshpur": "दिनेशपुर", "Gadarpur": "गदरपुर", "Jaspur": "जसपुर",
@@ -59,7 +50,6 @@ NAMES = {
 
 
 def names(district=None):
-    """The villages of one district, or of every district when none is given."""
     if district:
         return list(VILLAGES.get(district, []))
     return [v for vs in VILLAGES.values() for v in vs]
@@ -74,10 +64,7 @@ def _key(text):
 
 
 def match(district, text):
-    """The listed village in what someone said or typed, or "".
-
-    Knows the Hindi and Bengali spellings, and forgives a letter or two,
-    because speech recognition rarely spells a place the way a list does."""
+    # fuzzy, speech recognition spells places all sorts of ways
     raw = str(text or "").strip()
     if not raw:
         return ""

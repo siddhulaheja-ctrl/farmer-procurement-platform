@@ -2,14 +2,12 @@
 {% from "_macros.html" import wx_icon, wx_kind, hours_table %}
 {% block title %}{{ t("Krishi Sutra") }} &middot; {{ t("Slot Booking & Procurement Management System") }}{% endblock %}
 
-{#- the pencil line under a section heading, drawn when it comes into view -#}
 {%- macro scribble() -%}
 <svg class="scribble" data-reveal viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M2 8 C 26 3, 52 11, 78 6 S 110 4, 118 7"/></svg>
 {%- endmacro -%}
 {%- set artdir = url_for('static', filename='img/art/') -%}
 
 {% block content %}
-{# a framed photo slideshow over a field of wheat that sways in the wind #}
 <section class="hero">
   <div class="hero-deco" data-reveal aria-hidden="true">
     <span class="sprig tr"><img src="{{ artdir }}sprig.svg" width="220" height="340" alt=""></span>
@@ -18,8 +16,6 @@
         <img class="land" src="{{ artdir }}fields.svg" width="1440" height="260" alt="">
         <img class="tractor" src="{{ artdir }}tractor.svg" width="120" height="84" alt="">
       </div>
-      {#- four rows of stalks from the horizon to the front; far rows small and faint, near rows big.
-          --x places a stalk along its row, --j nudges its size and timing so the field is not a fence #}
       {% for row, count in [('r1', 44), ('r2', 34), ('r3', 24), ('r4', 16)] %}
       <div class="stalks {{ row }}">{% for i in range(count) %}<i style="--x: {{ i }}; --j: {{ (i * 7 + count) % 10 }}"><img src="{{ artdir }}wheat-stalk.svg" width="220" height="420" alt="" decoding="async"></i>{% endfor %}</div>
       {% endfor %}
@@ -29,7 +25,6 @@
   <div class="wrap hero-in">
     <div class="hero-text">
       <p class="note red write" data-reveal>{{ icon('calendar') }} {{ t("Procurement season") }} &middot; {{ g.today.day }} {{ t(g.today.strftime('%b')) }} {{ g.today.year }}</p>
-      {#- the words rise one by one; the middle phrase gets the highlighter -#}
       {%- set head = t("Book a weighing slot at your procurement centre") -%}
       {%- set marked = t("weighing slot") -%}
       <h1 class="rise-words" data-reveal>
@@ -42,7 +37,6 @@
           {%- for w in head.split() %}<span class="w">{{ w }}</span> {% endfor -%}
         {%- endif -%}
       </h1>
-      <p class="lede fade" data-reveal style="--d: .9s">{{ t("Choose a day and time, get a token, and bring your crop when it is your turn. Your Aadhaar and bank details are checked when you register, so your payment is not held up later.") }}</p>
       <div class="actions fade" data-reveal style="--d: 1.1s">
         <a class="btn" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register as a farmer") }} <span aria-hidden="true">&rarr;</span></a>
         <a class="btn login" href="{{ url_for('login') }}">{{ icon('log-in') }}<span class="lbl"><small>{{ t("Already registered?") }}</small>{{ t("Sign in") }}</span></a>
@@ -61,7 +55,6 @@
   </div>
 </section>
 
-{#- the MSP rates as specimen plates taped into the notebook -#}
 {%- set crop_art = {'Wheat': 'wheat', 'Paddy': 'paddy', 'Mustard': 'mustard', 'Gram': 'gram', 'Maize': 'maize', 'Bajra': 'bajra'} -%}
 <section class="home-sec" id="msp">
   <div class="sec-head">
@@ -91,7 +84,6 @@
 </section>
 
 <section class="home-sec" id="weather">
-  {#- a small sky over the weather diary: a sun, clouds drifting past, a few birds #}
   <div class="sky" aria-hidden="true">
     <img class="sun" src="{{ artdir }}sun.svg" width="120" height="120" alt="">
     <img class="cloud c1" src="{{ artdir }}cloud.svg" width="200" height="96" alt="">
@@ -106,7 +98,6 @@
         <h2><span class="h-ic">{{ icon('cloud-sun') }}</span>{{ t("Weather diary") }}</h2>
         {{ scribble() }}
       </div>
-      {# a plain GET form, so the chosen district ends up in the address #}
       <form method="get" action="{{ url_for('home') }}#weather" class="pick">
         <label for="district">{{ t("Choose your district") }}</label>
         <span class="select">

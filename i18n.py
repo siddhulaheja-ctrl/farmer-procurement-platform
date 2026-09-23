@@ -1,11 +1,6 @@
-"""Farmer-side translations: Hindi here, Bengali in lang/bn.py.
-
-Keyed on the english string so templates stay readable - {{ t("Book a Slot") }}.
-If a string is missing from a table it just falls back to english, so a half
-finished translation doesn't break the page.
-
-Only the farmer side is translated. Centre staff use the english admin screens.
-The bengali table needs a native speaker to read it over.
+"""Translations keyed on the english string, {{ t("Book a Slot") }}. Hindi here,
+Bengali in lang/bn.py, staff screen strings in lang/theme.py. Missing ones
+fall back to english. Bengali still needs a native speaker to check it.
 TODO: move this to flask-babel before adding the rest of the 22
 """
 
@@ -945,18 +940,15 @@ HINDI = {
 
 from lang.bn import BENGALI  # noqa: E402
 
-# each language written in its own script, the way a switcher should show it.
-# bengali for the settler farming families of dineshpur
+# bengali for the settler families around dineshpur
 LANGUAGES = {"en": "English", "hi": "हिन्दी", "bn": "বাংলা"}
 TABLES = {"hi": HINDI, "bn": BENGALI}
 
-# the field-notebook redesign's strings (staff screens, run-time labels)
 from lang.theme import HI as _THEME_HI, BN as _THEME_BN  # noqa: E402
 for _table, _extra in ((HINDI, _THEME_HI), (BENGALI, _THEME_BN)):
     for _english, _local in _extra.items():
         _table.setdefault(_english, _local)
 
-# village names live with the village list
 from villages import NAMES as _VILLAGE_NAMES  # noqa: E402
 for _code, _names in _VILLAGE_NAMES.items():
     for _english, _local in _names.items():
@@ -964,14 +956,12 @@ for _code, _names in _VILLAGE_NAMES.items():
 
 
 def get_lang():
-    # hindi until the visitor picks another language from the switcher
+    # default hindi
     code = session.get("lang", "hi")
     return code if code in LANGUAGES else "hi"
 
 
 def t(text):
-    """Translate one string. Anything a table is missing stays in english, and
-    so does anything asked for outside a request (a script, a background job)."""
     if not has_request_context():
         return text
     table = TABLES.get(get_lang())

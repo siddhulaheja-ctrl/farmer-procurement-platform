@@ -29,6 +29,7 @@
       <button class="btn block large" type="submit">{{ icon('log-in') }}{{ t("Sign in") }}</button>
     </form>
     <p class="small mt">{{ t("District superadmin?") }} <a href="{{ url_for('super_login') }}">{{ t("Superadmin sign in") }}</a></p>
+    {% if roster %}
     <div class="roster">
       <h2 class="roster-h">{{ t("Demo accounts") }} <span class="muted small">&middot; {{ t("password") }} <b class="mono">{{ demo_password }}</b> {{ t("for all") }}</span></h2>
       <ul class="roster-list">
@@ -49,6 +50,7 @@
       {% endfor %}
       </ul>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

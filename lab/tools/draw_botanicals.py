@@ -1,12 +1,6 @@
-"""Line drawings of the six MSP crops for the field-notebook design.
+"""Crop drawings for the MSP section.
 
     python lab/tools/draw_botanicals.py
-
-Writes lab/designs/field-notebook/art/<crop>.svg. Ink lines with a light wash
-of each part's real colour: green leaves and stalks, golden grain, yellow
-mustard flowers, pink gram flowers.
-Drawn from simple geometry with a fixed seed, so re-running gives the same
-pictures.
 """
 import math
 import os
@@ -65,7 +59,6 @@ COLOURS = {
 
 
 class Layer(list):
-    """A list of path data that remembers which part of the plant each path is."""
     def __init__(self, drawing):
         super().__init__()
         self.drawing = drawing
@@ -126,7 +119,6 @@ class Drawing:
             self.fine.append(poly([(cx + p[0], cy + p[1]), (cx + q[0], cy + q[1])]))
 
     def leaf(self, base, ctrl1, ctrl2, tip, width, veins=0, twist=None, wave=0.0, rng=None):
-        """A blade along a cubic curve, widest a third of the way up."""
         c = (base, ctrl1, ctrl2, tip)
         n = 36
         left, right, mid = [], [], []

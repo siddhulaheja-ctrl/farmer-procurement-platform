@@ -1,7 +1,4 @@
-"""Bengali. Same keys as HINDI in i18n.py.
-
-Needs a native speaker to read it over before anyone relies on it.
-"""
+"""Bengali, same keys as HINDI in i18n.py. Not checked by a native speaker yet."""
 
 BENGALI = {
     "Indicative rates per quintal, and the rise over the previous season": "প্রতি কুইন্টালে আনুমানিক দর, এবং আগের মরসুমের তুলনায় বৃদ্ধি",

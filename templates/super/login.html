@@ -2,8 +2,6 @@
 {% block title %}{{ t("Superadmin sign in") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
 {% block content %}
-{# its own door: superadmins see every centre and every member account, so they
-   don't share a sign-in page with the counter #}
 <div class="auth">
   <div class="auth-art">
     <img src="{{ url_for('static', filename='img/art/office.svg') }}" width="320" height="240" alt="">
@@ -31,7 +29,7 @@
       <button class="btn block large" type="submit">{{ icon('log-in') }}{{ t("Sign in") }}</button>
     </form>
     <p class="small mt">{{ t("Work at a procurement centre counter?") }} <a href="{{ url_for('admin_login') }}">{{ t("Centre member sign in") }}</a></p>
-    <div class="notice warning small">{{ t("Demo") }}: {{ t("superadmin") }} <strong>ADMIN</strong>, {{ t("password") }} <strong>demo123</strong></div>
+    {% if demo_super %}<div class="notice warning small">{{ t("Demo") }}: {{ t("superadmin") }} <strong>ADMIN</strong>, {{ t("password") }} <strong>{{ demo_password }}</strong></div>{% endif %}
   </div>
 </div>
 {% endblock %}

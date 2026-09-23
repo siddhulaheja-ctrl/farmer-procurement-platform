@@ -33,9 +33,8 @@ if ! command -v cloudflared >/dev/null 2>&1; then
 fi
 
 if [ ! -f procurement.db ]; then
-    echo "No database found. Creating demo data, this takes a few seconds..."
-    "$PY" seed.py
-    echo ""
+    echo "procurement.db is missing. Put a copy of the database in this folder first."
+    exit 1
 fi
 
 PORT=5000
@@ -112,11 +111,7 @@ echo "  Copied to your clipboard. Also saved in LAST_SHARE_LINK.txt"
 echo ""
 echo "=================================================================="
 echo ""
-echo "  Send these logins with it:"
-echo "    Farmer   9000000001   (clean record)"
-echo "    Farmer   9000000002   (has data mismatches)"
-echo "    OTP      123456"
-echo "    Staff    ADMIN / demo123"
+echo "  Farmer OTP is 123456. Don't paste staff passwords along with the link."
 echo ""
 echo "=================================================================="
 echo ""

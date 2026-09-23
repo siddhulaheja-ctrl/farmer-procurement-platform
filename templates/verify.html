@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ t("Check a pass or receipt") }} - {{ t("Krishi Sutra") }}{% endblock %}
 
-{# What a stranger sees after scanning a pass or receipt with an ordinary
-   camera app: genuine or not, and nothing about whose it is. #}
 {% block content %}
 <section class="verify {{ 'good' if genuine else 'bad' }}" aria-live="polite">
   <img class="verify-art" src="{{ url_for('static', filename='img/art/seal.svg') }}" width="320" height="240" alt="">

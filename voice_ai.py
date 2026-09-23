@@ -1,21 +1,8 @@
-"""Gemini, for understanding what farmers say and for the help chat.
+"""Gemini calls for the voice booking and the help chat.
 
-voicebook.parse() knows a few hundred words. A farmer who says "agle hafte ki
-shuruaat mein kichha jaana hai, lagbhag pachchees quintal dhan" needs
-something that understands a sentence, so the voice page asks Gemini first.
-The help chat (assistant.py) uses the same connection through generate().
-
-For booking, Gemini only reads the words and fills in the same fields the
-parser does, or says the farmer asked a question instead. Everything it
-returns is checked against the real centres, crops, windows and dates, and
-anything outside them is dropped. It never books.
-
-No key, no internet, quota used up, an overloaded model, a slow or malformed
-answer: Unavailable is raised and the caller uses its offline fallback. After
-a network failure it stays out of the way for a while, so an offline demo
-isn't slowed down on every turn.
-
-Called over plain HTTP with requests, so there is no extra library to install.
+It only fills in the same fields voicebook.parse() does, and _checked() throws
+away anything that isn't a real centre / crop / date. Raises Unavailable on
+any failure so the caller falls back to the parser.
 """
 
 import json
@@ -31,12 +18,12 @@ import env
 env.load()
 
 API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
-# fastest first; the second takes over when the first is overloaded or retired
+# tried in order
 MODELS = [m.strip() for m in os.environ.get(
     "GEMINI_MODEL", "gemini-flash-lite-latest,gemini-3.5-flash-lite").split(",") if m.strip()]
 URL = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent"
-TIMEOUT = (3, 6)            # seconds to connect, seconds to answer
-STAY_AWAY = 45              # seconds to skip gemini after it couldn't be reached
+TIMEOUT = (3, 6)            # connect, read
+STAY_AWAY = 45              # skip gemini this long after a network error
 
 CENTRES = ["Rudrapur Mandi Samiti", "Kichha Kharid Kendra", "Haridwar Kharid Kendra",
            "Vikasnagar Grain Market", "Haldwani Mandi Centre"]
@@ -94,20 +81,18 @@ SCHEMA = {
                  "start_hours", "quantity"],
 }
 
-_session = requests.Session()    # keeps the connection open between turns
+_session = requests.Session()
 _cache = {}
 _lock = threading.Lock()
 _down_until = 0.0
 
 
 class Unavailable(Exception):
-    """Gemini can't answer right now; use the offline fallback."""
-
-
+    pass
 
 
 def warm():
-    """Open the connection in the background, so the first question doesn't wait on the handshake."""
+    # open the connection early so the first question doesn't wait on tls
     if not API_KEY or time.time() < _down_until:
         return
 
@@ -121,11 +106,6 @@ def warm():
 
 
 def generate(instructions, contents, schema, label="voice ai"):
-    """One structured (JSON) answer from the first model that gives one.
-
-    contents is the Gemini conversation: [{"role": "user"|"model", "parts": [{"text": ...}]}].
-    Raises Unavailable.
-    """
     global _down_until
     if not API_KEY:
         raise Unavailable("no GEMINI_API_KEY")
@@ -138,18 +118,17 @@ def generate(instructions, contents, schema, label="voice ai"):
         for thinking in (True, False):
             config = {"responseMimeType": "application/json", "responseSchema": schema, "temperature": 0}
             if thinking:
-                config["thinkingConfig"] = {"thinkingLevel": "minimal"}   # lowest delay
+                config["thinkingConfig"] = {"thinkingLevel": "minimal"}
             body = {"systemInstruction": {"parts": [{"text": instructions}]},
                     "contents": contents, "generationConfig": config}
             try:
                 r = _session.post(URL % model, headers={"x-goog-api-key": API_KEY}, json=body, timeout=TIMEOUT)
             except requests.RequestException as e:
-                # no internet or far too slow: leave it to the fallback for a while
                 _down_until = time.time() + STAY_AWAY
                 print("[%s] %s: %s, using the offline fallback for %ds" % (label, model, e.__class__.__name__, STAY_AWAY))
                 raise Unavailable(str(e))
             if r.status_code == 400 and thinking:
-                continue            # a model that won't take the thinking setting: ask plainly
+                continue            # model doesn't support thinkingConfig
             break
         if r.status_code == 200:
             try:
@@ -163,7 +142,7 @@ def generate(instructions, contents, schema, label="voice ai"):
             why = "unexpected answer from %s" % model
             continue
         why = "%s from %s" % (r.status_code, model)
-        print("[%s] %s" % (label, why))    # overloaded, out of quota, retired: try the next one
+        print("[%s] %s" % (label, why))
     raise Unavailable(why)
 
 
@@ -190,7 +169,6 @@ def _prompt(text, alternatives, context, district, today):
 
 
 def _checked(reply, today):
-    """Gemini's answer as voicebook.parse() fields, keeping only what can be real."""
     out = {"centre": None, "district": None, "crop": None, "day": None, "day_kind": None, "hours": None,
            "quantity": None, "out_of_hours": False, "date_unclear": False, "heard": {}, "source": "ai"}
 
@@ -243,7 +221,7 @@ def _checked(reply, today):
         heard("quantity", "%g" % quantity)
 
     intent = reply.get("intent")
-    if intent not in ("booking", "yes", "no", "change", "question", "unclear"):
+    if intent not in ("booking", "cancel", "yes", "no", "change", "question", "unclear"):
         intent = "unclear"
     topic = None
     if intent == "question":
@@ -252,11 +230,7 @@ def _checked(reply, today):
 
 
 def understand(text, alternatives=(), context=None, district=None, today=None):
-    """What the farmer said: (voicebook.parse() fields, intent, question topic or None).
-
-    context is what the portal last said, when this is a reply. Raises
-    Unavailable whenever the parser should answer instead.
-    """
+    # -> (parse() fields, intent, question topic or None)
     today = today or date.today()
     key = (text, tuple(alternatives), context, district, today.isoformat())
     with _lock:

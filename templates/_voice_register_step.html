@@ -1,5 +1,3 @@
-{# one question of registering by speaking. sent back after every answer, so
-   the page never reloads mid-conversation (a reload stops it speaking) #}
 <div class="voice-say" data-say="{{ step.say }}" data-listen="{{ step.listen or '' }}">
   <p class="voice-said">{{ step.say }}</p>
   <button type="button" class="btn secondary" data-replay data-js hidden>{{ icon('volume') }}{{ t("Hear it again") }}</button>

@@ -1,16 +1,11 @@
-"""Staff accounts: the demo roster and password hashing.
-
-Passwords are stored as werkzeug hashes (scrypt), never as the password.
-Werkzeug already ships with Flask, so this needs no new dependency.
-"""
+"""Staff accounts and password hashing (werkzeug scrypt)."""
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
 ROLES = ("staff", "superadmin")
 DEMO_PASSWORD = "demo123"
 
-# code, name, centre (by name, None for the supervisor), role.
-# One supervisor who sees every centre, and counter staff locked to theirs.
+# code, name, centre name (None = all centres), role
 DEMO_STAFF = [
     ("ADMIN", "District Superadmin", None, "superadmin"),
     ("RUD01", "Suresh Rawat", "Rudrapur Mandi Samiti", "staff"),
@@ -31,8 +26,18 @@ def is_hashed(stored):
 
 
 def check_password(stored, given):
-    """True if `given` matches. An unhashed stored value never matches - the
-    migration hashes those on startup, so one left over means something is off."""
+    # plain text never matches, migrate() hashes everything on startup
     if not stored or not is_hashed(stored):
         return False
     return check_password_hash(stored, given or "")
+
+
+def demo_logins(db_path):
+    # accounts still on demo123, the login pages show these as one-click buttons
+    import sqlite3
+    con = sqlite3.connect(db_path)
+    try:
+        rows = con.execute("SELECT staff_code, password FROM staff WHERE active = 1").fetchall()
+    finally:
+        con.close()
+    return {code for code, stored in rows if check_password(stored, DEMO_PASSWORD)}

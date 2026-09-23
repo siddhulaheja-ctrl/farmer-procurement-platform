@@ -1,16 +1,8 @@
-/* Text size control.
-
-   Every font size in the stylesheet is a rem, so setting --fs on the root
-   scales the whole page from one value. Text size, not zoom, so padding and
-   column widths stay put and the wide admin tables still fit.
-
-   Kept in localStorage per browser and applied before first paint, otherwise
-   the page renders at the default size and jumps. Everything is wrapped
-   because localStorage throws outright in some privacy modes. */
+/* text size (--fs on :root, all font sizes are rem), saved in localStorage.
+   also the language menu and the phone nav. */
 (function () {
     var STEPS = [14, 16, 18, 20];       // 16 is the default, index 1
     var root = document.documentElement;
-    // lets the stylesheet fold the phone menu only when this script can open it
     root.classList.add('js');
 
     function read(key, fallback) {
@@ -36,13 +28,11 @@
     if (isNaN(step)) { step = 1; }
     applySize(step);
 
-    // contrast mode was dropped, clear the key it left behind
     try { localStorage.removeItem('ks-contrast'); } catch (e) { /* private mode */ }
     root.removeAttribute('data-contrast');
 
     document.addEventListener('DOMContentLoaded', function () {
-        // the language menu opens on its own (details/summary); close it on a
-        // tap anywhere else or on Escape, the way people expect a menu to behave
+        // close the language <details> on outside click / Escape
         var menus = document.querySelectorAll('details.langmenu');
         function closeMenus(except) {
             for (var m = 0; m < menus.length; m++) {
@@ -58,7 +48,6 @@
             if (e.key === 'Escape') { closeMenus(null); }
         });
 
-        // the phone menu: the hamburger opens and closes the top navigation
         var toggle = document.querySelector('.navtoggle');
         var nav = document.getElementById('mainnav');
         if (toggle && nav) {
@@ -80,7 +69,6 @@
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape' && nav.classList.contains('open')) { setOpen(false); toggle.focus(); }
             });
-            // picking a link closes the menu instead of leaving it open behind the new page
             nav.addEventListener('click', function (e) {
                 if (e.target.closest('a')) { setOpen(false); }
             });

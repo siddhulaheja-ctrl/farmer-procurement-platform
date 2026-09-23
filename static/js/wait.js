@@ -1,6 +1,4 @@
-/* A payment with the bank. Counts down the seconds until the (demo) bank
-   answers, then reloads so the page shows the credit or the return.
-   The answer is worked out on the server on the next page load. */
+/* countdown until the mock bank answers, then reload */
 (function () {
     var boxes = document.querySelectorAll('[data-wait]');
     if (!boxes.length) { return; }
@@ -16,7 +14,6 @@
             if (out) { out.textContent = own; }
         }
         if (left <= 0) {
-            // a moment's grace so the server's clock is past the answer too
             setTimeout(function () { window.location.reload(); }, 1500);
             return;
         }

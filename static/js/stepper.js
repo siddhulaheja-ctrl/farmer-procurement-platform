@@ -1,16 +1,5 @@
-/* The registration stepper, and land record rows.
-
-   Without script the registration form is one long page and posts as it is.
-   With it the same fieldsets become steps: one on screen at a time, Next
-   checks that step's fields, and the last step shows everything back before
-   Register.
-
-   Step 1 looks a Farmer ID up (/register/lookup) and fills in what the
-   registry holds. The full Aadhaar and account numbers never come to the page,
-   only their last digits - the server takes them from the registry when the
-   form arrives.
-
-   Land rows work on any page with [data-lands]: add one, remove one. */
+/* registration stepper (the form still works as one page without js),
+   Farmer ID lookup, and add/remove land rows. */
 (function () {
     function one(sel, root) { return (root || document).querySelector(sel); }
     function all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -51,8 +40,7 @@
         return d ? d.value : '';
     }
 
-    // only the chosen district's villages. a saved village that is on no list
-    // at all stays, so an old record still shows what it holds
+    // keep an old saved village even if it's not on the list
     function setVillages(select, district, value) {
         var list = catalogue(select);
         if (value === undefined) { value = select.value; }
@@ -243,7 +231,6 @@
             all('[data-fill]', registryBox).forEach(function (el) { el.textContent = f[el.getAttribute('data-fill')] || ''; });
             registryBox.hidden = false;
             manualBox.hidden = true;
-            // the registry's parcels first, then anything typed that it didn't have
             all('.land-row.from-registry', landsBox).forEach(function (row) { row.parentNode.removeChild(row); });
             var known = {};
             f.lands.forEach(function (land) { known[land.land_record_id] = true; });
@@ -337,14 +324,14 @@
         });
 
         form.addEventListener('submit', function (e) {
-            // a submit from anywhere but the last step moves on instead
+            // enter on an earlier step = next
             if (current < steps.length - 1 && !(e.submitter && e.submitter.hasAttribute('data-lookup-btn'))) {
                 e.preventDefault();
                 next.click();
             }
         });
 
-        // ---- the last step: everything back once more
+        // ---- summary step
 
         function labelFor(id) {
             var label = one('label[for="' + id + '"]', form);

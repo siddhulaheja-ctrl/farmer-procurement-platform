@@ -11,7 +11,6 @@
 <meta property="og:title" content="Krishi Sutra">
 <meta property="og:description" content="Slot booking and procurement management for government mandis.">
 <meta property="og:type" content="website">
-{# headings and handwriting. without a connection the page falls back to system fonts and still reads #}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 {% if lang() == 'bn' %}
@@ -20,11 +19,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&family=Kalam:wght@400&display=swap" rel="stylesheet">
 {% endif %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gov.css') }}">
-{# in the head, not at the end: it sets the text size before the first paint #}
+{# before first paint, sets the text size #}
 <script src="{{ url_for('static', filename='js/a11y.js') }}"></script>
 </head>
 {%- set ep = request.endpoint or '' -%}
-{#- every page has its own drawing beside its title (static/img/art, lab/tools/draw_scenes.py) -#}
 {%- set arts = {
     'login': 'phone-otp', 'verify_otp': 'otp-lock', 'register': 'register-card', 'register_voice': 'voice',
     'token_lookup': 'seal', 'receipt_lookup': 'seal', 'policy': 'scroll',
@@ -41,6 +39,7 @@
 <body class="{{ 'is-staff' if g.staff else 'is-public' }}{{ ' is-home' if ep == 'home' }}{{ ' has-tabbar' if g.farmer and not g.staff }}"
       style="--art: url('{{ url_for('static', filename='img/art/' + art + '.svg') }}')">
 <a class="skip-link" href="#main">{{ t("Skip to main content") }}</a>
+<div class="proto-banner no-print" role="note">{{ icon('alert-triangle') }}<span>{{ t("Prototype for Smart India Hackathon 2026, not a government service. Do not enter real Aadhaar or bank details.") }}</span></div>
 
 <div class="govstrip">
   <div class="wrap">
@@ -55,7 +54,6 @@
         <button type="button" data-fontstep="1" aria-pressed="true" title="{{ t("Normal text size") }}">A</button>
         <button type="button" data-fontstep="3" aria-pressed="false" title="{{ t("Larger text") }}">A<sup>+</sup></button>
       </span>
-      {# details/summary opens without script; a11y.js closes it on an outside tap #}
       <details class="langmenu">
         <summary title="{{ t('Language') }}">{{ icon('globe') }}<span lang="{{ lang() }}">{{ languages[lang()] }}</span>{{ icon('chevron-down') }}</summary>
         <ul>
@@ -71,7 +69,6 @@
 <header class="topbar">
   <div class="wrap topbar-in">
     <a class="brand" href="{{ url_for('farmer_dashboard') if g.farmer else (url_for('admin_dashboard') if g.staff else url_for('home')) }}">
-      {# alt is empty on purpose, the name is written right next to it #}
       <img src="{{ url_for('static', filename='img/logo-mark-96.png') }}" width="44" height="44" alt="">
       <span>
         <span class="brand-name">{{ t("Krishi Sutra") }}</span>
@@ -97,7 +94,6 @@
     {% endif %}
 
     {% if not g.farmer and not g.staff %}
-    {# the two doors, on every public page: register, and sign in as the filled one #}
     <span class="doors">
       <a class="door" href="{{ url_for('register') }}">{{ icon('user-plus') }}{{ t("Register") }}</a>
       <a class="door login" href="{{ url_for('login') }}">{{ icon('log-in') }}<span class="long">{{ t("Farmer") }}&nbsp;</span>{{ t("Sign in") }}</a>
@@ -114,7 +110,6 @@
     {% endif %}
 
     {% if not g.farmer %}
-    {# phones: the menu folds behind this - the top menu, or a member's side menu. a11y.js opens it #}
     <button type="button" class="navtoggle" aria-controls="mainnav" aria-expanded="false"
             data-open="{{ t('Menu') }}" data-close="{{ t('Close') }}">{{ icon('menu') }}<span class="sr">{{ t("Menu") }}</span></button>
     {% endif %}
@@ -124,7 +119,7 @@
 
 <div class="frame {{ 'console' if g.staff }}">
   {% if g.staff %}
-  {# same id as the public menu (never both on one page), so one button opens either #}
+  {# same id as the public menu, they're never on one page together #}
   <nav class="sidenav" id="mainnav" aria-label="{{ t('Members menu') }}">
     {% if g.staff.role == 'superadmin' %}
     <span class="side-label">{{ t("District superadmin") }}</span>
@@ -158,7 +153,6 @@
       {% for category, message in messages if not category.startswith('toast-') %}
         <div class="notice {{ category if category in ['success','warning','error','info'] else 'info' }}" role="status">{{ message }}</div>
       {% endfor %}
-      {# toasts pop up in a corner and go away by themselves (toast.js) #}
       <div class="toasts">
         {% for category, message in messages if category.startswith('toast-') %}
         {% set kind = category[6:] %}
@@ -176,7 +170,6 @@
 </div>
 
 {% if g.farmer and not g.staff %}
-{# phones: the farmer's five places as big icons along the bottom, like an app #}
 <nav class="tabbar" aria-label="{{ t('Main menu') }}">
   <a href="{{ url_for('farmer_dashboard') }}" class="{{ 'active' if ep in ('farmer_dashboard', 'farmer_booking', 'farmer_gatepass', 'farmer_phone_pass') }}">{{ icon('home') }}<span>{{ t("Home") }}</span></a>
   <a href="{{ url_for('farmer_centres') }}" class="{{ 'active' if ep in ('farmer_centres', 'farmer_centre', 'farmer_voice') }}">{{ icon('calendar-plus') }}<span>{{ t("Book") }}</span></a>
@@ -235,7 +228,6 @@
       </div>
     </div>
 
-    {# every photo, who took it and where it came from. same list in static/img/credits.json #}
     <div class="photo-credit">
       {{ t("Photographs from Wikimedia Commons, cropped and resized") }} &mdash;
       <a href="https://commons.wikimedia.org/wiki/File:Farmer_manually_harvesting_rice_in_Raichur,_Karnataka.jpg" rel="noopener">Nanditha Gogate, WELL Labs</a>
@@ -260,8 +252,6 @@
 </footer>
 {% if not g.staff %}{% include "_assistant.html" %}{% endif %}
 
-{# a slot just booked: a big "done" in the middle of the screen, the way a
-   payment app confirms. a real <dialog>, so Done closes it even without script #}
 {% set cel = take_celebration() %}
 {% if cel %}
 <dialog class="celebrate" open aria-labelledby="cel-title">
@@ -282,7 +272,6 @@
   </div>
 </dialog>
 {% endif %}
-{# per-page scripts go last, so nothing waits on them #}
 <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
 <script src="{{ url_for('static', filename='js/progress.js') }}"></script>
 {% block scripts %}{% endblock %}

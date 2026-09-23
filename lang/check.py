@@ -1,10 +1,9 @@
-"""Every string the portal translates, and which languages are missing it.
+"""Lists t("...") strings missing from a language table.
 
     python -m lang.check           # counts per language
-    python -m lang.check hi        # the missing Hindi strings, one per line
+    python -m lang.check hi        # the missing Hindi strings
 
-Reads the literal calls to t() with a quoted string, in templates and python
-files. A string built at run time, like t(place), is data and not listed here.
+Only literal strings, so t(place) etc isn't checked.
 """
 import ast
 import pathlib

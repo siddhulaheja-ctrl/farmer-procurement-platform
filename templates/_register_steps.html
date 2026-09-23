@@ -1,9 +1,4 @@
-{# Registration as a stepper: Farmer ID, about you, Aadhaar and bank, land,
-   check. stepper.js shows one step at a time and fills things in from a
-   Farmer ID; without script every step is on the page at once and it still
-   posts, Fetch included.
-   Expects: form (values), lands, registry (agristack.public() or None),
-   lookup_failed, start_step, districts, admin (bool) #}
+{# expects form, lands, registry, lookup_failed, start_step, districts, admin #}
 {% set f = form %}
 <form method="post" class="stepper" data-stepper data-start="{{ start_step or 1 }}"
       data-lookup="{{ url_for('registry_lookup') }}"
@@ -11,7 +6,7 @@
       data-checking="{{ t('Looking up your Farmer ID...') }}"
       data-failed="{{ t('Could not reach the registry. Fill in your details yourself.') }}"
       data-found="{{ t('Your details are filled in from your Farmer ID. Check them in the next steps.') }}">
-  {# Enter in a field registers, not "Fetch my details" - the browser presses the first submit button #}
+  {# so Enter submits Register, not Fetch #}
   <button type="submit" class="sr" tabindex="-1" aria-hidden="true">{{ t("Register") }}</button>
 
   <ol class="stepper-head" data-js hidden>

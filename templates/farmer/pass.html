@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ t("Pass") }} {{ b.token_no }}{% endblock %}
 
-{# The gate pass on the farmer's own phone: the code as big as the screen
-   allows, on white, so a gate scanner reads it in sunlight. #}
 {% block content %}
 <div class="phone-pass">
   <p class="pp-say">{{ icon('scan') }} {{ t("Show this at the gate") }}</p>

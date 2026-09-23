@@ -41,7 +41,7 @@
       <div class="legend">
         {% for key, label in chart.legend %}<span><i class="sw sw-{{ key }}"></i>{{ t(label) }}</span>{% endfor %}
       </div>
-      {# drawn on the server - the geometry comes from supervisor.bookings_chart #}
+      {# geometry from supervisor.bookings_chart #}
       <svg class="chart" viewBox="0 0 {{ chart.w }} {{ chart.h }}" role="img"
            aria-label="{{ t('Bookings per day for the week before and after today') }}">
         {% for gl in chart.grid %}

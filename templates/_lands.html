@@ -1,6 +1,4 @@
-{# a farmer's land records: one Aadhaar, as many parcels as they farm.
-   Expects: lands (a list of land dicts). There is always one empty row at the
-   end, so a record can be added without script; stepper.js adds more rows. #}
+{# expects lands. always one empty row at the end for no-js #}
 <div class="lands" data-lands data-registry-label="{{ t('From Farmer ID') }}">
   {% for l in lands %}{% with n = loop.index %}{% include "_land_row.html" %}{% endwith %}{% endfor %}
   {% with l = {}, n = (lands|length) + 1 %}{% include "_land_row.html" %}{% endwith %}

@@ -25,8 +25,6 @@
       action="{{ url_for('farmer_reschedule', booking_id=reschedule_id) if reschedule_id else url_for('farmer_book') }}">
   <input type="hidden" name="back" value="{{ request.full_path }}">
 
-  {# crop and quantity first: they are short, and a farmer knows them before
-     scrolling through two weeks of slots #}
   {% if not reschedule_id %}
   <div class="card stepcard">
     <div class="card-head">
@@ -60,7 +58,6 @@
     <div class="card-body">
       {{ forecast_days(wx_forecast, current=wx_forecast[0].date, pick=True) }}
       <p class="small muted cw-hint" data-js hidden>{{ t("Tap a day to see it hour by hour, or choose a slot below.") }}</p>
-      {# today's hours show without script too; the other days wait for a tap #}
       {% for d in wx_forecast %}
       <div class="cw-day" data-day="{{ d.date }}" data-js{{ '' if loop.first else ' hidden' }}>
         <h3 class="cw-day-title">{{ d.date|dayname }}, {{ d.date|nicedate }} &middot; {{ t("Hour by hour") }}</h3>
@@ -85,7 +82,6 @@
             {% for s in slots %}
               {% set free = s.max_capacity - s.booked_count %}
               {% set pct = (s.booked_count * 100 // s.max_capacity) if s.max_capacity else 100 %}
-              {# capacity only shouts when it is running out #}
               <label class="slot {{ 'full' if free <= 0 }}">
                 <input type="radio" name="slot_id" value="{{ s.id }}" required {{ 'disabled' if free <= 0 }}
                        data-date="{{ d }}" data-start="{{ s.time_window[:2]|int }}" data-end="{{ s.time_window[-5:-3]|int }}"
@@ -105,7 +101,6 @@
             {% endfor %}
           </div>
         </div>
-        {# opened by centre.js when a slot on this day is chosen #}
         <div class="slot-weather" data-day="{{ d }}" data-js hidden>
           {% set fd = wx_by_date.get(d) %}
           {% if fd %}

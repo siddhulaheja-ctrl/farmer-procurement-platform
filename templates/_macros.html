@@ -1,9 +1,3 @@
-{# Colour only for what needs someone to act. Normal progress - booked,
-   completed, paid - is plain text, so the failed payment or the high risk
-   row is the thing that stands out when you run your eye down a table. #}
-{# every badge carries an icon and a colour as well as the word, so a farmer who
-   reads slowly can tell these apart at a glance. Three signals, not one: colour
-   on its own would fail anyone colourblind. #}
 {% macro status_badge(s) -%}
   {% if s == 'booked' %}<span class="badge blue">{{ icon('calendar-check') }}{{ t("Booked") }}</span>
   {% elif s == 'arrived' %}<span class="badge amber">{{ icon('map-pin') }}{{ t("Arrived") }}</span>
@@ -34,7 +28,6 @@
   {% else %}<span class="state off">&mdash;</span>{% endif %}
 {%- endmacro %}
 
-{# a crop's own little drawing, so wheat can be told from paddy without reading #}
 {% macro crop_icon(name) -%}
   {%- set key = (name or '')|lower -%}
   {%- if key in ('wheat', 'paddy', 'maize', 'mustard', 'gram', 'bajra') -%}{{ icon('crop-' ~ key, 'crop-ic') }}
@@ -49,7 +42,6 @@
   <span class="crop-name">{{ crop_icon(name) }}{{ t(name) }}</span>
 {%- endmacro %}
 
-{# calendar tile for a YYYY-MM-DD date #}
 {% macro datetile(d) -%}
   {%- set parts = (d|nicedate).split(' ') -%}
   <span class="datetile {{ 'today' if d == g.today.isoformat() }}" aria-hidden="true">
@@ -59,7 +51,6 @@
   </span>
 {%- endmacro %}
 
-{# sun, cloud, rain or storm, from the forecast's words and the rain it expects #}
 {% macro wx_kind(desc, rain) -%}
   {%- set s = (desc or '')|lower -%}
   {%- if 'thunder' in s or 'storm' in s -%}storm
@@ -70,7 +61,6 @@
   {%- else -%}sun{%- endif -%}
 {%- endmacro %}
 
-{# the picture for it, drawn in colour and gently moving (gov.css .wx-svg) #}
 {% macro wx_icon(kind) -%}
 {%- set cloud = 'M17 50h31a10 10 0 0 0 1.5-19.9A14 14 0 0 0 22.8 27 12 12 0 0 0 17 50z' -%}
 {%- set sun -%}
@@ -86,10 +76,8 @@
 </svg>
 {%- endmacro %}
 
-{# a forecast day's (or hour's) picture #}
 {% macro wx_glyph(day) -%}{{ wx_icon(wx_kind(day.description, day.rain_mm)) }}{%- endmacro %}
 
-{# the way into booking by voice, big and plain: many farmers will never type #}
 {% macro voice_banner() -%}
 <a class="voice-banner" href="{{ url_for('farmer_voice') }}">
   <span class="vb-mic">{{ icon('mic') }}</span>
@@ -101,8 +89,6 @@
 </a>
 {%- endmacro %}
 
-{# with a district, each day is a link to that day hour by hour on the home page.
-   with pick, each day is a button that shows its hours on the same page (centre.js) #}
 {% macro forecast_days(forecast, district=None, current=None, pick=False) -%}
 <div class="forecast">
   {% for d in forecast %}
@@ -122,8 +108,6 @@
 </div>
 {%- endmacro %}
 
-{# one day, three-hourly. each row carries its hour, temperature, chance of rain
-   and rain, so the slot picker can pick out the readings around a chosen time #}
 {% macro hours_table(hours) -%}
 <div class="table-scroll">
   <table class="data wx-hours">
@@ -149,9 +133,6 @@
 </div>
 {%- endmacro %}
 
-{# where a booking has got to. booked -> weighed -> closed -> paid.
-   needs status, payment_status and actual_quantity on the row #}
-{# where the money is. payments.py has the stages #}
 {% macro stage_badge(stage) -%}
   {% if stage == 'credited' %}<span class="badge green">{{ icon('banknote') }}{{ t("Credited") }}</span>
   {% elif stage == 'sent' %}<span class="badge blue">{{ icon('hourglass') }}{{ t("Sent to bank") }}</span>
@@ -163,7 +144,6 @@
   {% else %}<span class="state off">&mdash;</span>{% endif %}
 {%- endmacro %}
 
-{# a payment step as the farmer reads it #}
 {% macro stage_step(stage) -%}
   {%- set words = {
       'weighed': "Crop weighed at the centre", 'closed': "Receipt issued", 'billed': "Bill ready for the bank",
@@ -201,7 +181,6 @@
   </ol>
 {%- endmacro %}
 
-{# icon and colour for an alert, by type #}
 {% macro alert_ic(kind) -%}
   {%- if kind == 'storage_risk' -%}<span class="tl-ic red">{{ icon('cloud-rain') }}</span>
   {%- elif kind == 'data_mismatch' -%}<span class="tl-ic amber">{{ icon('alert-triangle') }}</span>
@@ -222,9 +201,6 @@
   {%- else -%}{{ kind|replace('_', ' ')|capitalize }}{%- endif -%}
 {%- endmacro %}
 
-{# the alert in the farmer's language. hindi has the full text in message_hi;
-   other languages, and hindi rows older than that column, get a short line
-   by type, never english #}
 {% macro alert_msg(a) -%}
   {%- if lang() != 'en' -%}
     {%- if lang() == 'hi' and a.message_hi -%}{{ a.message_hi }}
@@ -235,8 +211,6 @@
     {%- elif a.alert_type == 'slot_reminder' -%}{{ t("Your slot has changed.") }}
     {%- elif a.alert_type == 'voice_call' -%}{{ t("We called you.") }}
     {%- else -%}{{ t("New notice.") }}{%- endif -%}
-  {#- a call log carries the telephony response for staff. the farmer only
-      needs to know we rang -#}
   {%- elif a.alert_type == 'voice_call' -%}{{ a.message.split('. ')[0] }}.
   {%- else -%}{{ a.message }}{%- endif -%}
 {%- endmacro %}
@@ -249,8 +223,6 @@
   {%- else -%}{{ icon('flag') }}{%- endif -%}
 {%- endmacro %}
 
-{# what's wrong with a detail. staff get the exact rule that failed; a farmer
-   reading another language gets one plain sentence #}
 {% macro flag_text(fl) -%}
   {%- if lang() != 'en' -%}
     {%- if fl.field_flagged == 'aadhaar' -%}{{ t("The Aadhaar number is wrong or incomplete.") }}
@@ -277,7 +249,6 @@
 </ul>
 {%- endmacro %}
 
-{# the rain warning, short. english keeps the full reasoning #}
 {% macro risk_text(risk) -%}
   {%- if lang() != 'en' -%}
     {%- set total = risk.forecast|sum(attribute='rain_mm') -%}
@@ -285,14 +256,12 @@
   {%- else -%}{{ risk.reason }}{%- endif -%}
 {%- endmacro %}
 
-{# an activity entry's before and after, e.g. processing -> completed #}
 {% macro audit_changes(e) -%}
   {%- for c in e.changes -%}
   <span class="change">{% if c.field %}<b>{{ t(c.field) }}</b>{% endif %}<s>{{ c.before }}</s>{{ icon('arrow-right') }}<ins>{{ c.after }}</ins></span>
   {%- endfor -%}
 {%- endmacro %}
 
-{# the farmer or booking an activity entry was about #}
 {% macro audit_target(e) -%}
   {%- if e.token_no %}<a class="token-txt" href="{{ url_for('admin_booking', booking_id=e.booking_id) }}">{{ e.token_no }}</a> {% endif -%}
   {%- if e.farmer_name %}<a href="{{ url_for('admin_farmer', farmer_id=e.farmer_id) }}">{{ e.farmer_name }}</a>{% endif -%}

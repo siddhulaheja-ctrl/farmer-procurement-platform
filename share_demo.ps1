@@ -17,9 +17,8 @@ function Write-Rule { Write-Host ("=" * 66) -ForegroundColor DarkGray }
 
 try {
     if (-not (Test-Path "procurement.db")) {
-        Write-Host "No database found. Creating demo data, this takes a few seconds..."
-        python seed.py
-        Write-Host ""
+        Write-Host "procurement.db is missing. Put a copy of the database in this folder first." -ForegroundColor Red
+        exit 1
     }
 
     # --- start the portal ---------------------------------------------------
@@ -101,11 +100,7 @@ try {
     Write-Host ""
     Write-Rule
     Write-Host ""
-    Write-Host "  Send these logins with it:"
-    Write-Host "    Farmer   9000000001   (clean record)"
-    Write-Host "    Farmer   9000000002   (has data mismatches)"
-    Write-Host "    OTP      123456"
-    Write-Host "    Members  ADMIN / demo123"
+    Write-Host "  Farmer OTP is 123456. Don't paste staff passwords along with the link."
     Write-Host ""
     Write-Rule
     Write-Host ""

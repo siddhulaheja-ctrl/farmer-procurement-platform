@@ -1,19 +1,10 @@
 Flask==3.1.3
 requests==2.34.2
 
-# Outbound voice calls. Imported lazily in voice.py so the portal still runs
-# without it - you just get an error on the Call button instead of a call.
+# calls (only imported when a call is placed)
 vonage==4.8.2
-
-# Gate pass QR codes. Pure python and it writes SVG, so no pillow and no
-# canvas library on the front end - the code goes straight into the page and
-# still prints.
 qrcode==8.2
-
-# Only needed if you serve it with gunicorn instead of the flask dev server
 gunicorn==26.2.0
 
-# Speech to text for browsers without their own (Firefox). Optional: without it
-# the voice page still works in Chrome, Edge and Safari. After installing, fetch
-# the model once with `python speech_to_text.py download` (about 480 MB).
+# optional, speech to text for firefox. model: python speech_to_text.py download (~480 MB)
 faster-whisper==1.2.1

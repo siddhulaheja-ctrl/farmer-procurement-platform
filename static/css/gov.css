@@ -1,17 +1,5 @@
-/* Krishi Sutra - stylesheet. The field notebook.
-
-   The portal looks like an agriculture officer's field diary: paper with a
-   little grain, ink-green lines, a terracotta pencil for notes and the one
-   button to press, ink-and-wash drawings for every page (static/img/art,
-   drawn by lab/tools/draw_scenes.py), and big line icons so a page can be
-   used without reading much.
-
-   Mobile first: base rules are for a phone, media queries widen it. Every
-   font size is a rem, because the A- / A / A+ buttons (a11y.js) set the root
-   size. A px font size silently opts out of that.
-
-   Headings and handwriting come from Google Fonts with system fallbacks, so a
-   page with no connection still reads; the body text is Mukta, self hosted. */
+/* Krishi Sutra stylesheet. Mobile first. Keep font sizes in rem, the A-/A/A+
+   buttons in a11y.js scale the root size. */
 
 @font-face { font-family: "Mukta"; font-style: normal; font-weight: 400; font-display: swap;
     src: url("../fonts/mukta-regular-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20B9, U+2122, U+2190-2193, U+2212; }
@@ -27,20 +15,18 @@
     src: url("../fonts/mukta-bold-deva.woff2") format("woff2"); unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF; }
 
 :root {
-    /* paper and ink: monsoon green */
     --paper: #eef1e6; --paper-2: #dfe6d3; --card: #f8faf3; --white: #fff;
     --rule: #cdd6bf; --rule-2: #dfe5d4; --rule-dark: #b3bfa4;
     --ink: #183a2c; --ink-2: #36503f; --muted: #627262; --faint: #8f9c8e;
-    --sepia: #4f7a3a;           /* small italic labels */
-    --green: #2f6b3a;           /* links, go */
-    --red: #c0582f;             /* the pencil: handwriting, the one button to press */
+    --sepia: #4f7a3a;
+    --green: #2f6b3a;
+    --red: #c0582f;
     --red-dark: #a14521;
     --gold: #e2b04a;
     --mark: rgba(192, 88, 47, .22);
     --tint: #e3e9d8;
     --shadow: rgba(20, 40, 25, .45);
 
-    /* status colours are only ever for status */
     --ok:   #2f6b3a;  --ok-bg:   #e2edd7;  --ok-line:   #b9d3a4;
     --warn: #875708;  --warn-bg: #f6ebcd;  --warn-line: #e3c98a;
     --bad:  #a3261d;  --bad-bg:  #f7e0db;  --bad-line:  #e6b3a8;
@@ -60,7 +46,7 @@
     --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4  0 0 0 0 .3  0 0 0 0 .15  0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
     --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M2 8 C 26 3, 52 11, 78 6 S 110 4, 118 7' fill='none' stroke='%23c0582f' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E");
 
-    /* icons painted by css (notices). same drawings as the sprite */
+    /* notice icons, same drawings as the sprite */
     --m-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E");
     --m-ok: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l2.7 2.7L16 10'/%3E%3C/svg%3E");
     --m-warn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'/%3E%3Cpath d='M12 9.5v4M12 17h.01'/%3E%3C/svg%3E");
@@ -97,7 +83,6 @@ img { max-width: 100%; }
 .skip-link { position: absolute; left: -9999px; top: 8px; z-index: 100; background: var(--card); color: var(--ink); padding: 10px 14px; border: 2px solid var(--ink); }
 .skip-link:focus { left: 8px; }
 
-/* handwriting, and the red pencil line under a heading */
 .hand, .note { font-family: var(--hand); line-height: 1.35; }
 .note { color: var(--ink-2); }
 .note.red, .hand.red { color: var(--red); }
@@ -105,6 +90,11 @@ img { max-width: 100%; }
 .scribbled::after { content: ""; position: absolute; left: 0; bottom: 0; width: min(150px, 60%); height: 10px; background: var(--scribble) center / 100% 100% no-repeat; }
 
 /* ------------------------------------------------------ government strip */
+
+.proto-banner { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 16px;
+    background: var(--warn-bg); color: var(--warn); border-bottom: 1px solid var(--warn-line);
+    font-size: .85rem; font-weight: 700; line-height: 1.35; text-align: center; }
+.proto-banner .ic { flex: none; width: 1.1em; height: 1.1em; }
 
 .govstrip { background: #10291e; color: #b8ccbd; font-size: .8125rem; }
 .govstrip .wrap { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 34px; padding-top: 3px; padding-bottom: 3px; }
@@ -151,7 +141,6 @@ img { max-width: 100%; }
 .brand-sub { display: block; font-size: .78rem; color: var(--muted); line-height: 1.2; }
 @media (max-width: 1180px) { .brand-sub { display: none; } }
 @media (max-width: 420px) { .brand img { width: 36px; height: 36px; } .brand-name { font-size: 1.3rem; } }
-/* the bar is sticky, so every pixel here is taken off every screen of every page */
 @media (max-width: 759px) { .topbar-in { min-height: 56px; } .brand img { width: 38px; height: 38px; } }
 
 .mainnav { display: none; }
@@ -171,7 +160,6 @@ img { max-width: 100%; }
 .mainnav a.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 1px; height: 7px; background: var(--scribble) center / 100% 100% no-repeat; }
 .pill { display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem; padding: 0 5px; border-radius: 999px; background: var(--red); color: #fff; font-family: var(--sans); font-size: .7rem; font-weight: 700; line-height: 1; }
 
-/* the two doors on every public page: register, and sign in (the filled one) */
 .doors { display: inline-flex; align-items: center; gap: 8px; flex: none; }
 .door {
     position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 7px 15px; white-space: nowrap;
@@ -200,8 +188,6 @@ img { max-width: 100%; }
 .iconbtn .ic { width: 1.25rem; height: 1.25rem; }
 .iconbtn:hover { background: var(--ink); color: var(--paper); }
 
-/* phones: the menu folds behind this. a11y.js opens it; without script it stays shut
-   and the tab bar, the doors and the footer still get everywhere */
 .navtoggle { display: none; }
 @media (max-width: 999px) {
     .js .navtoggle {
@@ -221,7 +207,6 @@ img { max-width: 100%; }
     .js .mainnav.open a.active { border-color: var(--ink); box-shadow: 3px 3px 0 var(--red); }
     .js .mainnav.open a.active::after { display: none; }
     .js .mainnav.open .pill { position: absolute; top: 8px; right: 10px; }
-    /* a member's side menu folds behind the same button */
     .js .console .sidenav:not(.open) { display: none; }
 }
 
@@ -276,9 +261,6 @@ img { max-width: 100%; }
 .console .page { padding-left: 16px; padding-right: 16px; }
 @media (min-width: 1000px) { .console .page { padding-left: 0; padding-right: 0; } }
 
-/* a page title is a notebook page head: a handwritten note, the title with a
-   pencil line under it, and the page's own drawing beside it (--art, set per
-   page in base.html) */
 .pagehead {
     position: relative; display: flex; align-items: flex-end; gap: 14px 24px; flex-wrap: wrap;
     min-height: 150px; margin-bottom: 24px; padding: 4px calc(clamp(118px, 26vw, 250px) + 8px) 18px 0;
@@ -301,8 +283,6 @@ img { max-width: 100%; }
 .meta-row .ic { color: var(--sepia); }
 @media (max-width: 600px) {
     .pagehead { min-height: 0; padding-right: 0; padding-top: 0; }
-    /* the page's drawing sits above the title here; keep it small enough that
-       the title itself is still on the first screen */
     .pagehead::after { position: relative; order: -1; width: 112px; margin: -4px 0 -6px auto; bottom: 0; }
 }
 
@@ -318,7 +298,6 @@ img { max-width: 100%; }
 
 /* ------------------------------------------------------------------ card */
 
-/* a card is a sheet laid on the page: paper, a hairline, a soft shadow under it */
 .card { position: relative; background: var(--card); border: 1px solid var(--rule); border-radius: var(--r); box-shadow: var(--sh-1); margin-bottom: 20px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px dashed var(--rule-dark); }
 .card-title { display: inline-flex; align-items: center; gap: 10px; margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.3rem; line-height: 1.25; color: var(--ink); }
@@ -330,7 +309,6 @@ img { max-width: 100%; }
 .card > .table-scroll { border-radius: 0 0 var(--r) var(--r); }
 .card.tint { background: var(--tint); }
 .card.pad { padding: 18px; }
-/* a strip of paper tape holds a sheet to the page */
 .card.taped::before, .taped::before {
     content: ""; position: absolute; z-index: 2; top: -11px; left: 50%; width: 78px; height: 22px; margin-left: -39px;
     background: rgba(230, 200, 120, .6); transform: rotate(-3deg);
@@ -353,7 +331,6 @@ img { max-width: 100%; }
 
 /* ---------------------------------------------------------------- stats */
 
-/* numbers in a row of paper tiles, each with its own big icon */
 .stat-row { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 24px; }
 @media (min-width: 900px) { .stat-row { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .stat { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; padding: 14px; background: var(--card); border: 1px solid var(--rule); border-radius: var(--r); box-shadow: var(--sh-1); }
@@ -371,12 +348,10 @@ img { max-width: 100%; }
 .stat.zero .n { color: var(--faint); font-size: 1.15rem; line-height: 1.7; font-family: var(--sans); font-weight: 600; }
 .stat.zero .stat-ic { color: var(--faint); }
 @media (max-width: 420px) { .stat { flex-direction: column; align-items: flex-start; gap: 6px; } .stat-ic { width: 2.5rem; height: 2.5rem; } }
-/* the two counts a phone already shows elsewhere on the page */
 @media (max-width: 759px) { .stat.dup { display: none; } }
 
 /* -------------------------------------------------------------- buttons */
 
-/* ink buttons with a pencil shadow that press down when tapped */
 .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 2.9rem; padding: 9px 20px;
     font: 600 1rem/1.2 var(--sans); letter-spacing: 0; white-space: nowrap; text-decoration: none; cursor: pointer;
@@ -392,7 +367,6 @@ img { max-width: 100%; }
 .btn.secondary:hover { color: var(--ink); background: #fff; box-shadow: 4px 4px 0 var(--rule-dark); }
 .btn.ghost { color: var(--ink); background: transparent; border-color: transparent; box-shadow: none; text-decoration: underline; text-decoration-color: var(--red); text-underline-offset: 4px; }
 .btn.ghost:hover { background: var(--paper-2); transform: none; }
-/* the one button to press on a page with several: terracotta */
 .btn.wheat { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 3px 3px 0 var(--ink); }
 .btn.wheat:hover { background: var(--red-dark); border-color: var(--red-dark); box-shadow: 4px 4px 0 var(--ink); }
 .btn.go { background: var(--green); border-color: var(--green); box-shadow: 3px 3px 0 var(--ink); }
@@ -443,8 +417,6 @@ input[type=checkbox], input[type=radio] { accent-color: var(--green); }
 .filter-bar .field.grow { flex: 3 1 260px; }
 .filter-bar .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* .tight: two fields to a row on a phone instead of one, so the list the farmer
-   came for starts higher up the page */
 @media (max-width: 759px) {
     .filter-bar.tight { gap: 10px; padding: 12px; }
     .filter-bar.tight .field { flex: 1 1 calc(50% - 5px); min-width: 0; }
@@ -477,7 +449,6 @@ input[type=checkbox], input[type=radio] { accent-color: var(--green); }
 
 .badge { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 3px 11px; border-radius: 999px; border: 1px solid; font-size: .92rem; font-weight: 700; line-height: 1.45; }
 .badge .ic { width: 1.05em; height: 1.05em; flex: none; }
-/* staff read these a hundred at a time down a table, so keep theirs compact */
 .is-staff .badge { padding: 1px 9px; font-size: .8rem; line-height: 1.5; }
 .is-staff .badge .ic { width: .95em; height: .95em; }
 .badge.grey  { background: var(--neutral-bg); border-color: var(--neutral-line); color: var(--neutral); }
@@ -521,7 +492,6 @@ a.token-txt:hover { border-color: var(--red); color: var(--ink); }
 
 /* -------------------------------------------------------------- tables */
 
-/* a ledger: italic headings over an ink rule, a pencil line between entries */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table.data { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .98rem; }
 table.data th { text-align: left; white-space: nowrap; padding: 11px 14px 9px; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: .95rem; color: var(--sepia); border-bottom: 1.5px solid var(--ink); background: var(--card); }
@@ -532,11 +502,8 @@ table.data tbody tr:hover td { background: #fbfcf7; }
 table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
 table.data.compact td, table.data.compact th { padding-top: 6px; padding-bottom: 6px; }
 .is-staff table.data td { padding: 11px 13px; }
-/* the button column stays pinned to the right when a wide table scrolls */
+/* sticky action column */
 table.data td:last-child:has(.btn, form), table.data th:last-child:empty { position: sticky; right: 0; z-index: 1; background: var(--card); box-shadow: inset 1px 0 0 var(--rule-2); }
-/* table.data.stack: on a phone each row becomes its own labelled block, so the
-   farmer's money is never hidden behind a sideways scroll. The th row supplies
-   the labels on wider screens; data-label repeats them here. */
 @media (max-width: 759px) {
     table.data.stack, table.data.stack tbody, table.data.stack tr, table.data.stack td { display: block; }
     table.data.stack thead { display: none; }
@@ -546,18 +513,14 @@ table.data td:last-child:has(.btn, form), table.data th:last-child:empty { posit
         padding: 4px 0; border: 0; text-align: right; }
     table.data.stack td::before { content: attr(data-label); flex: none; font-family: var(--serif); font-style: italic;
         font-size: .95rem; color: var(--sepia); text-align: left; }
-    /* the date leads the block as a heading, the link closes it as a button */
     table.data.stack td.lead { justify-content: flex-start; font-weight: 700; font-size: 1.05rem; padding-bottom: 8px; }
     table.data.stack td.lead::before { display: none; }
     table.data.stack td.go { padding-top: 10px; }
     table.data.stack td.go::before { display: none; }
     table.data.stack td.go .btn { width: 100%; justify-content: center; }
-    /* undo the wide-table rules that have no meaning once the row is a block */
     table.data.stack td:last-child:has(.btn, form) { position: static; box-shadow: none; }
     table.data.stack tbody tr:hover td { background: none; }
-    /* a token or UTR belongs under its value, not beside the label */
     table.data.stack .sub-line { flex: 1 0 100%; text-align: right; }
-    /* the "needs attention" mark moves from the first cell to the whole block */
     table.data.stack tr.row-high { border-left: 4px solid var(--bad); padding-left: 10px; }
     table.data.stack tr.row-high td:first-child { border-left: 0; padding-left: 0; }
 }
@@ -573,11 +536,8 @@ td .who { min-width: 13rem; }
 .sub-line { display: block; font-size: .85rem; color: var(--muted); }
 td .who-text .sub-line { white-space: nowrap; }
 .money, td.num, th.num, .stat .n { font-variant-numeric: tabular-nums; }
-/* money is the one figure a farmer is hunting for, so it is the biggest thing
-   in its row: serif and ink, the way the date tile and the stat numbers read */
 .money { font-family: var(--serif); font-weight: 400; font-size: 1.3rem; line-height: 1.15; color: var(--ink); }
 .is-staff .money { font-size: 1.1rem; }
-/* stacked on a phone the label is already alongside, so it can go bigger still */
 @media (max-width: 759px) { table.data.stack td.money { font-size: 1.5rem; } }
 
 dl.kv { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
@@ -648,8 +608,6 @@ dialog.celebrate.closing { animation: cel-out .22s ease-in forwards; }
 /* ------------------------------------------------------------ help chat */
 
 .assistant[hidden] { display: none; }
-/* the launcher floats over the page, so leave it a landing strip at the bottom
-   or it sits on the last line of every page */
 body:has(#assistant:not([hidden])) .page { padding-bottom: 92px; }
 .assistant-launch { position: fixed; z-index: 70; right: 18px; bottom: 18px; display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px 11px 14px;
     background: var(--red); color: #fff; border: 1.5px solid var(--ink); border-radius: 999px; font: inherit; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
@@ -697,8 +655,6 @@ body:has(.actionbar) .assistant-panel { bottom: 158px; height: min(520px, calc(1
 
 /* ------------------------------------------------------ progress tracker */
 
-/* where a booking has got to. booked -> weighed -> closed -> paid. the label is
-   always written out; the colour only repeats it */
 .track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .track li { position: relative; text-align: center; padding: 0 4px; }
 .track li::before { content: ""; position: absolute; top: 21px; right: 50%; width: 100%; border-top: 2.5px dashed var(--rule-dark); }
@@ -747,7 +703,6 @@ body:has(.actionbar) .assistant-panel { bottom: 158px; height: min(520px, calc(1
 .change .ic { width: .9em; height: .9em; color: var(--faint); }
 .act .ic { color: var(--green); }
 
-/* a date written on a torn calendar leaf */
 .datetile { display: inline-block; flex: none; width: 4.4rem; vertical-align: top; overflow: hidden; text-align: center; background: #fff; border: 1.5px solid var(--ink); border-radius: var(--r-sm); box-shadow: 2px 2px 0 var(--rule-dark); }
 .datetile > span { display: block; }
 .datetile .m { background: var(--ink); color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .06em; padding: 2px 0; }
@@ -757,13 +712,11 @@ body:has(.actionbar) .assistant-panel { bottom: 158px; height: min(520px, calc(1
 
 /* ----------------------------------------------------- farmer dashboard */
 
-/* the farmer's own page opens on a hello */
 .welcome { position: relative; margin-bottom: 22px; padding: 6px 0 18px; border-bottom: 1.5px solid var(--ink); }
 .welcome h1 { margin: 0; font-size: clamp(2rem, 1.4rem + 2vw, 3rem); line-height: 1.15; }
 .welcome h1 .mark { background: linear-gradient(transparent 62%, var(--mark) 62%, var(--mark) 92%, transparent 92%); padding: 0 .08em; }
 .welcome .meta-row { margin-top: 8px; }
 
-/* the big doors a farmer uses most, as drawings with one or two words */
 .tiles { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 0 26px; }
 @media (min-width: 760px) { .tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; } }
 .tile { position: relative; z-index: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 10px 14px; text-align: center; text-decoration: none; color: var(--ink);
@@ -776,21 +729,17 @@ body:has(.actionbar) .assistant-panel { bottom: 158px; height: min(520px, calc(1
 .tile:hover img { transform: scale(1.05) rotate(-1.5deg); }
 .tile.main { border-color: var(--ink); box-shadow: 3px 3px 0 var(--red); }
 .tile .pill { position: absolute; top: 10px; right: 10px; }
-/* a small thumbtack, as if each card were pinned to the page */
 .tile::before { content: ""; position: absolute; z-index: 1; top: -13px; left: 50%; width: 22px; height: 27px; margin-left: -11px;
     background: url("../img/art/pin.svg") center / contain no-repeat; pointer-events: none; }
 .tile:nth-child(3n+1)::before { transform: rotate(-6deg) translateX(-3px); }
 .tile:nth-child(3n+2)::before { transform: rotate(4deg) translateX(2px); }
 .tile:nth-child(3n)::before { transform: rotate(-2deg); }
-/* a second card peeking out from behind, like a couple of index cards stacked together */
 .tile::after { content: ""; position: absolute; z-index: -1; inset: 0; background: var(--card); border: 1px solid var(--rule);
     border-radius: var(--r-lg); box-shadow: var(--sh-1); }
 .tile:nth-child(4n+1)::after { transform: rotate(-3deg) translate(4px, 5px); }
 .tile:nth-child(4n+2)::after { transform: rotate(2.5deg) translate(-4px, 4px); }
 .tile:nth-child(4n+3)::after { transform: rotate(-2.5deg) translate(3px, 6px); }
 .tile:nth-child(4n)::after { transform: rotate(3deg) translate(-3px, 5px); }
-/* on a phone the tab bar already leads to money, alerts and details; repeating
-   them as tiles only adds scrolling, so the two that are left go full width */
 @media (max-width: 759px) {
     .tile.dup { display: none; }
     .tiles { grid-template-columns: minmax(0, 1fr); }
@@ -814,7 +763,6 @@ body:has(.actionbar) .assistant-panel { bottom: 158px; height: min(520px, calc(1
 .bc-badges { display: flex; gap: 6px 14px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
 .bc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed var(--rule-dark); }
 
-/* the way into booking by voice: a big microphone that breathes */
 .voice-banner { position: relative; display: flex; align-items: center; gap: 18px; margin: 0 0 22px; padding: 16px 20px; text-decoration: none; color: var(--ink);
     background: var(--card); border: 2px dashed var(--ink); border-radius: var(--r-lg); transition: background .2s, border-style .2s; }
 .voice-banner:hover { background: #fff; color: var(--ink); border-style: solid; }
@@ -830,7 +778,6 @@ body:has(.actionbar) .assistant-panel { bottom: 158px; height: min(520px, calc(1
 .vb-go .ic { width: 1.4rem; height: 1.4rem; }
 @media (max-width: 560px) { .voice-banner { gap: 12px; padding: 14px; } .vb-mic { width: 3.6rem; height: 3.6rem; } .vb-mic .ic { width: 1.9rem; height: 1.9rem; } .vb-text strong { font-size: 1.35rem; } .vb-go { display: none; } }
 
-/* book or register by speaking */
 .voice-form label { margin-bottom: 6px; }
 .voice-form textarea { min-height: 5rem; resize: vertical; font-size: 1.15rem; }
 .voice-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
@@ -914,7 +861,6 @@ table.understood .heard { display: block; margin-top: 2px; font-family: var(--ha
 .day:first-child { padding-top: 2px; }
 .day:last-of-type { border-bottom: 0; }
 .day-slots { flex: 1; min-width: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); }
-/* each slot is a little ticket to tick */
 .slot { position: relative; display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 12px 14px; min-height: 3.8rem; border-radius: var(--r-sm); background: #fff; border: 1.5px solid var(--rule-dark); transition: border-color .15s, box-shadow .15s, transform .15s; }
 .slot:hover { border-color: var(--ink); transform: translateY(-1px); }
 .slot input[type=radio] { -webkit-appearance: none; appearance: none; margin: 0; flex: none; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 2px solid var(--rule-dark); background: #fff; display: grid; place-items: center; cursor: pointer; }
@@ -942,7 +888,6 @@ table.understood .heard { display: block; margin-top: 2px; font-family: var(--ha
     .day-slots { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .slot { padding: 10px; gap: 8px; }
 }
-/* the confirm button stays in reach while scrolling through two weeks of slots */
 .actionbar { position: sticky; bottom: 12px; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
     margin-top: 20px; padding: 10px 10px 10px 16px; border-radius: var(--r-lg); background: var(--ink); color: #d9e6dc; border: 1.5px solid var(--ink); box-shadow: 0 18px 30px -18px var(--shadow); }
 .actionbar .ab-text { display: inline-flex; align-items: center; gap: 8px; font-size: .92rem; }
@@ -952,7 +897,6 @@ table.understood .heard { display: block; margin-top: 2px; font-family: var(--ha
 @media (max-width: 759px) { .has-tabbar .actionbar { bottom: calc(var(--tabbar-h) + 8px); } }
 @media (max-width: 600px) { .actionbar .ab-text { display: none; } .actionbar .btn-row { width: 100%; } .actionbar .btn { flex: 1; } }
 
-/* weather on a centre's page and under a chosen slot */
 .forecast { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
 .wx { position: relative; display: block; min-width: 0; padding: 12px 10px; text-align: center; color: inherit; text-decoration: none; background: #fff; border: 1px solid var(--rule); border-radius: var(--r); }
 .wx .day { display: block; padding: 0; border: 0; font-weight: 700; font-size: .92rem; color: var(--ink); }
@@ -990,7 +934,6 @@ table.wx-hours tr.wet td { background: var(--info-bg); }
 
 /* --------------------------------------------------------- booking page */
 
-/* the token as a ticket torn from a book: the stub, a perforation, the details */
 .ticket { position: relative; margin-bottom: 22px; background: var(--card); border: 1.5px solid var(--ink); border-radius: var(--r-lg); box-shadow: 5px 5px 0 var(--rule-dark); }
 .ticket-head { position: relative; display: flex; align-items: center; gap: 14px 20px; flex-wrap: wrap; padding: 18px calc(clamp(110px, 24vw, 220px) + 12px) 18px 20px; border-bottom: 2px dashed var(--ink); }
 .ticket-head::after { content: ""; position: absolute; right: 10px; bottom: 6px; width: clamp(110px, 24vw, 220px); aspect-ratio: 4 / 3; background: var(--art) right bottom / contain no-repeat; pointer-events: none; }
@@ -1039,7 +982,6 @@ table.wx-hours tr.wet td { background: var(--info-bg); }
 
 /* ----------------------------------------------------------------- auth */
 
-/* sign in: the page's drawing on a paper panel beside a short form */
 .auth { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 1000px; margin: 0 auto; background: var(--card); border: 1.5px solid var(--ink); border-radius: var(--r-lg); overflow: hidden; box-shadow: 6px 6px 0 var(--rule-dark); }
 @media (min-width: 860px) { .auth { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 520px; } }
 .auth-art { position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; padding: 24px; text-align: center;
@@ -1070,7 +1012,6 @@ table.wx-hours tr.wet td { background: var(--info-bg); }
 .roster-who { flex: 1; min-width: 0; line-height: 1.25; }
 .roster-who small { display: block; font-size: .82rem; }
 
-/* what a stranger sees after scanning */
 .verify { position: relative; max-width: 540px; margin: 20px auto; text-align: center; background: var(--card); border: 1.5px solid var(--ink); border-radius: var(--r-lg); padding: 26px 24px 28px; box-shadow: 6px 6px 0 var(--ok); }
 .verify.bad { box-shadow: 6px 6px 0 var(--bad); }
 .verify-art { display: block; width: 190px; margin: 0 auto 4px; }
@@ -1080,7 +1021,6 @@ table.wx-hours tr.wet td { background: var(--info-bg); }
 .verify h1 { margin: 0 0 8px; font-size: 2rem; }
 .vf-note { color: var(--muted); font-size: .9rem; margin-top: 14px; }
 
-/* the pass on a farmer's phone: the code as big as the screen allows, on white */
 .phone-pass { max-width: 440px; margin: 0 auto; text-align: center; }
 .pp-say { margin: 0 0 12px; font-family: var(--serif); font-size: 1.8rem; line-height: 1.2; }
 .pp-say .ic { width: 2rem; height: 2rem; color: var(--red); }
@@ -1093,7 +1033,6 @@ table.wx-hours tr.wet td { background: var(--info-bg); }
 
 /* ------------------------------------------------ gate pass and receipt */
 
-/* a printed form, not a card: ink on paper, ruled boxes, blanks to write in */
 .gatepass { max-width: 780px; margin: 0 auto; background: #fff; color: #111; border: 1.5px solid #333; padding: 18px 22px 16px; box-shadow: 6px 6px 0 var(--rule-dark); }
 .gp-head { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 2px solid #111; }
 .gp-crest { flex: none; width: 48px; height: 48px; }
@@ -1224,7 +1163,6 @@ table.rules tr.is-this td { background: var(--ok-bg); font-weight: 700; }
 .days-away { display: inline-grid; place-items: center; min-width: 2.4rem; height: 2.4rem; padding: 0 6px; border-radius: 50%; background: var(--paper-2); border: 1.5px solid var(--rule-dark); font-weight: 700; font-variant-numeric: tabular-nums; }
 .days-away.far { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn); }
 
-/* the gate: a camera, a big verdict */
 .gc-error[hidden], .scan-view[hidden], #grade-note-field[hidden], #scan-start[hidden] { display: none !important; }
 .scanner .scan-view { position: relative; margin-top: 12px; background: #000; border-radius: var(--r); overflow: hidden; }
 .scanner video { display: block; width: 100%; max-height: 62vh; object-fit: cover; }
@@ -1380,8 +1318,6 @@ hr.rule { border: 0; border-top: 1px dashed var(--rule-dark); margin: 18px 0; }
 
 /* ------------------------------------------------------------ motion */
 
-/* every page settles in: its parts rise a little, one after the other. cheap
-   (opacity and transform only) and nothing waits on it */
 .page > * { animation: settle .55s cubic-bezier(.2, .7, .2, 1) both; }
 .page > :nth-child(2) { animation-delay: .06s; }
 .page > :nth-child(3) { animation-delay: .12s; }
@@ -1422,12 +1358,7 @@ hr.rule { border: 0; border-top: 1px dashed var(--rule-dark); margin: 18px 0; }
     .pagehead::after { display: none; }
 }
 
-/* ======================================================================
-   Home. A framed photo slideshow over a wheat field that sways, the MSP
-   rates as taped specimen plates, a weather diary under a little sky, and
-   the two ways in. Motion here waits for home.js to put .motion on the body,
-   so without script, or with reduced motion, the page is simply there.
-   ====================================================================== */
+/* ============================================================== home */
 
 .is-home .page { padding-top: 0; }
 .is-home .page > * { animation: none; }
@@ -1469,11 +1400,9 @@ hr.rule { border: 0; border-top: 1px dashed var(--rule-dark); margin: 18px 0; }
 @media (max-width: 900px) {
     .hero-in { grid-template-columns: 1fr; gap: 0; min-height: 0; }
     .plate-photo { order: -1; padding-left: 0; margin: 0 0 64px; }
-    /* half the old height - it was too tall on a phone, needing a long scroll to clear it */
     .print-frame img { height: 34vw; }
 }
 
-/* the field behind the hero: horizon, ground, four rows of swaying wheat */
 .hero-deco { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .hero-deco img { display: block; width: 100%; height: auto; }
 .sprig { position: absolute; width: clamp(80px, 10vw, 150px); pointer-events: none; }
@@ -1601,7 +1530,6 @@ hr.rule { border: 0; border-top: 1px dashed var(--rule-dark); margin: 18px 0; }
     #weather .swipe-hint { display: block; margin: 6px 0 0; text-align: right; font-size: 1.05rem; }
 }
 
-/* animated weather pictures, used on the home page and on centres' forecasts */
 .wx-ic { display: inline-grid; place-items: center; }
 .wx-svg .rays { transform-box: fill-box; transform-origin: center; animation: wx-spin 26s linear infinite; }
 .wx-svg .cloud-front { animation: wx-drift 5s ease-in-out infinite alternate; }
@@ -1700,7 +1628,6 @@ hr.rule { border: 0; border-top: 1px dashed var(--rule-dark); margin: 18px 0; }
 @keyframes birds-fly { 0% { transform: translate(-90px, 24px); } 50% { transform: translate(50vw, -6px); } 100% { transform: translate(calc(100vw + 20px), 14px); } }
 @keyframes flap { to { transform: scaleY(.55); } }
 
-/* reduced motion (battery saver, "remove animations"): short fades and small slides, nothing looping */
 .gentle .rise-words .w, .gentle .fade, .gentle .plate, .gentle .entry, .gentle .log tbody tr { transform: translateY(8px); }
 .gentle .rise-words.in .w, .gentle .fade.in, .gentle .in .fade, .gentle .plate.in, .gentle .entry.in, .gentle .log.in tbody tr { transform: none; }
 .gentle .plate-photo .print-frame, .gentle .plate-photo.in .print-frame { transform: rotate(.6deg); }
@@ -1710,6 +1637,5 @@ hr.rule { border: 0; border-top: 1px dashed var(--rule-dark); margin: 18px 0; }
 .gentle .sky .cloud { left: auto; }
 @keyframes deco-fade { from { opacity: 0; } to { opacity: 1; } }
 
-/* the scroll progress line under the header */
 .progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; pointer-events: none; }
 .progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--green), var(--red)); transform: scaleX(0); transform-origin: 0 50%; will-change: transform; }

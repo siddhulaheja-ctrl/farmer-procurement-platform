@@ -1,19 +1,11 @@
-"""Payments, the way the money actually moves for MSP procurement.
+"""DBT payment stages.
 
-There is no checkout. The government pays the farmer straight into the bank
-account linked to their Aadhaar (DBT, through PFMS and the state procurement
-portal), so the steps here copy that:
+    weighed -> billed -> sent (batch) -> credited (UTR) / returned (reason)
+    returned -> fixed -> sent again
+    held = closed with a blocking flag, nil = rejected, nothing to pay
 
-    weighed -> billed -> sent to the bank in a batch -> credited, with a UTR
-                                                     -> returned, with a reason
-    returned -> details fixed -> sent again
-    held     - closed while the portal already knew a detail was wrong. never sent
-    nil      - rejected produce, nothing to pay
-
-The bank is a mock. It answers from the farmer record, so the same record
-always gets the same answer, and it answers CREDIT_SECONDS after a batch goes
-out instead of two or three days later, so a whole payment fits in a demo.
-TODO: PFMS / state portal integration in production
+Mock bank: answers from the farmer record after CREDIT_SECONDS instead of 2-3 days.
+TODO: PFMS / state portal integration
 """
 
 import hashlib
@@ -23,15 +15,15 @@ import time
 from datetime import datetime, timedelta
 
 import env
-from db import execute, query
+from db import execute, get_db, query
 from validation import IFSC_RE, NAME_MATCH_THRESHOLD, name_similarity, unresolved_flags
 
 env.load()
 
 CREDIT_SECONDS = int(os.environ.get("PAYMENT_CREDIT_SECONDS", "30"))
-LATE_HOURS = 72          # the promise made to farmers: money within 72 hours of closing
+LATE_HOURS = 72
 
-# stage -> (the old coarse payment_status, what staff screens call it)
+# stage -> (payment_status, label)
 STAGES = {
     "weighed":  ("pending", "Weighed"),
     "billed":   ("processing", "Bill ready"),
@@ -42,7 +34,6 @@ STAGES = {
     "nil":      ("failed", "Nothing payable"),
 }
 
-# first four letters of an IFSC. the mock bank only knows these
 BANKS = {
     "SBIN": "State Bank of India", "PUNB": "Punjab National Bank", "BARB": "Bank of Baroda",
     "CNRB": "Canara Bank", "UBIN": "Union Bank of India", "BKID": "Bank of India",
@@ -55,8 +46,7 @@ SHORT_BANK = {"SBIN": "SBI", "PUNB": "PNB", "BARB": "BoB", "CNRB": "Canara", "UB
               "IDIB": "Indian Bank", "IOBA": "IOB", "UCBA": "UCO", "PSIB": "P&S", "MAHB": "BoM",
               "NAIN": "Nainital"}
 
-# why a bank sends a DBT credit back, the way the return files put it, and
-# what the farmer does about it. english keys - the templates translate them
+# return code -> (reason, what the farmer should do)
 RETURNS = {
     "AADHAAR_NOT_SEEDED": ("Aadhaar is not linked to this bank account",
                            "Ask your bank branch to link your Aadhaar to the account. Tell the centre once it is done."),
@@ -97,15 +87,13 @@ def bank_code(ifsc):
 
 
 def bank_label(farmer):
-    """SBI ••••5210 - enough to recognise the account, not enough to use it."""
+    # SBI ••••5210
     acct = "".join((farmer["bank_account"] or "").split())
     short = SHORT_BANK.get(bank_code(farmer["ifsc_code"]), "Bank")
     return "%s ••••%s" % (short, acct[-4:]) if acct else "—"
 
 
 def checks(farmer):
-    """What the bank will look at, in order, each as {label, ok, detail}.
-    Shown to staff before they send, so a return is never a surprise."""
     acct = "".join((farmer["bank_account"] or "").split())
     ifsc = (farmer["ifsc_code"] or "").strip().upper()
     score = name_similarity(farmer["name"], farmer["bank_name_on_account"] or farmer["name"])
@@ -123,7 +111,6 @@ def checks(farmer):
 
 
 def bank_answer(farmer):
-    """None for a credit, or the return code."""
     for c in checks(farmer):
         if not c["ok"]:
             return c["code"]
@@ -131,7 +118,7 @@ def bank_answer(farmer):
 
 
 def make_utr(ifsc, txn_id, attempt):
-    """16 characters like a NEFT UTR: bank code, N, year, day of year, serial."""
+    # looks like a NEFT UTR
     today = datetime.now()
     digest = hashlib.sha1(("%s-%s-%s" % (txn_id, attempt, time.time())).encode()).hexdigest()
     serial = int(digest[:8], 16) % 1000000
@@ -163,7 +150,6 @@ def events(txn_id):
 
 
 def full(txn_id):
-    """A transaction with its booking, farmer and centre - what every payment screen shows."""
     return query(
         "SELECT t.*, b.token_no, b.crop_type, b.farmer_id, b.estimated_quantity, s.date, s.time_window,"
         " s.centre_id, c.name AS centre_name, c.location, c.district AS centre_district,"
@@ -175,7 +161,6 @@ def full(txn_id):
 
 
 def seconds_left(txn):
-    """How long until the bank answers a sent payment. None if it isn't waiting."""
     if txn["pay_stage"] != "sent":
         return None
     sent = _parse(txn["sent_at"])
@@ -185,7 +170,6 @@ def seconds_left(txn):
 
 
 def is_late(txn):
-    """Closed more than LATE_HOURS ago and still not in the farmer's account."""
     if txn["pay_stage"] not in ("billed", "sent", "returned", "held"):
         return False
     closed = _parse(txn["closed_at"])
@@ -195,8 +179,6 @@ def is_late(txn):
 # ------------------------------------------------------------------ the steps
 
 def close(txn, booking, staff):
-    """The centre closes the transaction. Gives the receipt, then either a bill
-    for the bank, a hold, or nothing to pay. Returns the new stage."""
     now = _now()
     number = txn["receipt_no"] or receipt_no(booking["centre_id"], txn["id"])
     blocking = [f for f in unresolved_flags(booking["farmer_id"]) if f["severity"] == "blocking"]
@@ -215,8 +197,6 @@ def close(txn, booking, staff):
 
 
 def send(txns, staff, centre_id=None):
-    """Put bills in one batch to the bank. Returns the batch row, or None if
-    there was nothing to send."""
     txns = [x for x in txns if x["pay_stage"] in ("billed", "returned")]
     if not txns:
         return None
@@ -239,8 +219,7 @@ _last_settle = 0.0
 
 
 def settle_due(force=False):
-    """Give every sent payment the bank's answer once CREDIT_SECONDS have
-    passed. Called on page loads, at most every couple of seconds."""
+    # runs on page loads instead of a background job
     global _last_settle
     if not force and time.time() - _last_settle < 2:
         return 0
@@ -252,10 +231,21 @@ def settle_due(force=False):
     return len(due)
 
 
+def _claim(txn_id, stage):
+    # another worker may be settling the same payment
+    db = get_db()
+    cur = db.execute("UPDATE transactions SET pay_stage = ?, payment_status = ? WHERE id = ? AND pay_stage = 'sent'",
+                     (stage, status_for(stage), txn_id))
+    db.commit()
+    return cur.rowcount == 1
+
+
 def _settle(x):
     from alerts import raise_alert
     now = _now()
     code = bank_answer(x)
+    if not _claim(x["id"], "returned" if code else "credited"):
+        return
     amount = int(x["total_amount"] or 0)
     if code is None:
         utr = make_utr(x["ifsc_code"], x["id"], x["attempts"])
@@ -284,7 +274,6 @@ def _settle(x):
 
 
 def release(txn, staff):
-    """A held payment whose details have since been fixed becomes a bill."""
     blocking = [f for f in unresolved_flags(txn["farmer_id"]) if f["severity"] == "blocking"]
     if txn["pay_stage"] != "held" or blocking:
         return False
@@ -294,7 +283,6 @@ def release(txn, staff):
 
 
 def override(txn, stage, reason, staff):
-    """A person setting the stage by hand. Allowed, never quiet."""
     cols = {}
     if stage == "credited":
         cols.update(settled_at=_now(), payment_date=_now())
@@ -335,7 +323,7 @@ def batches(centre_id=None, limit=6):
 
 
 def farmer_lines(farmer_id):
-    """One line per payment, for the help chat's facts."""
+    # for the help chat
     rows = query("SELECT t.*, b.token_no FROM transactions t JOIN bookings b ON b.id = t.booking_id"
                  " WHERE b.farmer_id = ? ORDER BY t.id DESC LIMIT 6", (farmer_id,))
     out = []

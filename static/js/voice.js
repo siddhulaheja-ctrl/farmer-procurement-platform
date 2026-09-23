@@ -1,30 +1,9 @@
-/* Book by speaking, as a conversation.
+/* voice booking / voice registration conversation.
 
-   1. The farmer taps the mic and says what they want.
-   2. The words go to the server (voicebook.py), which picks a slot and sends
-      back what to say: "Rudrapur, tomorrow, 8 to 10 in the morning, wheat,
-      20 quintals. Shall I book it? Say yes or no."
-   3. The page says it out loud and listens for the answer. Yes books it and
-      reads out the token, no stops, a correction ("no, 30 quintals") gets a
-      new suggestion, and a missing crop or quantity is asked for.
-   Big buttons do the same for anyone who would rather tap.
-
-   Listening: Chrome, Edge and Safari have speech recognition built in. Other
-   browsers record the audio and the server writes out the words
-   (speech_to_text.py). When the built-in kind turns out not to work here -
-   Safari with Dictation off, Bengali on an Apple device, Chrome offline - the
-   page switches to recording for the rest of the visit. Add ?stt=server to
-   the address to force that path in Chrome when testing it.
-
-   Speaking: speechSynthesis works in every current browser, but only when the
-   device has a voice for the page language. Without one, the words stay on
-   screen and the buttons still work.
-
-   The page never reloads mid-conversation: browsers only let a page speak
-   after the farmer has tapped something on that same page.
-
-   Open the browser console to follow a conversation: every step logs a
-   "[voice]" line. */
+   speak -> /farmer/voice/step -> read the reply out -> listen for yes / no / a correction.
+   uses the browser's SpeechRecognition where it works, otherwise records and posts
+   the audio to /transcribe (speech_to_text.py). ?stt=server forces recording.
+   console shows [voice] logs for each step. */
 (function () {
     var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     var canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
@@ -42,9 +21,7 @@
     var MAX_RETRIES = 2;
     var AFTER_SPEAKING = 250;   // let our own voice die away before the mic opens
 
-    // an answer that is only a yes or only a no doesn't need the full pause.
-    // yes stops quickest; no waits a little longer, because "nahi, tees
-    // quintal" is how people correct us and must not be cut off
+    // shorter silence timeout after yes / no. no waits a bit longer, "nahi, tees quintal" is a correction
     var ONLY_YES = /^(?:\s*(?:haan?|haa|hanji|haanji|ji|yes|yeah|ok|okay|theek hai|thik hai|sahi hai|kar do|kardo|book kar do|bilkul|हां|हाँ|हा|जी|ठीक है|सही है|कर दो|बुक कर दो|बिल्कुल|হ্যাঁ|হ্যা|ঠিক আছে|আচ্ছা)[\s,.!।]*)+$/i;
     var ONLY_NO = /^(?:\s*(?:nahi|nahin|nai|na|no|mat karo|नहीं|नही|ना|मत|না|নাহ)[\s,.!।]*)+$/i;
     var YES_SETTLES = 600;
@@ -95,7 +72,7 @@
         language.addEventListener('change', function () { write('ks-mic-lang', language.value); });
         trace('listening with ' + (useBrowser ? 'browser recognition' : canRecord ? 'recording + server' : 'nothing'));
 
-        // the server model takes a few seconds to load; start now, not on the first sentence
+        // whisper takes a few seconds to load
         function warm() {
             if (form.dataset.warm) {
                 fetch(form.dataset.warm, { method: 'POST', credentials: 'same-origin' }).catch(function () {});
@@ -119,14 +96,13 @@
         }
         if (synth) { synth.getVoices(); }   // chrome loads its list on first ask
 
-        // chrome forgets to fire onend for an utterance nothing else refers to,
-        // which left the page waiting and the mic closed. keep hold of it here
+        // chrome bug: onend doesn't fire if the utterance gets garbage collected
         var talking = null;
 
         function speak(text, then) {
             var voice = voiceFor(VOICE_LANGS[pageLang] || 'en-IN');
             if (!text || !voice) {
-                // an english voice reading hindi is worse than silence
+                // no english voice reading hindi
                 if (text && note) { note.hidden = false; }
                 trace('no ' + pageLang + ' voice on this device, not speaking');
                 then(false);
@@ -158,15 +134,13 @@
             trace('speaking with ' + voice.name + ': ' + text);
             synth.speak(utterance);
 
-            // don't trust onend alone: also notice when the voice goes quiet
+            // onend isn't reliable, poll speaking too
             watch = setInterval(function () {
                 if (Date.now() - startedAt > 1000 && !synth.speaking && !synth.pending) { end('went quiet'); }
             }, 250);
             guard = setTimeout(function () { end('time limit'); }, 4000 + text.length * 120);
         }
 
-        // one audio context for the whole page, shared by the beep and the
-        // level meter
         var audioCtx = null;
         function audio() {
             var Context = window.AudioContext || window.webkitAudioContext;
@@ -176,10 +150,7 @@
             return audioCtx;
         }
 
-        // Safari on an iPhone blocks any sound that doesn't begin inside a tap,
-        // and our speaking begins after a fetch, long after the tap. Starting
-        // the speech engine and the audio context once, inside the first tap,
-        // lets both work for the rest of the page. Harmless everywhere else
+        // iOS only allows audio started from a tap, so unlock speech + the audio context on the first one
         var unlocked = false;
         function unlockAudio() {
             if (unlocked) { return; }
@@ -195,7 +166,7 @@
             document.addEventListener(name, unlockAudio, true);
         });
 
-        // a short tone when the microphone opens, so the farmer knows to talk
+        // beep when the mic opens
         function beep() {
             var ctx = audio();
             if (!ctx) { return; }
@@ -220,11 +191,11 @@
             mic.querySelector('span').textContent = on ? mic.dataset.stop : mic.dataset.start;
         }
 
-        // done(text, otherGuesses, failed). text is null when nothing was heard
+        // done(text, otherGuesses, failed), text null if nothing heard
         function listen(kind, done) {
             beep();
             trace('listening for ' + (kind === 'answer' ? 'an answer' : 'a request'));
-            // wait out the tone, or the recogniser hears it
+            // wait for the beep to finish
             setTimeout(function () {
                 if (useBrowser) { listenInBrowser(kind, done); } else { listenByRecording(kind, done); }
             }, 250);
@@ -326,18 +297,14 @@
                 if (e.error === 'no-speech' || e.error === 'aborted') {
                     return;   // these only end the session, handled below
                 }
-                // anything else fails again the moment it restarts, which used
-                // to spin here for the full 30 seconds. stop restarting
+                // other errors just fail again on restart
                 wanted = false;
                 failed = true;
                 if (e.error === 'audio-capture') {
                     return;   // no microphone at all: recording can't help
                 }
                 if (canRecord) {
-                    // Dictation off in Safari, a language the device can't do,
-                    // a refused speech permission, or Chrome offline. Recording
-                    // still works, so use that. If it was the microphone itself
-                    // that was refused, the recording path says so when it asks
+                    // safari with dictation off, unsupported language, chrome offline etc -> record instead
                     switchToRecording = true;
                 } else {
                     show(e.error === 'not-allowed' ? 'denied' : 'unsupported');
@@ -346,7 +313,7 @@
             rec.onend = function () {
                 active = false;
                 if (wanted && Date.now() - startedAt < LONGEST) {
-                    // chrome ends the session after a pause: carry on listening
+                    // chrome stops after a pause, restart
                     try { rec.start(); return; } catch (e) { /* fall through */ }
                 }
                 finish();
@@ -402,10 +369,7 @@
                 var startedAt = Date.now();
                 var lastLoud = startedAt;
 
-                // how loud it is, to notice when the farmer has stopped talking.
-                // this uses the page's one context, the one a tap started: a new
-                // one made here, outside a tap, stays silent on an iPhone and the
-                // farmer's words were thrown away as silence
+                // level meter for silence detection. has to reuse the tap-unlocked context or iOS gives silence
                 var ctx = audio();
                 var source = null;
                 var analyser = null;
@@ -436,8 +400,7 @@
                         }
                         if (spoke ? now - lastLoud > timing.quietAfter : now - startedAt > timing.quietBefore) { stop(); }
                     } else {
-                        // can't hear the level: assume they are still talking,
-                        // and let Stop or the time limit end it
+                        // no level available, wait for Stop / the time limit
                         spoke = true;
                         lastLoud = now;
                     }
@@ -518,7 +481,7 @@
             lastStep = step;
             slotId = step.slot_id || null;
             result.innerHTML = step.html;
-            // registering by speaking: a summary beside the conversation, and the answer box emptied
+            // voice registration summary panel
             var side = document.getElementById('voice-side');
             if (step.side && side) { side.innerHTML = step.side; }
             if (form.hasAttribute('data-clear')) { box.value = ''; }
@@ -530,7 +493,6 @@
             speak(step.say, function (spoken) {
                 if (mine !== generation) { trace('moved on while speaking, not listening'); return; }
                 if (step.url) {
-                    // give the token a moment on screen when it couldn't be read out
                     setTimeout(function () { window.location.href = step.url; }, spoken ? 1500 : 6000);
                     return;
                 }
@@ -558,8 +520,7 @@
             });
         }
 
-        // mayRetry: straight after our own voice the microphone is sometimes
-        // still busy, so one failed start is tried again
+        // mayRetry: mic is sometimes still busy right after speaking
         function hearAnswer(mayRetry) {
             var mine = ++generation;
             show('answer');
@@ -571,7 +532,6 @@
                     return;
                 }
                 if (!text) {
-                    // silence: ask again, then leave it to the buttons
                     retries++;
                     if (retries > MAX_RETRIES || !lastStep) { show('buttons'); return; }
                     status.textContent = lastStep.say;
@@ -589,12 +549,11 @@
             if (synth) { synth.cancel(); }
         }
 
-        // a question is waiting for an answer, so the mic should hear a reply, not a new request
         function awaitingAnswer() {
             return !!(lastStep && lastStep.listen === 'answer' && turns.length);
         }
 
-        // buttons inside the result, which is replaced after every turn
+        // result html is replaced every turn, so delegate
         function wire() {
             var i;
             var hiddenUntilScript = result.querySelectorAll('[data-js]');
@@ -649,7 +608,7 @@
             }
         }
 
-        // a page that arrived with a result already in it (typed, script-free post)
+        // result already in the page (no-js post)
         var existing = result.querySelector('[data-say]');
         if (existing) {
             lastStep = { say: existing.dataset.say,
@@ -659,9 +618,7 @@
             wire();
         }
 
-        // a page that starts by asking (registering by speaking): say the
-        // question, then listen. it needs this tap - a page may only speak
-        // after the person has touched it
+        // voice registration starts by asking, needs a tap before it can speak
         var start = form.querySelector('[data-voice-start]');
         if (start && lastStep && lastStep.say) {
             start.hidden = false;

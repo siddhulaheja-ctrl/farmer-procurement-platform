@@ -1,12 +1,5 @@
-/* The help chat, Krishi Sahayak.
-
-   A Help button in the corner opens a small chat. Questions go to the server
-   (assistant.py), which answers with Gemini from the portal's own facts, or
-   from a short offline list when it can't. The conversation is kept for this
-   browser tab (sessionStorage), so it survives moving between pages.
-
-   The mic types a question by voice where the browser can, and the answer to
-   a spoken question is read out, for farmers who don't read easily. */
+/* help chat widget. answers come from /help/chat (assistant.py),
+   history kept in sessionStorage for the tab. */
 (function () {
     var STORE = 'ks-help-chat';
     var KEEP = 12;
@@ -72,7 +65,6 @@
             if (e.target.tagName === 'BUTTON') { ask(e.target.textContent, false); }
         });
 
-        // the conversation so far in this tab
         for (var n = 0; n < history.length; n++) { add(history[n].role, history[n].text, history[n].link); }
         if (history.length) { chips.hidden = true; }
 
@@ -167,7 +159,6 @@
             ask(input.value, false);
         });
 
-        // a spoken question: the page's own speech recognition, one sentence at a time
         var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (Recognition) {
             var listening = null;

@@ -1,16 +1,11 @@
-"""Who did what.
-
-Every staff action writes one row here. Nothing updates or deletes a row, so
-the supervisor screens can trust it as the record of the day.
-"""
+"""Staff activity log. Rows are only ever inserted."""
 
 import json
 from datetime import datetime
 
 from db import execute
 
-# action -> (what the log says, icon, sensitive). Sensitive is money or
-# identity changed by hand - the things a supervisor pulls up on their own.
+# action -> (label, icon, sensitive)
 ACTIONS = {
     "sign_in":         ("Signed in", "log-in", False),
     "weigh":           ("Weighed and graded a load", "scale", False),
@@ -43,9 +38,7 @@ FIELD_LABELS = {
     "ifsc_code": "IFSC", "bank_name_on_account": "Name on account",
     "land_record_id": "Land record", "village": "Village", "district": "District",
 }
-# changing any of these is what gets money sent somewhere else
 ID_FIELDS = ("aadhaar_number", "bank_account", "ifsc_code", "bank_name_on_account")
-# never written to the log in full
 MASKED = ("aadhaar_number", "bank_account")
 UPPER = ("ifsc_code", "land_record_id")
 
@@ -65,8 +58,6 @@ def _store(value):
 
 def record(staff, action, farmer_id=None, booking_id=None, ref_id=None, detail=None,
            before=None, after=None, centre_id=None, at=None):
-    """Write one entry. `centre_id` defaults to where the person is posted;
-    pass it when a supervisor acts on a particular centre."""
     if staff is None:
         return None
     return execute(
@@ -78,8 +69,7 @@ def record(staff, action, farmer_id=None, booking_id=None, ref_id=None, detail=N
 
 
 def farmer_diff(old, form):
-    """Fields a staff edit actually changes, normalised the way the save does.
-    Returns (changed field names, before, after) with id numbers masked."""
+    # -> (changed fields, before, after), id numbers masked
     changed, before, after = [], {}, {}
     for field, label in FIELD_LABELS.items():
         new = (form.get(field) or "").strip()
@@ -101,7 +91,6 @@ def touches_id(changed):
 
 
 def changes(before_value, after_value):
-    """The before/after columns as rows for a template."""
     def load(v):
         if v is None:
             return None

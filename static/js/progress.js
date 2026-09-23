@@ -1,5 +1,4 @@
-/* The thin line under the header that fills as the page scrolls.
-   One transform, at most once a frame. */
+/* scroll progress bar under the header */
 (function () {
     var bar = document.querySelector('.progress i');
     if (!bar) { return; }

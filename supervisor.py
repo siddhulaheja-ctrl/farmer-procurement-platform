@@ -1,4 +1,4 @@
-"""Numbers for the supervisor screens. Read only - nothing in here writes."""
+"""Queries for the superadmin screens (read only)."""
 
 from datetime import date, datetime, timedelta
 
@@ -6,12 +6,12 @@ import audit
 from db import query
 from i18n import t
 
-# what counts as needing a look. kept here so they can be argued with
+# thresholds for the needs attention page
 HELD_DAYS = 2              # a held payment older than this
 LATE_MINUTES = 30          # a counter this far behind
 FLAG_WINDOW_DAYS = 30
-FLAG_MIN = 3               # clearing this many flags without a fix...
-FLAG_RATIO = 2             # ...and more than twice what the rest of the team does
+FLAG_MIN = 3
+FLAG_RATIO = 2
 OVERRIDE_WINDOW_DAYS = 7
 REJECT_WINDOW_DAYS = 30
 
@@ -20,10 +20,8 @@ def _today():
     return date.today()
 
 
-# one row per centre with today's numbers. subqueries rather than joins, so a
-# centre with nothing booked still shows up with zeros
-
 def centres_today():
+    # subqueries so centres with no bookings still show up
     today = _today().isoformat()
     rows = query(
         "SELECT c.id, c.name, c.district, c.location, c.delay_minutes, c.delay_set_at,"
@@ -76,9 +74,7 @@ STACK = (("closed", "Closed"), ("weighed", "Weighed, not closed"), ("booked", "B
 
 
 def bookings_chart(days_back=7, days_ahead=6):
-    """Bookings per slot date, stacked by how far each has got. Geometry is
-    worked out here so the template only has to draw it. Cancelled bookings
-    are left out - they don't take up a place."""
+    # stacked bar svg, geometry done here so the template just draws paths
     today = _today()
     start, end = today - timedelta(days=days_back), today + timedelta(days=days_ahead)
     rows = query(
@@ -120,7 +116,6 @@ def bookings_chart(days_back=7, days_ahead=6):
             h = n / ceiling * plot_h
             seg_top = y - h
             last = j == len(present) - 1
-            # a 2px gap between pieces of the same bar so they read apart
             draw_top = seg_top if last else seg_top + 2
             draw_h = max(h if last else h - 2, 1)
             path = (_rounded_top(x, draw_top, bar_w, draw_h, 4) if last
@@ -194,9 +189,7 @@ def needs_attention():
         "SELECT id, name, delay_minutes, delay_set_at FROM procurement_centres"
         " WHERE delay_minutes >= ? ORDER BY delay_minutes DESC", (LATE_MINUTES,))]
 
-    # Clearing a flag means "the record was right after all". One person doing
-    # that far more than everyone else is worth a look - it's the easy way to
-    # get a held payment moving without fixing anything.
+    # staff clearing way more flags than the rest of the team
     since_flags = (today - timedelta(days=FLAG_WINDOW_DAYS)).isoformat()
     counts = [dict(r) for r in query(
         "SELECT st.id, st.name, st.staff_code, c.name AS centre_name, COUNT(a.id) AS n"
@@ -249,8 +242,6 @@ def needs_attention():
 def attention_count():
     return sum(len(s["items"]) for s in needs_attention())
 
-
-# staff table - this month's counts per person, next to their account details
 
 def staff_rows():
     today = _today().isoformat()

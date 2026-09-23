@@ -1,4 +1,4 @@
-{# one land parcel. Expects: l (a land dict, or {} for an empty row), n (a unique suffix for ids) #}
+{# l = land dict ({} for an empty row), n = id suffix #}
 <div class="land-row{{ ' from-registry' if l.source == 'registry' }}">
   <div class="field">
     <label for="land_record_id-{{ n }}">{{ t("Land record ID") }}</label>

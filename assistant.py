@@ -1,16 +1,5 @@
-"""The help chat on public and farmer pages: Krishi Sahayak.
-
-Answers questions about the portal - registering, booking, what to bring,
-prices, payments, the centres - in the language the page is in, short and
-plain, for farmers who may not read well.
-
-Gemini answers from facts gathered here: the centres, prices and rules from
-the database and core.py, and for a signed-in farmer their own bookings,
-payment status and detail problems. Never Aadhaar, bank or phone numbers. It
-is told to say it doesn't know rather than make something up.
-
-Without Gemini - no key, no internet, quota used up - a short list of common
-questions answers instead.
+"""Krishi Sahayak help chat. Gemini answers from the facts built in _facts()
+(never aadhaar / bank / phone). Falls back to the FAQ list when gemini is down.
 """
 
 from datetime import date
@@ -26,7 +15,7 @@ from voicebook import normalise, spoken_day
 LANGUAGE_NAMES = {"hi": "Hindi, in Devanagari script", "bn": "Bengali, in Bengali script",
                   "en": "simple English"}
 
-# pages an answer may point to, with their button labels (already translated elsewhere)
+# pages the chat can link to
 PAGES = {"/farmer/voice": "Book by speaking", "/farmer/centres": "Book a Slot", "/register": "Register",
          "/login": "Farmer Sign In", "/farmer/dashboard": "Dashboard", "/farmer/payments": "Payments",
          "/farmer/profile": "My Details", "/#weather": "Weather"}
@@ -83,7 +72,6 @@ def _facts(farmer):
         % (c["name"], c["location"], c["district"], c["crop_types_accepted"].replace(",", ", "), c["daily_capacity"])
         for c in centres) + ".")
 
-    # the real forecast, so "us din mausam kaisa hoga" is answered from data
     lines.append("Today is %s. The weather below is a five-day forecast: for any later day say the forecast "
                  "does not reach that far yet, and never invent one." % date.today().isoformat())
     districts = sorted({c["district"] for c in centres} | ({farmer["district"]} if farmer else set()))
@@ -116,7 +104,6 @@ def _facts(farmer):
             for r in rows) + ".")
     else:
         lines.append("They have no bookings yet.")
-    # the weather for the days they are actually bringing grain on
     today = date.today().isoformat()
     for r in [x for x in rows if x["status"] in ("booked", "arrived") and x["date"] >= today][:3]:
         risk = weather.assess_risk(farmer["district"], r["date"], farmer["village"])
@@ -138,7 +125,7 @@ def _facts(farmer):
     return "\n".join(lines)
 
 
-# the offline answers: phrases to look for, which answer, which page
+# offline fallback: (keywords, answer key, link)
 FAQ = (
     (("otp", "sign in", "login", "log in", "लॉगिन", "লগইন"), "signin", "/login"),
     (("regist", "panjik", "पंजीकरण", "रजिस्टर", "নিবন্ধন"), "register", "/register"),
@@ -174,7 +161,6 @@ def _package(text, link, follow_ups, source):
 
 
 def _weather_text(farmer):
-    """The next three days in plain words, for when the AI can't be reached."""
     district = farmer["district"] if farmer else "Udham Singh Nagar"
     village = farmer["village"] if farmer else None
     forecast, source, point = weather.get_forecast(district, 3, village)
@@ -204,11 +190,6 @@ def _offline(question, farmer=None):
 
 
 def reply(messages, farmer=None):
-    """Answer the last question in a chat.
-
-    messages: [{"role": "user" | "assistant", "text": ...}], oldest first,
-    ending with the farmer's question.
-    """
     contents = [{"role": "user" if m["role"] == "user" else "model", "parts": [{"text": m["text"]}]}
                 for m in messages]
     instructions = (INSTRUCTIONS.replace("LANGUAGE", LANGUAGE_NAMES.get(get_lang(), LANGUAGE_NAMES["hi"]))

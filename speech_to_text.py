@@ -1,14 +1,7 @@
-"""Speech to text on the server, for browsers that can't do it themselves.
+"""Server side speech to text (faster-whisper) for browsers without their own,
+mainly Firefox. Optional, raises Unavailable if it isn't installed.
 
-Chrome, Edge and Safari turn speech into text inside the browser. Firefox and
-some others can only record, so the voice page sends the recording here and
-faster-whisper (the "small" model, on the cpu) writes out the words.
-
-Optional. Without faster-whisper installed, or without the model in
-models/whisper, transcribe() raises Unavailable and the page tells the farmer
-to type instead. The model is never fetched while a farmer waits; download it
-once with
-
+Get the model once with:
     python speech_to_text.py download
 """
 
@@ -20,8 +13,7 @@ import threading
 MODEL = os.environ.get("WHISPER_MODEL", "small")
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "whisper")
 
-# whisper leans towards words it has just seen, so give it the ones farmers
-# will say that it would otherwise spell as something else
+# initial_prompt, so whisper spells the place and crop names right
 HINTS = {
     "hi": "रुद्रपुर, किच्छा, हरिद्वार, विकासनगर, हल्द्वानी। गेहूं, धान, मक्का, चना, सरसों, बाजरा। "
           "क्विंटल। आज, कल, परसों। सुबह, दोपहर। हां, नहीं।",
@@ -36,11 +28,10 @@ _lock = threading.Lock()
 
 
 class Unavailable(Exception):
-    """faster-whisper isn't installed, or its model hasn't been downloaded."""
+    pass
 
 
 def get_model():
-    """The loaded model. The first call takes a few seconds, later ones are instant."""
     global _model
     with _lock:
         if _model is None:
@@ -57,7 +48,6 @@ def get_model():
 
 
 def warm():
-    """Load the model in the background, so the farmer's first sentence isn't the slow one."""
     def load():
         try:
             get_model()
@@ -67,14 +57,12 @@ def warm():
 
 
 def transcribe(audio, lang="hi", suffix=".webm"):
-    """The words in a recording (webm, ogg, mp4 or wav bytes). Raises Unavailable."""
     model = get_model()
     fd, path = tempfile.mkstemp(suffix=suffix)
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(audio)
-        # vad_filter skips the silence before and after, which is also where
-        # whisper would otherwise make up words
+        # vad_filter, otherwise whisper hallucinates words in the silence
         segments, _info = model.transcribe(path, language=lang if lang in HINTS else None,
                                            beam_size=5, vad_filter=True,
                                            initial_prompt=HINTS.get(lang))

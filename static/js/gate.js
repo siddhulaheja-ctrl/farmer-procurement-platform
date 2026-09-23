@@ -1,14 +1,5 @@
-/* The gate scanner.
-
-   "Scan pass" opens the phone's back camera inside the page and looks for a
-   QR code a few times a second. The browser's own BarcodeDetector is used
-   where it exists (Chrome on Android); anywhere else the jsQR library in
-   static/vendor is loaded the first time it is needed.
-
-   A found code goes to the server, which checks the signature and the
-   booking and sends back the result card. The camera needs an https address
-   (or localhost) - on plain http the "take a photo" button still works,
-   because a photo from the camera app needs no permission. */
+/* gate QR scanner. BarcodeDetector where it exists, jsQR (static/vendor) otherwise.
+   camera needs https or localhost, the photo button works without. */
 (function () {
     var root = document.getElementById('gate');
     if (!root || !window.fetch) { return; }
@@ -28,7 +19,7 @@
     var detector = null;
     var ready = null;       // promise: a decoder is available
 
-    // the page hands over its messages in the reader's language (data-words on #gate)
+    // translated strings from data-words on #gate
     var WORDS = {};
     try { WORDS = JSON.parse(root.getAttribute('data-words') || '{}'); } catch (e) { WORDS = {}; }
     function w(text) { return WORDS[text] || text; }
@@ -61,7 +52,6 @@
         return ready;
     }
 
-    // one picture -> the text in its QR code, or null
     function decode(source, width, height) {
         if (detector) {
             return detector.detect(source).then(function (codes) {
@@ -215,7 +205,6 @@
         img.src = url;
     });
 
-    // the buttons on a result card
     resultBox.addEventListener('click', function (e) {
         var next = e.target.closest('[data-next]');
         if (next) { start(); return; }

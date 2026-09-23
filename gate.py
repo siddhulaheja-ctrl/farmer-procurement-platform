@@ -1,9 +1,4 @@
-"""The gate: what a scanned pass means, and checking farmers in and out.
-
-A scan answers one question for the person at the gate - let this tractor in
-or not - and says what to do next if the farmer is already inside. Every scan
-is written down, including the ones that matched nothing.
-"""
+"""Gate scanning and check in / check out. Every scan gets logged, even bad ones."""
 
 import re
 from datetime import date, datetime, timedelta
@@ -15,16 +10,13 @@ import audit
 from db import execute, query
 from i18n import t
 
-EARLY_MINUTES = 60      # let people in this long before their window
-LATE_MINUTES = 60       # and this long after it closes
+EARLY_MINUTES = 60
+LATE_MINUTES = 60
 TOKEN_RE = re.compile(r"PC\d{2}-S\d{3}-\d{3}", re.I)
 
 
 def parse_code(text):
-    """What a scanner or a typed box gave us -> (token, signature).
-
-    The QR holds https://host/t/<token>?s=<sig>. Someone typing at the gate
-    types just the token, so there is no signature to check."""
+    # scanned url (/t/<token>?s=<sig>) or a typed token -> (token, sig or None)
     text = (text or "").strip()
     if not text:
         return None, None
@@ -48,7 +40,6 @@ def find(token):
 
 
 def _window(b):
-    """The slot's start and end as datetimes."""
     try:
         start, end = [x.strip() for x in b["time_window"].split("-")]
         day = datetime.strptime(b["date"], "%Y-%m-%d")
@@ -66,8 +57,7 @@ def _hm(stamp):
 
 
 def _say(fmt, *args):
-    """A line for the gate screen: english for the log, and the same words in
-    the reader's language for the screen (i18n.t, only inside a request)."""
+    # (english for the log, translated for the screen)
     english = fmt % args if args else fmt
     local = english
     if has_request_context():
@@ -76,14 +66,7 @@ def _say(fmt, *args):
 
 
 def verdict(b, genuine, my_centre, now=None):
-    """What the gate screen says.
-
-    genuine: True (signature checked), None (typed by hand), False (bad code).
-    tone is ok / warn / bad / info. `action` is what the big button does:
-    checkin, checkin_anyway, checkout, open (the booking page) or None.
-    title and detail are english (they go in the log); title_local and
-    detail_local are the same in the reader's language.
-    """
+    # genuine: True = signature ok, None = typed by hand, False = bad code
     now = now or datetime.now()
 
     def out(tone, code, title, detail, action, extra=None):
@@ -146,7 +129,6 @@ def log_scan(b, staff, v, centre_id=None):
 
 
 def check_in(b, staff, note=None):
-    """Returns their number in today's line at this centre."""
     now = datetime.now().isoformat(timespec="seconds")
     n = query("SELECT COUNT(*) AS n FROM bookings bx JOIN slots sx ON sx.id = bx.slot_id"
               " WHERE sx.centre_id = ? AND substr(bx.gate_in_at, 1, 10) = ?",
@@ -169,8 +151,7 @@ def check_out(b, staff):
 
 
 def visit(booking_id):
-    """Everything that happened to one booking at the centre, in order:
-    gate, weighbridge, closing, the money, leaving."""
+    # timeline for the booking page
     steps = []
     for e in query("SELECT e.*, s.staff_code FROM booking_events e LEFT JOIN staff s ON s.id = e.staff_id"
                    " WHERE e.booking_id = ? AND e.kind != 'scan' ORDER BY e.at", (booking_id,)):
@@ -189,7 +170,6 @@ def visit(booking_id):
 
 
 def today(centre_id=None):
-    """The gate screen's numbers and its list of recent scans."""
     day = date.today().isoformat()
     scope = " AND sx.centre_id = %d" % int(centre_id) if centre_id else ""
     inside = query("SELECT COUNT(*) AS n FROM bookings bx JOIN slots sx ON sx.id = bx.slot_id"

@@ -29,7 +29,6 @@ def query(sql, args=(), one=False):
 
 
 def execute(sql, args=()):
-    """Run a write and return the new/affected row id."""
     db = get_db()
     cur = db.execute(sql, args)
     db.commit()
@@ -39,15 +38,14 @@ def execute(sql, args=()):
 
 
 def migrate():
-    """Bring an older procurement.db up to date without wiping it."""
+    # upgrade an older procurement.db in place
     if not os.path.exists(DB_PATH):
         return
     conn = sqlite3.connect(DB_PATH)
     cols = [r[1] for r in conn.execute("PRAGMA table_info(alerts_log)")]
     if cols and "message_hi" not in cols:
         conn.execute("ALTER TABLE alerts_log ADD COLUMN message_hi TEXT")
-        # most old in-app alerts had a hindi phone script written in the same
-        # second. borrow that so old notices still read in hindi
+        # copy the hindi from the matching ivr row
         conn.execute(
             "UPDATE alerts_log SET message_hi = (SELECT i.message FROM alerts_log i"
             "  WHERE i.channel = 'ivr' AND i.farmer_id = alerts_log.farmer_id"
@@ -75,8 +73,6 @@ CREATE INDEX IF NOT EXISTS idx_farmer_lands_farmer ON farmer_lands(farmer_id);
 
 
 def _migrate_lands(conn):
-    """Farmer IDs, and more than one land record per farmer. A farmer's old
-    single land record becomes their first row."""
     _add_columns(conn, "farmers", [("agristack_id", "TEXT")])
     conn.executescript(LANDS_SQL)
     conn.execute(
@@ -119,8 +115,6 @@ def _add_columns(conn, table, columns):
 
 
 def _migrate_payments(conn):
-    """The weighbridge record, the payment stages and the gate - added when
-    payments stopped being a status picked from a dropdown."""
     _add_columns(conn, "farmers", [("aadhaar_seeded", "INTEGER NOT NULL DEFAULT 1")])
     _add_columns(conn, "bookings", [("gate_in_at", "TEXT"), ("gate_queue", "INTEGER"),
                                     ("gate_out_at", "TEXT")])
@@ -134,7 +128,6 @@ def _migrate_payments(conn):
     conn.executescript(PAYMENTS_SQL)
     if "pay_stage" in added:
         conn.execute("UPDATE transactions SET pay_stage = " + _STAGE_FROM_STATUS)
-        # closed ones get the receipt they would have been given
         conn.execute(
             "UPDATE transactions SET receipt_no = 'KS/PC' || printf('%02d', (SELECT s.centre_id FROM bookings b"
             " JOIN slots s ON s.id = b.slot_id WHERE b.id = transactions.booking_id))"
@@ -162,13 +155,10 @@ CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at);
 
 
 def _migrate_staff(conn):
-    """Roles, account switches, hashed passwords and the activity log - added
-    when the shared ADMIN login was split into real accounts."""
     from accounts import DEMO_PASSWORD, DEMO_STAFF, hash_password, is_hashed
     cols = [r[1] for r in conn.execute("PRAGMA table_info(staff)")]
     if "role" not in cols:
         conn.execute("ALTER TABLE staff ADD COLUMN role TEXT NOT NULL DEFAULT 'staff'")
-        # the old shared login saw every centre, so it becomes the supervisor
         conn.execute("UPDATE staff SET role = 'superadmin' WHERE centre_id IS NULL")
     if "active" not in cols:
         conn.execute("ALTER TABLE staff ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
@@ -178,7 +168,7 @@ def _migrate_staff(conn):
     for sid, pw in conn.execute("SELECT id, password FROM staff").fetchall():
         if not is_hashed(pw):
             conn.execute("UPDATE staff SET password = ? WHERE id = ?", (hash_password(pw), sid))
-    # an older demo database only has the shared login - give it the counters
+    # old dbs only had the shared ADMIN login
     centres = dict(conn.execute("SELECT name, id FROM procurement_centres").fetchall())
     for code, name, centre, role in DEMO_STAFF:
         if centre and centre not in centres:
@@ -188,17 +178,5 @@ def _migrate_staff(conn):
         conn.execute("INSERT INTO staff (name, staff_code, password, centre_id, role)"
                      " VALUES (?,?,?,?,?)",
                      (name, code, hash_password(DEMO_PASSWORD), centres.get(centre), role))
-    # the demo account was renamed when "supervisor" became "superadmin"
     conn.execute("UPDATE staff SET name = 'District Superadmin' WHERE name = 'District Supervisor'")
 
-
-def init_db(conn=None):
-    """Create all tables from schema.sql. Destructive - drops existing tables."""
-    own = conn is None
-    if own:
-        conn = sqlite3.connect(DB_PATH)
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql"), encoding="utf-8") as f:
-        conn.executescript(f.read())
-    conn.commit()
-    if own:
-        conn.close()

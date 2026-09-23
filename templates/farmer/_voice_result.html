@@ -1,9 +1,6 @@
-{# one step of the spoken booking conversation. part of the voice page, and
-   sent back as html after every turn so the page never reloads - a reload
-   would stop the browser from speaking the next question #}
+{# returned after every turn by /farmer/voice/step #}
 {% from "_macros.html" import crop_name %}
 
-{# the words a field was read from, so the farmer can see why we think it #}
 {% macro heard(p, field) -%}
   {%- if p.heard.get(field) %}<span class="heard">{{ t("heard") }}: &ldquo;{{ p.heard[field] }}&rdquo;</span>{% endif -%}
 {%- endmacro %}
@@ -15,7 +12,6 @@
   <p class="voice-said">{{ step.say }}</p>
   <button type="button" class="btn secondary" data-replay data-js hidden>{{ icon('volume') }}{{ t("Hear it again") }}</button>
   {% if step.directions %}
-  {# opens the maps app on a phone, from wherever the farmer is standing #}
   <a class="btn secondary" href="{{ step.directions }}" target="_blank" rel="noopener">{{ icon('navigation') }}{{ t("Directions") }}</a>
   {% endif %}
 </div>
@@ -115,7 +111,6 @@
   <div class="card">
     <div class="card-head">
       <h2 class="card-title">{{ t("What we understood") }}</h2>
-      {# which path read the sentence: the AI, or the word list when it couldn't #}
       {% if p.source == 'ai' %}<span class="badge blue">{{ t("Understood by AI") }}</span>
       {% else %}<span class="state off">{{ t("Understood offline") }}</span>{% endif %}
     </div>
@@ -160,8 +155,6 @@
       <div class="notice warning small"><p>{{ t("That time was full. This is another time on the same day.") }}</p></div>
       {% endif %}
 
-      {# the same booking by hand: for typing, for browsers without script,
-         and to fix a misheard crop or number before confirming #}
       <form method="post" action="{{ url_for('farmer_book') }}">
         <input type="hidden" name="slot_id" value="{{ s.id }}">
         <input type="hidden" name="back" value="{{ url_for('farmer_voice') }}">

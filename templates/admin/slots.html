@@ -10,7 +10,6 @@
 </div>
 
 <form method="get" class="filter-bar">
-  {# centre staff are locked to their own centre, so no choice to offer #}
   {% if not my_centre %}
   <div class="field">
     <label for="centre_id">{{ icon('building') }} {{ t("Centre") }}</label>

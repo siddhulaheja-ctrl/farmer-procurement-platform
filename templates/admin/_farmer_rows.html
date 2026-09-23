@@ -1,4 +1,4 @@
-{# the list on the farmers page. its own file so the live search can ask for just this #}
+{# also returned alone for the live search #}
 <div class="card">
   <div class="card-head"><h2 class="card-title">{{ icon('users') }}{{ t("Records") }} <span class="count">{{ farmers|length }}</span></h2></div>
   {% if farmers %}

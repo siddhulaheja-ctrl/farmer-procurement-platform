@@ -1,23 +1,16 @@
-# Deploys the portal. The IVR is a separate repo with its own Render service
-# (see farmer-ivr/README.md), so it is not defined here.
-# On Render pick New -> Blueprint and point it at this repo.
-#
-# Free tier disks are wiped on restart, so the database is rebuilt from seed.py
-# at every build. Fine for a demo, not for anything real.
+# Render blueprint (New -> Blueprint). The IVR is its own service, not in here.
+# procurement.db isn't in git, it has to be put on a persistent disk by hand.
 services:
   - type: web
     name: krishi-sutra
     runtime: python
     plan: free
-    buildCommand: "pip install -r requirements.txt && python seed.py"
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2"
     envVars:
       - key: SECRET_KEY
         generateValue: true
       - key: PYTHON_VERSION
         value: 3.12.7
-      # Where the portal should send outbound call requests.
-      - key: IVR_URL
-        value: https://farmer-ivr-jky0.onrender.com
-      # Set OWM_API_KEY in the dashboard for live weather instead of the mock.
+      # OWM_API_KEY / GEMINI_API_KEY go in the dashboard
 

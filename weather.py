@@ -22,26 +22,18 @@ OWM_API_KEY = os.environ.get("OWM_API_KEY", "").strip()
 OWM_URL = "https://api.openweathermap.org/data/2.5/forecast"
 OWM_GEO_URL = "https://api.openweathermap.org/geo/1.0/direct"
 
-# Slots further out than this trigger a storage-risk evaluation.
+# only slots at least this far away get a storage risk check
 LEAD_DAYS_THRESHOLD = int(os.environ.get("STORAGE_RISK_LEAD_DAYS", "5"))
 
-# Rule thresholds
-RAIN_MM_HIGH = 5.0        # total forecast rain (mm) over the window
-HUMIDITY_HIGH = 80        # average relative humidity %
+RAIN_MM_HIGH = 5.0        # mm over the window
+HUMIDITY_HIGH = 80        # avg %
 
-# STORAGE_RISK_FORCE=1 makes everything come back HIGH, for when the weather
-# is dry and we still need to show the alert
+# STORAGE_RISK_FORCE=1 -> always high, for demoing on a dry day
 DEMO_FORCE_RISK = {"on": os.environ.get("STORAGE_RISK_FORCE", "").strip() in ("1", "true", "yes")}
 
-# Where to ask for the forecast.
-# OWM only knows towns. Districts come back "city not found" and so do most
-# villages, so asking for the farmer's address never worked - it just fell
-# through to the mock and we didn't notice for weeks.
-# Now: geocode the village, else use the district HQ coords below, else mock.
-# The HQ coords are hardcoded so step 2 can't fail. A reading from 30km away
-# is still useful for rain, and we show which town it came from.
-# TODO: IMD's Gramin Krishi Mausam Sewa does this at block level. Needs a govt
-# data agreement.
+# OWM doesn't know districts or most villages by name. so: geocode the village,
+# else these district HQ coords, else mock
+# TODO: IMD Gramin Krishi Mausam Sewa has block level data
 DISTRICT_POINTS = {
     "Udham Singh Nagar": (28.975, 79.396, "Rudrapur"),
     "Haridwar":          (29.967, 78.167, "Haridwar"),
@@ -53,7 +45,6 @@ _geo_cache = {}
 
 
 def resolve_point(district, village=None):
-    """Returns lat/lon, the place name we used, and how precise it is."""
     if village:
         key = "%s|%s" % (village, district)
         if key not in _geo_cache:
@@ -69,14 +60,13 @@ def resolve_point(district, village=None):
 
 
 def distance_km(a, b):
-    """Straight-line km between two points from resolve_point()."""
+    # haversine
     lat1, lon1, lat2, lon2 = map(math.radians, (a["lat"], a["lon"], b["lat"], b["lon"]))
     h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2
     return 6371 * 2 * math.asin(math.sqrt(h))
 
 
 def _geocode(q):
-    """village -> (lat, lon), or None. Usually None."""
     if not OWM_API_KEY:
         return None
     try:
@@ -89,18 +79,14 @@ def _geocode(q):
         return None
 
 
-# Districts the mock forecast knows, and which of them it keeps in a wet spell
-# so the storage-risk alert can be shown offline. Only used without a live key.
+# mock only. one wet district so the storage alert shows up offline
 MOCK_KNOWN_DISTRICTS = {"Udham Singh Nagar", "Haridwar", "Dehradun", "Nainital"}
 MOCK_WET_DISTRICTS = {"Udham Singh Nagar"}
 
 
 def _mock_forecast(district: str, days: int):
-    """Fake forecast. Same district always gives the same answer so demos
-    are repeatable."""
+    # deterministic per district
     seed = sum(ord(c) for c in (district or "X"))
-    # only some are wet, otherwise everything gets flagged and the watchlist
-    # is useless
     wet_district = (district in MOCK_WET_DISTRICTS) if district in MOCK_KNOWN_DISTRICTS \
         else (seed % 3 == 0)
     out = []
@@ -119,11 +105,7 @@ _owm_cache = {}
 
 
 def _owm_entries(point):
-    """OpenWeatherMap's 3-hourly readings for a point, in local time.
-
-    Both the day cards and the hour-by-hour table come from this, so one api
-    call serves both. Returns None on any failure so callers use the mock.
-    """
+    # 3-hourly readings in local time, None on any failure
     if not OWM_API_KEY or not point:
         return None
     import time
@@ -138,14 +120,11 @@ def _owm_entries(point):
             "appid": OWM_API_KEY, "units": "metric",
         }, timeout=6)
         if r.status_code != 200:
-            # used to fall back silently, so you couldn't tell if live data
-            # was working
             print("[weather] %s -> HTTP %s from openweathermap, using mock. %s"
                   % (point["place"], r.status_code, r.text[:120]))
             return None
         body = r.json()
-        # dt is utc. grouping by the utc date put late-evening readings on the
-        # next day, so shift by the offset the api gives (19800s for india)
+        # dt is utc, shift to local or late evening lands on the next day
         offset = body.get("city", {}).get("timezone", 19800)
         entries = []
         for e in body.get("list", []):
@@ -167,7 +146,6 @@ def _owm_entries(point):
 
 
 def _live_forecast(point, days):
-    """Day totals from the 3-hourly readings, or None so callers use the mock."""
     entries = _owm_entries(point)
     if not entries:
         return None
@@ -189,15 +167,12 @@ def _live_forecast(point, days):
     return out or None
 
 
-# Forecasts only change every few hours, and the home page asks for every
-# district at once. Keep an answer for half an hour instead of calling the api
-# on each visit.
 FORECAST_TTL = 30 * 60
 _forecast_cache = {}
 
 
 def get_forecast(district, days=5, village=None):
-    """Returns (forecast, source, place). source is 'live' or 'mock'."""
+    # -> (days, 'live' or 'mock', point)
     import time
     key = (district, days, village)
     hit = _forecast_cache.get(key)
@@ -211,14 +186,12 @@ def get_forecast(district, days=5, village=None):
 
 
 def _mock_hours(district, day_iso):
-    """Fake 3-hourly readings that add up to the fake day card for that date."""
     day = next((d for d in _mock_forecast(district, 5) if d["date"] == day_iso), None)
     if not day:
         return None
     seed = sum(ord(c) for c in (district or "X"))
     start = datetime.strptime(day_iso, "%Y-%m-%d")
     wet = day["rain_mm"] > 0
-    # the rain falls in the afternoon and evening, like a monsoon day does
     weights = [0, 0, 0, 1, 2, 3, 2, 1] if wet else [0] * 8
     out = []
     for i in range(8):
@@ -226,7 +199,6 @@ def _mock_hours(district, day_iso):
         rain = round(day["rain_mm"] * weights[i] / sum(weights), 1) if wet else 0.0
         out.append({
             "at": start + timedelta(hours=hour),
-            # coolest before dawn, warmest around three in the afternoon
             "temp": 22 + seed % 6 + round(8 * math.sin((hour - 9) * math.pi / 12)),
             "humidity": max(20, min(100, day["humidity"] + (10 if hour < 9 else -8 if 12 <= hour <= 15 else 0))),
             "rain_mm": rain,
@@ -239,10 +211,6 @@ def _mock_hours(district, day_iso):
 
 
 def get_hours(district, day_iso, village=None):
-    """3-hourly readings for one day. Returns (rows, source, point).
-
-    rows is empty when the day has no readings left, e.g. late tonight.
-    """
     point = resolve_point(district, village)
     entries = _owm_entries(point)
     if entries:
@@ -251,11 +219,6 @@ def get_hours(district, day_iso, village=None):
 
 
 def assess_risk(district, slot_date_str, village=None):
-    """Risk of the grain spoiling while it waits for `slot_date_str`.
-
-    Returns level (none|low|high), lead_days, reason, forecast, source, place,
-    and nearby=True if we fell back from the village to the district town.
-    """
     try:
         slot_date = datetime.strptime(slot_date_str, "%Y-%m-%d").date()
     except (TypeError, ValueError):
@@ -263,12 +226,11 @@ def assess_risk(district, slot_date_str, village=None):
                 "forecast": [], "source": "mock", "place": district, "nearby": False}
 
     lead_days = (slot_date - date.today()).days
-    window = max(1, min(lead_days, 5))       # OWM free tier gives 5 days
+    window = max(1, min(lead_days, 5))       # free tier is 5 days
     forecast, source, point = get_forecast(district, window, village)
 
     place = point["place"] if point else district
-    # say when the reading is from the district town, not their village -
-    # otherwise "no rain expected" sounds like a promise about their field
+    # say so when it's the district town's forecast, not their village's
     nearby = bool(point and village and point["precision"] == "district")
     where = "%s (nearest station to %s)" % (place, village) if nearby else place
     meta = {"source": source, "place": place, "nearby": nearby}
@@ -306,7 +268,6 @@ def assess_risk(district, slot_date_str, village=None):
 
 
 def day_card(district, day_iso, village=None):
-    """The forecast for one date, or None when it is past the five days we get."""
     forecast, source, point = get_forecast(district, 6, village)
     card = next((d for d in forecast if d["date"] == str(day_iso)[:10]), None)
     if not card:
@@ -315,7 +276,7 @@ def day_card(district, day_iso, village=None):
 
 
 def outlook(district, days=5, village=None):
-    """(one plain line per day, the place they describe). For the help chat's facts."""
+    # for the help chat
     forecast, source, point = get_forecast(district, days, village)
     lines = ["%s: %s, rain %.1f mm, humidity %d%%"
              % (d["date"], d["description"], d["rain_mm"], d["humidity"]) for d in forecast]
@@ -323,7 +284,6 @@ def outlook(district, days=5, village=None):
 
 
 def evaluate_booking(booking_id: int):
-    """Assess one booking, persist the risk level, and alert the farmer if high."""
     row = query(
         "SELECT b.id, b.farmer_id, b.storage_risk, s.date AS slot_date, f.district,"
         "       f.village, f.name,"
@@ -349,8 +309,6 @@ def evaluate_booking(booking_id: int):
                     message_hi="भंडारण जोखिम: %s पर आपका स्लॉट %d दिन दूर है और बारिश का "
                                "अनुमान है। उपज ढककर ऊंची जगह रखें।"
                                % (hi(row["centre_name"]), result["lead_days"]))
-        # this gets read out on the call, so write it to the farmer, not
-        # as a note to ourselves
         raise_alert(row["farmer_id"], "storage_risk", "ivr",
                     "नमस्ते %s जी। कृषि सूत्र से सूचना। %s पर आपका स्लॉट %d दिन दूर है और "
                     "आपके क्षेत्र में बारिश का अनुमान है। अपनी उपज को ढककर ऊंची जगह रखें, "

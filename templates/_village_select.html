@@ -1,7 +1,4 @@
-{# A village picked from a list, not typed. Every district's villages are on
-   the page in optgroups, so it works without script; stepper.js narrows the
-   list to the district chosen in #district.
-   Expects: vid, vname, vvalue, vrequired #}
+{# expects vid, vname, vvalue, vrequired #}
 {% set places = namespace(found=false) %}
 <select id="{{ vid }}" name="{{ vname }}" data-village{{ ' required' if vrequired }}
         data-pick="{{ t('-- Select village --') }}" data-first="{{ t('Select the district first') }}">

@@ -1,8 +1,4 @@
-/* Home page motion and the photo slideshow. Loaded only on the home page. */
-
-/* motion: things are drawn, written and settled as they come into view.
-   Written for old, slow phones too: no NodeList.forEach, no arrow functions,
-   and it works without IntersectionObserver. */
+/* home page animations and the photo slideshow. kept ES5 for old phones */
 (function () {
     var body = document.body;
     function all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
@@ -11,8 +7,7 @@
         items.forEach(function (el) { el.classList.add('in'); });
         return;
     }
-    // phones in battery saver or with "remove animations" on ask for reduced motion:
-    // they still get short fades and slides, but nothing that loops or drifts
+    // reduced motion: short fades only, nothing looping
     var gentle = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     var hasIO = 'IntersectionObserver' in window;
     body.classList.add('motion');
@@ -47,9 +42,7 @@
             if (r.top < h * .94 && r.bottom > 0 && r.left < w && r.right > 0) { reveal(el); }
         });
     }
-    // a slow phone is still parsing, decoding the photo and loading fonts right after
-    // the HTML arrives; animations started then run while nothing is painted and are
-    // over before the page shows. So wait for load (1.2s at most), then two frames.
+    // on slow phones the animations finished before anything painted. wait for load (max 1.2s)
     function start() {
         if (started) { return; }
         started = true;
@@ -70,7 +63,7 @@
     window.addEventListener('scroll', sweep, { passive: true });
     window.addEventListener('resize', sweep);
     all('.plates').forEach(function (p) { p.addEventListener('scroll', sweep, { passive: true }); });
-    // safety net: nothing stays invisible, whatever goes wrong above
+    // fallback so nothing stays hidden
     setTimeout(function () { started = true; sweep(); }, 3000);
 
 })();

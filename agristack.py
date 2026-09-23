@@ -1,13 +1,5 @@
-"""A stand-in for the AgriStack farmer registry.
-
-States have been giving farmers a Farmer ID (Kisan Pehchaan Patra) under
-AgriStack. It is tied to the farmer's Aadhaar, and the registry holds their
-bank account and every land parcel they own, so a farmer who has one
-shouldn't have to type any of that again.
-
-This is mock data: four made-up farmers. In the live system the lookup goes to
-the state registry and needs the farmer's consent - an OTP to the mobile linked
-to that Farmer ID - before anything is shared.
+"""Mock AgriStack farmer registry (Farmer ID -> aadhaar, bank, land parcels).
+Four made up farmers. The real one needs an OTP consent step.
 TODO: AgriStack farmer registry API, with consent
 """
 
@@ -17,7 +9,7 @@ FARMER_ID_LENGTH = 11
 
 
 def _aadhaar(first_eleven):
-    """A made-up Aadhaar that still passes the checksum, like a real one would."""
+    # fake but passes verhoeff
     return first_eleven + verhoeff_checksum_digit(first_eleven)
 
 
@@ -49,7 +41,7 @@ DEMO = {
             {"land_record_id": "USN-341007-02", "village": "Dineshpur", "district": "Udham Singh Nagar", "area_acres": 1.5},
         ],
     },
-    # the account is in a longer form of her name: registers fine, gets the name-match warning
+    # name on account differs -> name match warning
     "10025000104": {
         "name": "Meena Rawat", "village": "Vikasnagar", "district": "Dehradun",
         "aadhaar": _aadhaar("49215830674"), "bank_account": "20385519624470", "ifsc": "BARB0VIKASN",
@@ -62,12 +54,10 @@ DEMO = {
 
 
 def clean(value):
-    """Just the digits - people type the ID with spaces."""
     return "".join(c for c in str(value or "") if c.isdigit())
 
 
 def lookup(farmer_id):
-    """The registry record for a Farmer ID, or None."""
     code = clean(farmer_id)
     record = DEMO.get(code)
     if record is None:
@@ -84,9 +74,7 @@ def mask(value, keep=4):
 
 
 def public(record):
-    """What the registration page may show before anyone has registered: no
-    full Aadhaar or account number. The server takes those from the registry
-    itself when the form arrives."""
+    # safe to send to the page, no full aadhaar / account number
     return {
         "farmer_id": record["farmer_id"], "name": record["name"], "village": record["village"],
         "district": record["district"], "ifsc": record["ifsc"], "name_on_account": record["name_on_account"],

@@ -2,8 +2,6 @@
 {% from "_macros.html" import crop_name %}
 {% block title %}{{ t("Purchase receipt") }} {{ x.receipt_no }}{% endblock %}
 
-{# The purchase receipt (kharid parchi) the farmer takes home. Printed like the
-   gate pass. The QR lets anyone check it is genuine and the amount untouched. #}
 {% block content %}
 <nav class="breadcrumb no-print" aria-label="Breadcrumb">
   <a href="{{ back }}">{{ icon('arrow-left') }}{{ x.token_no }}</a>{{ icon('chevron-right') }}<span>{{ t("Purchase receipt") }}</span>

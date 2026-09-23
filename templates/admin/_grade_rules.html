@@ -1,7 +1,3 @@
-{# The grading rules from core.py, on the weighing screen, so the member can
-   explain a grade without remembering the numbers. Everything comes from
-   core.py, so this can't drift from what the portal actually does.
-   Expects: b, moisture_table, moisture_max, foreign_faq, foreign_b, grade_factor, msp #}
 {% set L = moisture_max %}
 <details class="grade-rules card"{{ ' open' if b.status == 'booked' }}>
   <summary class="card-head"><h2 class="card-title">{{ icon('award') }}{{ t("How the grade is decided") }}</h2></summary>

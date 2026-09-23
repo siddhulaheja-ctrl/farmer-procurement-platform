@@ -4,8 +4,7 @@
 #   chmod +x start_demo.sh     (once, if needed)
 #   ./start_demo.sh
 #
-# Installs dependencies if they are missing, seeds the database on first run,
-# then starts the server and opens a browser.
+# Installs dependencies if they are missing, then starts the server and opens a browser.
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -27,8 +26,8 @@ if [ -z "$PY" ]; then
 fi
 
 # --- dependencies -----------------------------------------------------------
-if ! "$PY" -c "import flask, faker" >/dev/null 2>&1; then
-    echo "Installing dependencies (Flask, Faker, requests)..."
+if ! "$PY" -c "import flask, qrcode, requests" >/dev/null 2>&1; then
+    echo "Installing dependencies..."
     "$PY" -m pip install --quiet -r requirements.txt || {
         echo ""
         echo "pip install failed. If your Python is externally managed, use a virtualenv:"
@@ -40,9 +39,8 @@ fi
 
 # --- database ---------------------------------------------------------------
 if [ ! -f procurement.db ]; then
-    echo "No database found. Creating demo data, this takes a few seconds..."
-    "$PY" seed.py
-    echo ""
+    echo "procurement.db is missing. Put a copy of the database in this folder first."
+    exit 1
 fi
 
 # --- pick a port ------------------------------------------------------------
@@ -64,8 +62,7 @@ echo "=========================================================="
 echo ""
 echo "  On this computer:   $URL"
 echo ""
-echo "  Farmer login: 9000000001  or  9000000002    OTP: 123456"
-echo "  Staff login:  ADMIN / demo123"
+echo "  Farmer login: registered mobile number, OTP 123456"
 echo ""
 echo "  Press Ctrl+C to stop the server."
 echo "=========================================================="
