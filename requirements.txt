@@ -6,5 +6,5 @@ vonage==4.8.2
 qrcode==8.2
 gunicorn==26.2.0
 
-# optional, speech to text for firefox. model: python speech_to_text.py download (~480 MB)
-faster-whisper==1.2.1
+# optional, speech to text for firefox:
+#   pip install faster-whisper==1.2.1 && python speech_to_text.py download   (~480 MB)

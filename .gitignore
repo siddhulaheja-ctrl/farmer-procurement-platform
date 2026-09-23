@@ -25,7 +25,7 @@ Thumbs.db
 # Generated at share time, not worth committing
 LAST_SHARE_LINK.txt
 
-# the IVR is its own repo with its own render service
+# the IVR is its own repo
 farmer-ivr/
 
 

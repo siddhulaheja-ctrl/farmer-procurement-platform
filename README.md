@@ -111,8 +111,27 @@ reads `/ivr/status.json`, which needs `IVR_TOKEN` set on both sides.
 
 Chrome, Edge and Safari do speech to text in the browser. Firefox can only
 record, so the recording goes to the server and `faster-whisper` transcribes
-it. That part is optional, get the model once with
-`python speech_to_text.py download` (about 480 MB).
+it. That part is optional and not in requirements.txt:
+`pip install faster-whisper==1.2.1`, then `python speech_to_text.py download`
+(about 480 MB).
+
+## Server
+
+An Azure VM (Ubuntu 24.04, B1s), gunicorn behind Caddy for https.
+
+```bash
+# on the VM, once the domain points at it
+curl -fsSLO https://raw.githubusercontent.com/siddhulaheja-ctrl/farmer-procurement-platform/main/deploy/setup.sh
+sudo bash setup.sh your-domain.me
+```
+
+Then copy the files that aren't in git into `/srv/krishi`: `procurement.db`,
+`.env`, `.secret_key` (same key, so passes already printed still verify) and
+`farmer-ivr/private.key`. `sudo chown -R krishi:krishi /srv/krishi` and
+`sudo systemctl restart krishi`.
+
+After pushing new code: `sudo bash /srv/krishi/deploy/update.sh`.
+Logs: `journalctl -u krishi -f`.
 
 ## Files
 
