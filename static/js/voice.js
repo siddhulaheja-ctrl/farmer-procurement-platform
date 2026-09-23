@@ -11,8 +11,10 @@
 
    Listening: Chrome, Edge and Safari have speech recognition built in. Other
    browsers record the audio and the server writes out the words
-   (speech_to_text.py). Add ?stt=server to the address to force that path in
-   Chrome when testing it.
+   (speech_to_text.py). When the built-in kind turns out not to work here -
+   Safari with Dictation off, Bengali on an Apple device, Chrome offline - the
+   page switches to recording for the rest of the visit. Add ?stt=server to
+   the address to force that path in Chrome when testing it.
 
    Speaking: speechSynthesis works in every current browser, but only when the
    device has a voice for the page language. Without one, the words stay on
@@ -94,9 +96,12 @@
         trace('listening with ' + (useBrowser ? 'browser recognition' : canRecord ? 'recording + server' : 'nothing'));
 
         // the server model takes a few seconds to load; start now, not on the first sentence
-        if (canListen && !useBrowser && form.dataset.warm) {
-            fetch(form.dataset.warm, { method: 'POST', credentials: 'same-origin' }).catch(function () {});
+        function warm() {
+            if (form.dataset.warm) {
+                fetch(form.dataset.warm, { method: 'POST', credentials: 'same-origin' }).catch(function () {});
+            }
         }
+        if (canListen && !useBrowser) { warm(); }
 
         // ---- speaking --------------------------------------------------------
 
@@ -160,22 +165,50 @@
             guard = setTimeout(function () { end('time limit'); }, 4000 + text.length * 120);
         }
 
-        // a short tone when the microphone opens, so the farmer knows to talk
-        var beeper = null;
-        function beep() {
+        // one audio context for the whole page, shared by the beep and the
+        // level meter
+        var audioCtx = null;
+        function audio() {
             var Context = window.AudioContext || window.webkitAudioContext;
-            if (!Context) { return; }
+            if (!audioCtx && Context) {
+                try { audioCtx = new Context(); } catch (e) { audioCtx = null; }
+            }
+            return audioCtx;
+        }
+
+        // Safari on an iPhone blocks any sound that doesn't begin inside a tap,
+        // and our speaking begins after a fetch, long after the tap. Starting
+        // the speech engine and the audio context once, inside the first tap,
+        // lets both work for the rest of the page. Harmless everywhere else
+        var unlocked = false;
+        function unlockAudio() {
+            if (unlocked) { return; }
+            unlocked = true;
+            if (synth) {
+                try { synth.speak(new SpeechSynthesisUtterance('')); } catch (e) { /* nothing to start */ }
+            }
+            var ctx = audio();
+            if (ctx && ctx.resume) { ctx.resume(); }
+            trace('audio started by a tap');
+        }
+        ['touchend', 'click', 'keydown'].forEach(function (name) {
+            document.addEventListener(name, unlockAudio, true);
+        });
+
+        // a short tone when the microphone opens, so the farmer knows to talk
+        function beep() {
+            var ctx = audio();
+            if (!ctx) { return; }
             try {
-                beeper = beeper || new Context();
-                if (beeper.resume) { beeper.resume(); }
-                var tone = beeper.createOscillator();
-                var volume = beeper.createGain();
+                if (ctx.resume) { ctx.resume(); }
+                var tone = ctx.createOscillator();
+                var volume = ctx.createGain();
                 tone.frequency.value = 880;
                 volume.gain.value = 0.08;
                 tone.connect(volume);
-                volume.connect(beeper.destination);
+                volume.connect(ctx.destination);
                 tone.start();
-                tone.stop(beeper.currentTime + 0.15);
+                tone.stop(ctx.currentTime + 0.15);
             } catch (e) { /* no tone, still listening */ }
         }
 
@@ -207,6 +240,7 @@
             var failed = false;
             var abandoned = false;
             var ended = false;
+            var switchToRecording = false;
             var quietTimer = null;
             var longestTimer = null;
             var startedAt = Date.now();
@@ -242,6 +276,13 @@
                 stopListening = abandonListening = null;
                 setListening(false);
                 if (abandoned) { return; }
+                if (switchToRecording) {
+                    useBrowser = false;
+                    trace('built-in recognition does not work here, recording from now on');
+                    warm();
+                    listen(kind, done);
+                    return;
+                }
                 var text = sentence(0) || unfinished.trim();
                 trace('heard: ' + (text || '(nothing)'));
                 if (!text) { done(null, [], failed); return; }
@@ -282,15 +323,25 @@
             };
             rec.onerror = function (e) {
                 trace('recognition error: ' + e.error);
-                if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-                    failed = true;
-                    wanted = false;
-                    show('denied');
-                } else if (e.error === 'network' || e.error === 'audio-capture') {
-                    failed = true;
-                    wanted = false;
+                if (e.error === 'no-speech' || e.error === 'aborted') {
+                    return;   // these only end the session, handled below
                 }
-                // no-speech and aborted only end the session, handled below
+                // anything else fails again the moment it restarts, which used
+                // to spin here for the full 30 seconds. stop restarting
+                wanted = false;
+                failed = true;
+                if (e.error === 'audio-capture') {
+                    return;   // no microphone at all: recording can't help
+                }
+                if (canRecord) {
+                    // Dictation off in Safari, a language the device can't do,
+                    // a refused speech permission, or Chrome offline. Recording
+                    // still works, so use that. If it was the microphone itself
+                    // that was refused, the recording path says so when it asks
+                    switchToRecording = true;
+                } else {
+                    show(e.error === 'not-allowed' ? 'denied' : 'unsupported');
+                }
             };
             rec.onend = function () {
                 active = false;
@@ -309,6 +360,7 @@
             } catch (err) {
                 trace('recognition would not start: ' + err);
                 failed = true;
+                switchToRecording = canRecord;
                 finish();
                 return;
             }
@@ -350,21 +402,28 @@
                 var startedAt = Date.now();
                 var lastLoud = startedAt;
 
-                // how loud it is, to notice when the farmer has stopped talking
-                var Context = window.AudioContext || window.webkitAudioContext;
-                var ctx = Context ? new Context() : null;
+                // how loud it is, to notice when the farmer has stopped talking.
+                // this uses the page's one context, the one a tap started: a new
+                // one made here, outside a tap, stays silent on an iPhone and the
+                // farmer's words were thrown away as silence
+                var ctx = audio();
+                var source = null;
                 var analyser = null;
                 var samples = null;
                 if (ctx) {
-                    analyser = ctx.createAnalyser();
-                    analyser.fftSize = 1024;
-                    ctx.createMediaStreamSource(s).connect(analyser);
-                    samples = new Uint8Array(analyser.fftSize);
+                    try {
+                        if (ctx.resume) { ctx.resume(); }
+                        analyser = ctx.createAnalyser();
+                        analyser.fftSize = 1024;
+                        source = ctx.createMediaStreamSource(s);
+                        source.connect(analyser);
+                        samples = new Uint8Array(analyser.fftSize);
+                    } catch (e) { analyser = null; }
                 }
 
                 var meter = setInterval(function () {
                     var now = Date.now();
-                    if (analyser) {
+                    if (analyser && (!ctx.state || ctx.state === 'running')) {
                         analyser.getByteTimeDomainData(samples);
                         var sum = 0;
                         for (var i = 0; i < samples.length; i++) {
@@ -377,7 +436,10 @@
                         }
                         if (spoke ? now - lastLoud > timing.quietAfter : now - startedAt > timing.quietBefore) { stop(); }
                     } else {
-                        spoke = true;   // can't measure it: record until Stop or the limit
+                        // can't hear the level: assume they are still talking,
+                        // and let Stop or the time limit end it
+                        spoke = true;
+                        lastLoud = now;
                     }
                     if (now - startedAt > LONGEST) { stop(); }
                 }, 100);
@@ -393,7 +455,7 @@
                 recorder.onstop = function () {
                     stopListening = abandonListening = null;
                     setListening(false);
-                    if (ctx && ctx.close) { ctx.close(); }
+                    if (source) { try { source.disconnect(); } catch (e) { /* already gone */ } }
                     if (abandoned) { return; }
                     if (!spoke || !chunks.length) { trace('heard: (nothing)'); done(null, [], false); return; }
 
